@@ -6,7 +6,7 @@
 Но как иначе? 
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 #TODO: Модели под пользователей
@@ -84,13 +84,45 @@ class OrderFilter(BaseModel):
     Валидация фильтров на получение заявка
     """
 
-class BaseAdminAuth(BaseModel):
+
+class UserSignUp(BaseModel):
     """
-    Валидация логина админа
+    Валидация регистрации
     """
-    email: str
+    username: EmailStr
+    password: str
+
+
+class UserLogin(BaseModel):
+    username: EmailStr
+    password: str
+    email: str | None = None
+    full_name: str | None = None
+
+
+class UserCreationValidator(BaseModel):
+    #Модель проверки данных на ручное создание пользователя
+    email: EmailStr
+    password: str | None = None
+
+    telegram_id: int | None = None
+    telegram_username: str | None = None
+    phone_number: str | None = None
+    full_name: str
+
+    role: str = "user"
 
 
 class AuthToken(BaseModel):
     access_token: str
     token_type: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: EmailStr | None = None
+    scopes: list[str] = []
