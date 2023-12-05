@@ -33,15 +33,14 @@ from datetime import timedelta
 
 from jose import jwt
 
-import os
+import os, uuid
 from dotenv import load_dotenv
 
 
 load_dotenv()
 router = APIRouter()
 
-#TODO: Генерация токена привязки пользователя к боту с сайта
-#TODO: Ручная привязка пользователя к боту
+#TODO: Ручная привязка пользователя к боту #невозможно
 #TODO: Отправка сообщения пользователю через бота 
 
 
@@ -140,17 +139,29 @@ async def create_user(
         del new_user_data["role"]
 
         new_user = Users(**new_user_data)
+        new_user.link_code = str(uuid.uuid4())[:10]
         session.add(new_user)
+        session.flush()
+        session.refresh(new_user)
+
+        for role in str(user_role).split(' '):
+            role_query = Roles.get_role(role)
+            if role_query:
+                user_role = Premissions(
+                    user_id = new_user.id,
+                    role_id = Roles.get_role(role).id
+                )
+                session.add(user_role)
+
         session.commit()
 
-
-    return new_user
+        return new_user
 
 
 @router.delete('/users', tags=["admins"])
 async def delete_user():
     """
-    Удаление пользователя
+    Удаление пользователя (Отправляется в disabled)
     """
     pass
 
@@ -213,12 +224,15 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
             }, 400)
         
         #TODO: Генерировать доступные скоупы в зависимости от роли пользователя
+
+        scopes_query = session.query(Premissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
+
         expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
         token = create_access_token(
             data={
                 "sub": login_data.username,
                 "internal_id": str(query.id),
-                "scopes": ['users', 'me', 'admin', 'manager']
+                "scopes": [role.role_name for role in scopes_query]
             }, 
             expires_delta=expires)
 
@@ -270,7 +284,7 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     }
 })
 async def get_current_user_info(
-    current_user: Annotated[UserLoginSchema, Security(get_current_active_user, scopes=["users"])]
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["customer"])]
 ):
     token_data = jwt.decode(token=current_user.access_token, key=SECRET_KEY, algorithms=ALGORITHM)
     print(token_data)

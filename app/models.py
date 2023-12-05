@@ -25,6 +25,12 @@ connection_url = URL.create(
     password=getenv("POSTGRES_PASSWORD")
 )
 
+ROLE_ADMIN_NAME = 'admin'
+ROLE_COURIER_NAME = 'courier'
+ROLE_MANAGER_NAME = 'manager'
+ROLE_CUSTOMER_NAME = 'customer'
+
+
 
 engine = create_engine(connection_url)
 Base = declarative_base()
@@ -125,10 +131,12 @@ class Users(Base):
     date_created = Column(DateTime(), default=datetime.now())
     last_action = Column(DateTime(), default=datetime.now())
     #last_login
-
+    
+    #Код для связки бота и пользователя
     link_code = Column(String(), unique=True, default=str(uuid.uuid4())[:8])
     allow_messages_from_bot = Column(Boolean(), default=True)
 
+    # disabled = Column(Boolean(), default=True)
 
     def get_or_create(
             t_id:int = None, 
@@ -158,14 +166,13 @@ class Users(Base):
 
         return user
 
-    
 
     #TODO: Свойста по ролям
     @property
     def is_admin(self):
         pass
 
-    
+
     def update_last_access(**kws):
         """
         Обновить дату последнего действия пользователя
@@ -182,8 +189,9 @@ class Users(Base):
         return 
 
 
-    def authenticate_user():
-        pass 
+    def set_role(role_name):
+
+        pass
 
 
 class Roles(Base):
@@ -196,6 +204,15 @@ class Roles(Base):
 
     id = Column(Integer(), unique=True, primary_key=True)
     role_name = Column(String(), default='')
+
+
+    def get_role(role_name:str):
+        with Session(engine, expire_on_commit=False) as session:
+            query = session.query(Roles).filter_by(role_name=role_name).first()
+            if query:
+                return query
+            else:
+                return None
 
 
     @property
