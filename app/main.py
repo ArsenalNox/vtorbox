@@ -6,9 +6,7 @@ from .routers import orders, users, couriers, admins
 app = FastAPI()
 
 #Сегодня
-#TODO: Настроить создание пользователей с назначением ролей
-#TODO: Автоматически выдавать скоупы по ролям пользователя
-
+#TODO: Редактирование данных пользователя
 
 #TODO: APSCHEDULER
 #TODO: Админ панель? 
