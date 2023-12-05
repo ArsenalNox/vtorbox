@@ -5,15 +5,14 @@ from .routers import orders, users, couriers, admins
 
 app = FastAPI()
 
+#Сегодня
+#TODO: Настроить создание пользователей с назначением ролей
+#TODO: Автоматически выдавать скоупы по ролям пользователя
+
+
 #TODO: APSCHEDULER
 #TODO: Админ панель? 
 
-#СЕГОДНЯ:
-#TODO: Определится с хранением пользователей/админов/менеджеров - вместе или раздельно
-#TODO Настроить токен авторизации
-
-#ЗАВТРА
-#TODO: Добавить скоупы
 
 origins = [
     "http://127.0.0.1",
@@ -22,6 +21,7 @@ origins = [
     "http://localhost",
     "http://localhost:8080",
 ]
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,25 +35,22 @@ app.add_middleware(
 app.include_router(
     orders.router,
     prefix="/api",
-    tags=["orders"])
+)
 
 
 app.include_router(
     users.router,
-    prefix="/api",
-    tags=["users"]
+    # prefix="/api",
 )
 
 
 app.include_router(
     couriers.router,
     prefix="/api",
-    tags=["couriers"]
 )
 
 
 app.include_router(
     admins.router,
     prefix="/api",
-    tags=["admins"]
 )

@@ -19,7 +19,7 @@ router = APIRouter()
 #TODO: Пул заявок
 
 
-@router.post("/admin/auth")
+@router.post("/admin/")
 async def authenticate_admin():
     pass
 
