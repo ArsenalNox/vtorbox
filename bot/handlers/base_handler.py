@@ -1,5 +1,6 @@
 import abc
 
+import aiohttp
 from aiogram import Bot
 
 
@@ -10,5 +11,5 @@ class Handler(metaclass=abc.ABCMeta):
         self.bot = bot
 
     @abc.abstractmethod
-    def handle(self):
+    async def handle(self):
         pass

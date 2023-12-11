@@ -10,6 +10,7 @@ class Settings:
 
     def __init__(self):
         self.bot_token = os.getenv('BOT_TOKEN')
+        self.base_url = os.getenv('BASE_URL')
 
 
 settings = Settings()

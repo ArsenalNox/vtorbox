@@ -1,8 +1,8 @@
 import asyncio
-
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
+
 
 from bot.handlers.main_handler import MainHandler
 from bot.settings import settings
@@ -19,6 +19,7 @@ class MainBot:
         """Подключение всех роутеров/старт отлова сообщений/логгирование"""
 
         self.dp.include_router(self.handler.command_handler.router)
+        self.dp.include_router(self.handler.text_handler.router)
         self.handler.handle()
         # logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
