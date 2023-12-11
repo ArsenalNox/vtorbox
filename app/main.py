@@ -1,7 +1,8 @@
+import uvicorn
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import orders, users, couriers, admins
+from app.routers import orders, users, couriers, admins
 
 app = FastAPI()
 
@@ -52,3 +53,6 @@ app.include_router(
     admins.router,
     prefix="/api",
 )
+
+if __name__ == '__main__':
+    uvicorn.run('app.main:app', reload=True)
