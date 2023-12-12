@@ -31,7 +31,6 @@ ROLE_MANAGER_NAME = 'manager'
 ROLE_CUSTOMER_NAME = 'customer'
 
 
-
 engine = create_engine(connection_url)
 Base = declarative_base()
 
@@ -49,13 +48,8 @@ class Orders(Base):
     __tablename__ = "orders"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    from_user = Column(UUID(as_uuid=True), ForeignKey('users.id')) 
-    district = Column(String())
-    region = Column(String())
-    distance_from_mkad = Column(String())
-    address = Column(String())
-    full_adress = Column(String())
-    point_on_map = Column(String())
+    from_user = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    address = Column(UUID(as_uuid=True), ForeignKey('address.id'))
 
     weekday = Column(String())
 
@@ -82,7 +76,7 @@ class Orders(Base):
 
     disabled = Column(Boolean(), default=False)
 
-    def get_all_orders():
+    def get_all_orders(self):
         with Session(engine, expire_on_commit=False) as session: 
             return session.query(Orders).all()
 
@@ -139,7 +133,8 @@ class Users(Base):
     # disabled = Column(Boolean(), default=True)
 
     def get_or_create(
-            t_id:int = None, 
+            self,
+            t_id: int = None,
             internal_id: int = None, 
             ):
         """
@@ -166,32 +161,63 @@ class Users(Base):
 
         return user
 
-
     #TODO: Свойста по ролям
     @property
     def is_admin(self):
         pass
 
-
-    def update_last_access(**kws):
+    def update_last_access(**kwargs):
         """
         Обновить дату последнего действия пользователя
         """
+        t_id = kwargs.get('t_id')
+        internal_id = kwargs.get('internal_id')
         if not (t_id or internal_id):
-            raise UserNoIdProvided("Excpected at least one type of user id, zero provided") 
+            raise UserNoIdProvided("Excpected at least one type of user id, zero provided")
 
-        user = Users.get_or_create(kws)
+        user = Users.get_or_create(**kwargs)
 
         with Session(engine, expire_on_commit=False) as session:
             user.last_action = datetime.now()
             session.commit()
-        
-        return 
 
+        return
 
-    def set_role(role_name):
+    def set_role(self, role_name):
 
         pass
+
+
+class Address(Base):
+    """Модель для адреса"""
+
+    __tablename__ = "address"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    address = Column(String(), nullable=False)
+    latitude = Column(String(), nullable=False)
+    longitude = Column(String(), nullable=False)
+
+    district = Column(String())
+    region = Column(String())
+    distance_from_mkad = Column(String())
+    point_on_map = Column(String())
+
+    def __repr__(self):
+        return f'{self.id}'
+
+
+class UsersAddress(Base):
+    """Модель для связки клиентов и адресов"""
+
+    __tablename__ = "users_address"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'))
+
+    def __repr__(self):
+        return f'User:{self.user_id} - Address:{self.address_id}'
 
 
 class Roles(Base):
@@ -205,8 +231,7 @@ class Roles(Base):
     id = Column(Integer(), unique=True, primary_key=True)
     role_name = Column(String(), default='')
 
-
-    def get_role(role_name:str):
+    def get_role(self, role_name: str):
         with Session(engine, expire_on_commit=False) as session:
             query = session.query(Roles).filter_by(role_name=role_name).first()
             if query:
@@ -214,43 +239,39 @@ class Roles(Base):
             else:
                 return None
 
-
     @property
-    def customer_role() -> int:
+    def customer_role(self):
         with Session(engine, expire_on_commit=False) as session:
             query = session.query(Roles).filter_by(role_name='customer').first()
             return query.id
-    
 
     @property
-    def courier_role():
+    def courier_role(self):
         with Session(engine, expire_on_commit=False) as session:
             query = session.query(Roles).filter_by(role_name='courier').first()
             return query.id
 
-
     @property
-    def manager_role():
+    def manager_role(self):
         with Session(engine, expire_on_commit=False) as session:
             query = session.query(Roles).filter_by(role_name='manager').first()
             return query.id
 
-
     @property
-    def admin_role():
+    def admin_role(self):
         with Session(engine, expire_on_commit=False) as session:
             query = session.query(Roles).filter_by(role_name='admin').first()
             return query.id
 
 
-class Premissions(Base):
+class Permissions(Base):
     """
     Модель доступа у пользователей
     """
 
-    __tablename__ = 'premissions'    
+    __tablename__ = 'permissions'
 
-    #Если у пользователя нет каких-либо прав он считается клиентом
+    # Если у пользователя нет каких-либо прав он считается клиентом
     id = Column(Integer(), unique=True, primary_key=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
     role_id = Column(Integer(), ForeignKey('roles.id'))
@@ -288,5 +309,6 @@ def init_role_table():
 
 def init_status_table():
     pass
+
 
 init_role_table()
