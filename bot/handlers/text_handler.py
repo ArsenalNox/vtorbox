@@ -52,9 +52,21 @@ class TextHandler(Handler):
         async def get_my_addresses(message: Message, state: FSMContext):
             """Получение всех адресов пользователя"""
 
+            # получаем все адреса текущего пользователя
+            users_addresses = []
+
             await message.answer(
                 MESSAGES['MY_ADDRESSES'],
                 reply_markup=self.kb.add_address_btn()
+            )
+
+        @self.router.message(F.text.startswith(BUTTONS['ADD_ADDRESS']))
+        async def get_add_address(message: Message, state: FSMContext):
+            """Получение анкеты пользователя"""
+
+            await message.answer(
+                MESSAGES['ADD_ADDRESS'],
+                reply_markup=self.kb.start_menu_btn()
             )
 
         @self.router.message(F.text.startswith(BUTTONS['PAYMENTS']))
@@ -93,11 +105,4 @@ class TextHandler(Handler):
                 reply_markup=self.kb.start_menu_btn()
             )
 
-        @self.router.message(F.text.startswith(BUTTONS['ADD_ADDRESS']))
-        async def get_add_addres(message: Message, state: FSMContext):
-            """Получение анкеты пользователя"""
 
-            await message.answer(
-                MESSAGES['ADD_ADDRESS'],
-                reply_markup=self.kb.start_menu_btn()
-            )

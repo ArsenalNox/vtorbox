@@ -48,13 +48,8 @@ class Orders(Base):
     __tablename__ = "orders"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    from_user = Column(UUID(as_uuid=True), ForeignKey('users.id')) 
-    district = Column(String())
-    region = Column(String())
-    distance_from_mkad = Column(String())
-    address = Column(String())
-    full_adress = Column(String())
-    point_on_map = Column(String())
+    from_user = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    address = Column(UUID(as_uuid=True), ForeignKey('address.id'))
 
     weekday = Column(String())
 
@@ -166,7 +161,6 @@ class Users(Base):
 
         return user
 
-
     #TODO: Свойста по ролям
     @property
     def is_admin(self):
@@ -179,19 +173,51 @@ class Users(Base):
         t_id = kwargs.get('t_id')
         internal_id = kwargs.get('internal_id')
         if not (t_id or internal_id):
-            raise UserNoIdProvided("Excpected at least one type of user id, zero provided") 
+            raise UserNoIdProvided("Excpected at least one type of user id, zero provided")
 
         user = Users.get_or_create(**kwargs)
 
         with Session(engine, expire_on_commit=False) as session:
             user.last_action = datetime.now()
             session.commit()
-        
-        return 
+
+        return
 
     def set_role(self, role_name):
 
         pass
+
+
+class Address(Base):
+    """Модель для адреса"""
+
+    __tablename__ = "address"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    address = Column(String(), nullable=False)
+    latitude = Column(String(), nullable=False)
+    longitude = Column(String(), nullable=False)
+
+    district = Column(String())
+    region = Column(String())
+    distance_from_mkad = Column(String())
+    point_on_map = Column(String())
+
+    def __repr__(self):
+        return f'{self.id}'
+
+
+class UsersAddress(Base):
+    """Модель для связки клиентов и адресов"""
+
+    __tablename__ = "users_address"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'))
+
+    def __repr__(self):
+        return f'User:{self.user_id} - Address:{self.address_id}'
 
 
 class Roles(Base):
@@ -243,7 +269,7 @@ class Permissions(Base):
     Модель доступа у пользователей
     """
 
-    __tablename__ = 'premissions'    
+    __tablename__ = 'permissions'
 
     # Если у пользователя нет каких-либо прав он считается клиентом
     id = Column(Integer(), unique=True, primary_key=True)
@@ -283,5 +309,6 @@ def init_role_table():
 
 def init_status_table():
     pass
+
 
 init_role_table()
