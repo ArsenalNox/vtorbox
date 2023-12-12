@@ -9,8 +9,11 @@ from aiogram.types import Message
 
 from bot.handlers.base_handler import Handler
 from bot.keyboards.keyboards import Keyboard
+
+from bot.services.users import UserService
 from bot.settings import settings
 from bot.utils.buttons import BUTTONS
+from bot.utils.format_text import delete_messages_with_btn
 from bot.utils.messages import MESSAGES
 
 
@@ -25,19 +28,36 @@ class CommandHandler(Handler):
         async def start(message: Message, state: FSMContext):
             """Отлов команды /start"""
 
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=message
+            )
+
             await message.answer(
                 MESSAGES['START'],
                 reply_markup=self.kb.start_menu_btn()
             )
 
-            # async with aiohttp.ClientSession() as session:
-            #     async with session.get(settings.base_url + 'users') as resp:
-            #         print(resp.status)
-            #         print(await resp.text())
+            # сохраняем в состояние chat_id
+            await state.update_data(chat_id=message.from_user.id)
+
+            # создаем пользователя
+            UserService.create_user(message.from_user.id)
 
         @self.router.message(F.text.startswith(BUTTONS['MENU']))
         async def get_menu(message: Message, state: FSMContext):
             """Переход в главное меню"""
+
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=message
+            )
+
+            await state.update_data(chat_id=message.chat.id)
 
             await message.answer(
                 MESSAGES['MENU'],

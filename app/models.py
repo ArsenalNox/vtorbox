@@ -115,7 +115,7 @@ class Users(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(), unique=True, nullable=True)
-    password = Column(String(), nullable=False)
+    password = Column(String(), nullable=True)
     #
 
     telegram_id = Column(BigInteger(), unique=True, nullable=True)
@@ -197,6 +197,7 @@ class Address(Base):
     address = Column(String(), nullable=False)
     latitude = Column(String(), nullable=False)
     longitude = Column(String(), nullable=False)
+    main = Column(Boolean(), default=False)
 
     district = Column(String())
     region = Column(String())
