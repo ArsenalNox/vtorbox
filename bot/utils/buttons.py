@@ -9,4 +9,9 @@ BUTTONS = {
     'QUESTIONNAIRE': '👤 Анкета',
     'NOTIFICATIONS': '📌 Уведомления',
     'ABOUT': '❓Как работает сервис',
+    'DEFAULT': '🖍 Выбрать основной адрес',
+    'DELETE_ADDRESS': '❌ Удалить адрес',
+    'EDIT_QUESTIONNAIRE': '✏️ Изменить имя/комментарий',
+    'PHONE_NUMBER': '📱️ Добавить/Изменить номер телефона',
+    'EMAIL': '✉️️ Добавить/Изменить email',
 }

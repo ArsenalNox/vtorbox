@@ -6,7 +6,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from sqlalchemy import URL, create_engine
 
-from app.models import Base
+from app.models import Base, engine
 from bot.handlers.main_handler import MainHandler
 from bot.settings import settings
 
@@ -23,20 +23,17 @@ class MainBot:
 
         self.dp.include_router(self.handler.command_handler.router)
         self.dp.include_router(self.handler.text_handler.router)
+        self.dp.include_router(self.handler.address_handler.router)
+        self.dp.include_router(self.handler.questionnaire_handler.router)
+        self.dp.include_router(self.handler.application_handler.router)
+        self.dp.include_router(self.handler.payment_handler.router)
+        self.dp.include_router(self.handler.notification_handler.router)
         self.handler.handle()
         # logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
     async def main(self):
         """Основная точка входа в бота и его запуск"""
-        connection_url = URL.create(
-            drivername="postgresql",
-            username=os.getenv("POSTGRES_USER"),
-            host=os.getenv("POSTGRES_HOST"),
-            port=os.getenv("POSTGRES_PORT"),
-            database=os.getenv("POSTGRES_DB"),
-            password=os.getenv("POSTGRES_PASSWORD")
-        )
-        engine = create_engine(connection_url)
+
         Base.metadata.create_all(engine)
         await self.start()
         await self.dp.start_polling(self.bot, polling_timeout=100000)
