@@ -1,6 +1,6 @@
 MESSAGES = {
     'START': 'Вас приветствует бот VtorBox',
-    'MENU': 'HERE Главное меню',
+    'MENU': 'Главное меню',
     'SETTINGS': 'HERE Настройки',
     'CREATE_APPLICATION': 'HERE Создать заявку',
     'APPLICATIONS_HISTORY': 'HERE История заявок',
@@ -15,6 +15,12 @@ MESSAGES = {
     'CHOOSE_DEFAULT_ADDRESS': 'Выберите адрес по умолчанию',
     'CHOOSE_DELETE_ADDRESS': 'Выберите адрес для удаления',
     'DEFAULT_ADDRESS_IS_SELECTED': 'Адрес: <b>{}</b> выбран по умолчанию',
-    'ADDRESS_WAS_ADDED': 'Адрес: <b>{}</b> успешно добавлен'
+    'ADDRESS_WAS_ADDED': 'Адрес: <b>{}</b> успешно добавлен',
+    'WRITE_YOUR_FULLNAME': 'Напишите ваше Имя и Фамилию',
+    'WRITE_YOUR_COMMENT': 'Напишите комментарий',
+    'DATA_WAS_ADDED': 'Данные успешно обновлены',
+    'WRONG_QUESTIONNAIRE_DATA': 'Неверные данные! Попробуйте еще раз',
+    'WRITE_YOUR_PHONE_NUMBER': 'Напишите номер телефон, начиная с 8',
+    'WRITE_YOUR_EMAIL': 'Напишите адрес электронный почты',
 }
 

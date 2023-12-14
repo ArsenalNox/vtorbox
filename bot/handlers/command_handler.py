@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from bot.handlers.base_handler import Handler
-from bot.keyboards.keyboards import Keyboard
+from bot.keyboards.base_keyboards import BaseKeyboard
 
 from bot.services.users import UserService
 from bot.settings import settings
@@ -21,7 +21,7 @@ class CommandHandler(Handler):
     def __init__(self, bot: Bot):
         super().__init__(bot)
         self.router = Router()
-        self.kb = Keyboard()
+        self.kb = BaseKeyboard()
 
     def handle(self):
         @self.router.message(Command('start'))
@@ -44,24 +44,8 @@ class CommandHandler(Handler):
             await state.update_data(chat_id=message.from_user.id)
 
             # создаем пользователя
-            UserService.create_user(message.from_user.id)
-
-        @self.router.message(F.text.startswith(BUTTONS['MENU']))
-        async def get_menu(message: Message, state: FSMContext):
-            """Переход в главное меню"""
-
-            data = await state.get_data()
-            await delete_messages_with_btn(
-                state=state,
-                data=data,
-                src=message
+            UserService.create_user(
+                tg_id=message.from_user.id,
+                username=message.from_user.username,
+                fullname=message.from_user.full_name
             )
-
-            await state.update_data(chat_id=message.chat.id)
-
-            await message.answer(
-                MESSAGES['MENU'],
-                reply_markup=self.kb.start_menu_btn()
-            )
-
-
