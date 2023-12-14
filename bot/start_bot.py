@@ -23,6 +23,11 @@ class MainBot:
 
         self.dp.include_router(self.handler.command_handler.router)
         self.dp.include_router(self.handler.text_handler.router)
+        self.dp.include_router(self.handler.address_handler.router)
+        self.dp.include_router(self.handler.questionnaire_handler.router)
+        self.dp.include_router(self.handler.application_handler.router)
+        self.dp.include_router(self.handler.payment_handler.router)
+        self.dp.include_router(self.handler.notification_handler.router)
         self.handler.handle()
         # logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 

@@ -122,6 +122,7 @@ class Users(Base):
     telegram_username = Column(String(), nullable=True)
     phone_number = Column(String(), unique=True, nullable=True)
     full_name = Column(String(), nullable=True)
+    additional_info = Column(Text(), comment='доп. инфа')
     date_created = Column(DateTime(), default=datetime.now())
     last_action = Column(DateTime(), default=datetime.now())
     #last_login

@@ -6,7 +6,7 @@ from bot.services.base import BaseService
 
 class UserService(BaseService):
     @classmethod
-    def create_user(cls, tg_id: int):
+    def create_user(cls, tg_id: int, username: str, fullname: str):
         """Создание пользователей"""
 
         user = cls.get_user_by_tg_id(tg_id)
@@ -14,7 +14,9 @@ class UserService(BaseService):
         with Session(engine, expire_on_commit=False) as session:
             if not user:
                 user = Users(
-                    telegram_id=tg_id
+                    telegram_id=tg_id,
+                    telegram_username=username,
+                    full_name=fullname
                 )
                 session.add(user)
                 session.commit()
@@ -52,3 +54,27 @@ class UserService(BaseService):
 
             if users_address:
                 return users_address
+
+    @classmethod
+    def change_user_data(cls, user: Users, new_fullname: str = None, comment: str = None,
+                         phone_number: str = None, email: str = None):
+        """Изменение данных о пользовательской анкете"""
+
+        with Session(engine, expire_on_commit=False) as session:
+            if new_fullname:
+                user.full_name = new_fullname
+
+            # сценарий, когда пользователь нажал на 'Не добавлять комментарий'
+            if comment == 'delete':
+                user.additional_info = None
+            elif comment:
+                user.additional_info = comment
+
+            if phone_number:
+                user.phone_number = phone_number
+
+            if email:
+                user.email = email
+
+            session.add(user)
+            session.commit()
