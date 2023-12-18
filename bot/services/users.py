@@ -1,3 +1,5 @@
+from typing import Type
+
 from sqlalchemy.orm import Session
 
 from app.models import engine, Address, UsersAddress, Users
@@ -78,3 +80,27 @@ class UserService(BaseService):
 
             session.add(user)
             session.commit()
+
+    @classmethod
+    def search_user_by_promocode(cls, promocode: str):
+        """Поиск пользователя по промокоду"""
+
+        with Session(engine, expire_on_commit=False) as session:
+            user = session.query(Users).filter_by(
+                link_code=promocode
+            ).first()
+
+            return user
+
+    @classmethod
+    def add_user_data_from_site(cls, user: Users, tg_id: int, username: str, fullname: str):
+        """Добавление к юзеру, который пришел с сайта, телеграм id"""
+
+        with Session(engine, expire_on_commit=False) as session:
+            user.telegram_id = tg_id
+            user.full_name = fullname
+            user.telegram_username = username
+            session.add(user)
+            session.commit()
+
+

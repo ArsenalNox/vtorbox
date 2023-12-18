@@ -69,6 +69,3 @@ class TextHandler(Handler):
                 MESSAGES['MENU'],
                 reply_markup=self.kb.start_menu_btn()
             )
-
-
-
