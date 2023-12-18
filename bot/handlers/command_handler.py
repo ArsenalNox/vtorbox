@@ -11,8 +11,6 @@ from bot.handlers.base_handler import Handler
 from bot.keyboards.base_keyboards import BaseKeyboard
 
 from bot.services.users import UserService
-from bot.settings import settings
-from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
 from bot.utils.messages import MESSAGES
 
@@ -35,17 +33,26 @@ class CommandHandler(Handler):
                 src=message
             )
 
-            await message.answer(
-                MESSAGES['START'],
-                reply_markup=self.kb.start_menu_btn()
-            )
+            # получаем промокод из сообщения пользователя
+            promocode_in_msg = message.text.split()[1:]
+            print(promocode_in_msg)
 
-            # сохраняем в состояние chat_id
-            await state.update_data(chat_id=message.from_user.id)
+            # ищем пользователя из БД по промокоду и затем добавляем ему данные телеграмма в БД
+            user = UserService.search_user_by_promocode(promocode_in_msg[0])
+            if user:
+                UserService.add_user_data_from_site(
+                    user=user,
+                    tg_id=message.from_user.id,
+                    username=message.from_user.username,
+                    fullname=message.from_user.full_name
+                )
+            else:
+                # создаем пользователя
+                UserService.create_user(
+                    tg_id=message.from_user.id,
+                    username=message.from_user.username,
+                    fullname=message.from_user.full_name
+                )
 
-            # создаем пользователя
-            UserService.create_user(
-                tg_id=message.from_user.id,
-                username=message.from_user.username,
-                fullname=message.from_user.full_name
-            )
+                # сохраняем в состояние chat_id
+                await state.update_data(chat_id=message.from_user.id)
