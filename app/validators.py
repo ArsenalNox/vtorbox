@@ -5,6 +5,7 @@
 Да, придётся под каждую операцию с опциональными данными писать ещё валидатор
 Но как иначе? 
 """
+import uuid
 
 from pydantic import BaseModel, EmailStr
 
@@ -126,3 +127,14 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: EmailStr | None = None
     scopes: list[str] = []
+
+
+class CreateUserData(BaseModel):
+    tg_id: int
+    username: str
+    fullname: str
+
+
+class UpdateUserDataFromTG(CreateUserData):
+    user_id: str
+

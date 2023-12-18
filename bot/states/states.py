@@ -14,3 +14,10 @@ class EditQuestionnaireState(StatesGroup):
     comment = State()
     phone_number = State()
     email = State()
+
+
+class RegistrationUser(StatesGroup):
+    """Состояния для регистрации пользователей"""
+
+    phone = State()
+

@@ -82,7 +82,7 @@ class UserService(BaseService):
             session.commit()
 
     @classmethod
-    def search_user_by_promocode(cls, promocode: str):
+    def search_user_by_promocode(cls, promocode: str) -> Type[Users] | None:
         """Поиск пользователя по промокоду"""
 
         with Session(engine, expire_on_commit=False) as session:
@@ -93,8 +93,21 @@ class UserService(BaseService):
             return user
 
     @classmethod
-    def add_user_data_from_site(cls, user: Users, tg_id: int, username: str, fullname: str):
+    def search_user_by_phone(cls, phone: str) -> Type[Users] | None:
+        """Поиск пользователя по номеру телефона"""
+
+        with Session(engine, expire_on_commit=False) as session:
+            user = session.query(Users).filter_by(
+                phone_number=phone
+            ).first()
+
+            return user
+
+    @classmethod
+    def add_user_data_from_site(cls, tg_id: int, username: str, fullname: str):
         """Добавление к юзеру, который пришел с сайта, телеграм id"""
+
+        user = cls.get_user_by_tg_id(tg_id)
 
         with Session(engine, expire_on_commit=False) as session:
             user.telegram_id = tg_id
