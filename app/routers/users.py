@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 
-from ..models import Users, Orders, Session, engine, Roles, Premissions
+from ..models import Users, Orders, Session, engine, Roles, Permissions
 from ..auth import (
     oauth2_scheme, 
     pwd_context, 
@@ -225,7 +225,7 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
         
         #TODO: Генерировать доступные скоупы в зависимости от роли пользователя
 
-        scopes_query = session.query(Premissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
+        scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
 
         expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
         token = create_access_token(

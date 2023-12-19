@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import orders, users, couriers, admins
+from app.routers import orders, users, couriers, admins, bot
 
 app = FastAPI()
 
@@ -52,6 +52,12 @@ app.include_router(
 app.include_router(
     admins.router,
     prefix="/api",
+)
+
+app.include_router(
+    bot.router,
+    prefix="/api/bot",
+    tags=['BOT']
 )
 
 if __name__ == '__main__':
