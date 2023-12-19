@@ -49,6 +49,7 @@ class TextHandler(Handler):
                 reply_markup=self.kb.start_menu_btn()
             )
 
+
             # отправка приветственного видео
             # await message.answer_video(
             #     video=
