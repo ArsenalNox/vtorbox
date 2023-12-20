@@ -8,6 +8,7 @@
 import uuid
 
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 
 
 #TODO: Модели под пользователей
@@ -67,7 +68,7 @@ class CourierCreationValidator(BaseModel):
 
 class User(BaseModel):
     """
-    Валидатор на создание пользователя
+    Возврат данных пользвателя
     """
     pass
 
@@ -112,6 +113,20 @@ class UserCreationValidator(BaseModel):
     full_name: str
 
     role: str = "user"
+    send_email_invite: bool = False #Отправить ли письмо с приглашением
+
+
+class UserUpdateValidator(BaseModel):
+    """
+    Валидатор на обновление данных пользователя
+    """
+    user_id: str #Может быть и тг айди 
+
+    password: Optional[str] = None
+    telegram_id: Optional[int] = None
+    telegram_username: Optional[int] = None
+    phone_number: Optional[int] = None
+    full_name: Optional[str] = None
 
 
 class AuthToken(BaseModel):
@@ -131,10 +146,42 @@ class TokenData(BaseModel):
 
 class CreateUserData(BaseModel):
     tg_id: int
-    username: str
-    fullname: str
+    username: str | None = None #Опциональные т.к пользователь может скрыть или не иметь
+    fullname: str | None = None 
 
 
 class UpdateUserDataFromTG(CreateUserData):
     user_id: str
 
+
+class LinkClientWithPromocodeFromTG(CreateUserData):
+    promocode: str
+
+
+class Address(BaseModel):
+    """
+    Модель на создание/обновление адреса
+    """
+    main: bool = True
+    address: str #Текст адреса
+    latitude: str 
+    longitude: str 
+
+    district: str | None = None
+    region: str | None = None 
+    distance_from_mkad: str | None = None
+    point_on_map: str | None = None
+
+
+class AddressUpdate(Address):
+    """
+    Модель на обновление данных адреса
+    """
+    main: bool | None = None
+    address: str | None = None
+    latitude: str | None = None
+    longitude: str | None = None
+    district: str | None = None
+    region: str | None = None 
+    distance_from_mkad: str | None = None
+    point_on_map: str | None = None
