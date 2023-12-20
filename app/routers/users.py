@@ -1,5 +1,6 @@
 """
-Руты пользователей
+Руты для пользователей
+
 
 CRUD с пользователями
 Управление подпиской
@@ -10,7 +11,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 
-from ..models import Users, Orders, Session, engine, Roles, Permissions
+from ..models import (
+    Users, Orders, Session, engine, Roles, Permissions,
+    ROLE_CUSTOMER_NAME
+    )
 from ..auth import (
     oauth2_scheme, 
     pwd_context, 
@@ -25,7 +29,9 @@ from ..auth import (
 from ..validators import (
     UserSignUp as UserSignUpSchema,
     UserLogin as UserLoginSchema,
-    UserCreationValidator as UserCreationData
+    UserCreationValidator as UserCreationData,
+    UserUpdateValidator as UserUpdateData
+
 )
 
 from passlib.context import CryptContext
@@ -40,7 +46,7 @@ from dotenv import load_dotenv
 load_dotenv()
 router = APIRouter()
 
-#TODO: Ручная привязка пользователя к боту #невозможно
+#TODO: Ручная привязка пользователя к боту #невозможно если пользователь не писал в тг
 #TODO: Отправка сообщения пользователю через бота 
 
 
@@ -66,7 +72,18 @@ router = APIRouter()
 })
 async def get_all_users(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
+        role_name: str = ROLE_CUSTOMER_NAME,
+
+        #Применимо для клиентов
+        with_orders: bool = False,
+        with_active_orders: bool = False,
+        with_inactive_orders: bool = False
+
+        #Применимо для всех
     ):
+    """
+    Получение пользователей по фильтру
+    """
 
     #TODO: Пагинация
     with Session(engine, expire_on_commit=False) as session:
@@ -77,48 +94,11 @@ async def get_all_users(
     return []
 
 
-@router.get('/users/{tg_id}', tags=["users"], responses={
-    200: {
-        "description": "Получение пользователя по телеграм айди",
-        "content": {
-                "application/json": {
-                    "example": 
-                        [   
-                            {
-                                "full_name": 'null',
-                                "date_created": "2023-11-29T00:57:57.654800",
-                                "phone_number": 'null',
-                                "email": 'null',
-                                "telegram_id": 7643079034697,
-                                "id": 1
-                            }
-                        ]
-                }
-        }
-    },
-    404: {
-        "description": "User not was not found",
-        "content": {
-                "application/json": {
-                    "example": {"message": "Not found"}
-                }
-            },
-    }
-})
-async def get_user_by_tg_id(tg_id:int):
-    with Session(engine, expire_on_commit=False) as session:
-        user = session.query(Users).filter_by(telegram_id=tg_id).first()
-        if user:
-            return user
-
-    return JSONResponse({
-        "message": "Not found"
-    }, status_code=404)
 
 
 @router.post('/users', tags=["admins"])
 async def create_user(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
     new_user_data: UserCreationData
 ):
     """
@@ -138,23 +118,33 @@ async def create_user(
         user_role = new_user_data["role"]
         del new_user_data["role"]
 
+        if new_user_data.send_email_invite:
+            pass
+
         new_user = Users(**new_user_data)
-        new_user.link_code = str(uuid.uuid4())[:10]
+
+        #Фикс: при flush uuid остаётся в сесси и не перегенерируется, т.е получаем Exception на unique field'е 
+        new_user.link_code = str(uuid.uuid4())[:10] 
+
         session.add(new_user)
         session.flush()
         session.refresh(new_user)
 
+        #Если админ - добавить все роли?
+        
+
         for role in str(user_role).split(' '):
             role_query = Roles.get_role(role)
             if role_query:
-                user_role = Premissions(
+
+                user_role = Permissions(
                     user_id = new_user.id,
-                    role_id = Roles.get_role(role).id
+                    role_id = Roles.get_role(role).id #TODO: заменить на role_query
                 )
+
                 session.add(user_role)
 
         session.commit()
-
         return new_user
 
 
@@ -166,12 +156,52 @@ async def delete_user():
     pass
 
 
-@router.put('/users', tags=["users"])
-async def update_user_data():
+@router.put('/users', tags=["admin"])
+async def update_user_data(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
+    new_user_data: UserUpdateData
+):
     """
-    Обновление данных пользователя
+    Обновление данных пользователя админом
     """
-    pass
+    with Session(engine, expire_on_commit=False) as session:
+        user_query = session.query(Users).filter_by(id=new_user_data.user_id).first()
+
+        if not user_query:
+            user_query = session.query(Users).filter_by(telegram_id=new_user_data.user_id).first()
+
+            if not user_query:
+                return JSONResponse({
+                    "message": "No such user"
+                    }, status_code=404)
+
+        for attr, value in new_user_data.model_dump().items():
+
+            print(attr)
+
+            if attr == 'password' and value:
+                #TODO: Изменение пароля
+                print('Changing user password')
+                continue
+
+            #TODO: Изменение ролей
+            if value:
+                setattr(user_query, attr, value)
+
+        session.add(user_query)
+        session.commit()
+
+    return 
+
+
+@router.put('/users', tags=["user"])
+async def update_user_self_data(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["customer"])],
+    new_user_data: UserUpdateData
+):
+    """
+    Обновить свои данные пользователем
+    """
 
 
 @router.get('/users/bot_linked')
@@ -182,10 +212,10 @@ async def get_bot_users():
     pass
 
 
-@router.post('/signup', tags=["default"])
+@router.post('/users/signup', tags=["users"])
 async def signup(signup_data: UserSignUpSchema):
     """
-    Регистрация пользователя
+    Регистрация клиента
     """
 
     with Session(engine, expire_on_commit=False) as session:
@@ -199,13 +229,27 @@ async def signup(signup_data: UserSignUpSchema):
             email=signup_data.username,
             password=get_password_hash(signup_data.password)
         )  
+
         session.add(new_user)
+        session.flush()
+        session.refresh(new_user)
+
+        new_user.link_code = str(uuid.uuid4())[:10] 
+        role_query = Roles.get_role(ROLE_CUSTOMER_NAME)
+
+        if role_query:
+            user_role = Permissions(
+                user_id = new_user.id,
+                role_id = role_query.id
+            )
+
+            session.add(user_role)
+        else:
+            raise HTTPException(status_code=503, detail="Internal server error")
+
         session.commit()
 
-        return JSONResponse({
-            "message": "User created",
-            "user_data": new_user
-        }, status_code=201)
+        return new_user
 
 
 @router.post('/token', tags=["default"])
@@ -222,17 +266,19 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
             return JSONResponse({
                 "message": "Invalid password or email"
             }, 400)
-        
-        #TODO: Генерировать доступные скоупы в зависимости от роли пользователя
+
+        #TODO: Проверка на активность
 
         scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
 
+        scopes = [role.role_name for role in scopes_query]
+        print(scopes)
         expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
         token = create_access_token(
             data={
                 "sub": login_data.username,
                 "internal_id": str(query.id),
-                "scopes": [role.role_name for role in scopes_query]
+                "scopes": scopes
             }, 
             expires_delta=expires)
 
@@ -242,9 +288,9 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
         })
 
 
-@router.post("/users/me", responses={
+@router.post("/users/me", tags=["users"], responses={
     200: {
-        "description": "Получение информации об авторизованном пользователе",
+        "description": "Получение информации об авторизованном пользователе (себе)",
         "content": {
             "application/json": {
                 "example": {
@@ -284,10 +330,9 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     }
 })
 async def get_current_user_info(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["customer"])]
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)]
 ):
     token_data = jwt.decode(token=current_user.access_token, key=SECRET_KEY, algorithms=ALGORITHM)
-    print(token_data)
 
     with Session(engine, expire_on_commit=False) as session:
         query = session.query(Users).filter_by(email=current_user.username).first()
@@ -295,3 +340,13 @@ async def get_current_user_info(
             "user_data": query,
             "token_data": token_data
             }
+
+
+
+@router.post('/users/import_clients', tags=["admin"])
+async def import_clients():
+    """
+    Импорт клиентов из excel таблицы
+    """
+    pass
+
