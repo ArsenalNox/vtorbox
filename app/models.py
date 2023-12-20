@@ -29,7 +29,7 @@ ROLE_ADMIN_NAME = 'admin'
 ROLE_COURIER_NAME = 'courier'
 ROLE_MANAGER_NAME = 'manager'
 ROLE_CUSTOMER_NAME = 'customer'
-
+ROLE_TELEGRAM_BOT_NAME = 'bot'
 
 engine = create_engine(connection_url)
 Base = declarative_base()
@@ -76,7 +76,8 @@ class Orders(Base):
 
     disabled = Column(Boolean(), default=False)
 
-    def get_all_orders(self):
+    @staticmethod
+    def get_all_orders():
         with Session(engine, expire_on_commit=False) as session: 
             return session.query(Orders).all()
 
@@ -116,13 +117,12 @@ class Users(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(), unique=True, nullable=True)
     password = Column(String(), nullable=True)
-    #
 
     telegram_id = Column(BigInteger(), unique=True, nullable=True)
     telegram_username = Column(String(), nullable=True)
     phone_number = Column(String(), unique=True, nullable=True)
     full_name = Column(String(), nullable=True)
-    additional_info = Column(Text(), comment='доп. инфа')
+    additional_info = Column(Text(), comment='доп. инфа', nullable=True)
     date_created = Column(DateTime(), default=datetime.now())
     last_action = Column(DateTime(), default=datetime.now())
     #last_login
@@ -134,7 +134,6 @@ class Users(Base):
     # disabled = Column(Boolean(), default=True)
 
     def get_or_create(
-            self,
             t_id: int = None,
             internal_id: int = None, 
             ):
@@ -149,15 +148,20 @@ class Users(Base):
             if t_id:
                 user = session.query(Users).filter_by(telegram_id = t_id).first()
             elif internal_id:
-                user = session.query(Users).filter_by(id = t_id).first()
+                user = session.query(Users).filter_by(id = internal_id).first()
 
-            #TODO: Автоматическое назначение роли
             if not user: 
                 user = Users(
                     telegram_id = t_id,
                 )
 
+                user_role = Permissions(
+                    user_id = new_user.id,
+                    role_id = Roles.get_role(ROLE_CUSTOMER_NAME).id
+                )
+
                 session.add(user)
+                session.add(user_role)
                 session.commit()
 
         return user
@@ -166,6 +170,7 @@ class Users(Base):
     @property
     def is_admin(self):
         pass
+
 
     def update_last_access(**kwargs):
         """
@@ -183,6 +188,7 @@ class Users(Base):
             session.commit()
 
         return
+
 
     def set_role(self, role_name):
 
@@ -233,7 +239,8 @@ class Roles(Base):
     id = Column(Integer(), unique=True, primary_key=True)
     role_name = Column(String(), default='')
 
-    def get_role(self, role_name: str):
+    @staticmethod
+    def get_role(role_name: str):
         with Session(engine, expire_on_commit=False) as session:
             query = session.query(Roles).filter_by(role_name=role_name).first()
             if query:
@@ -299,7 +306,14 @@ Base.metadata.create_all(engine)
 
 
 def init_role_table():
-    roles = ['customer', 'courier', 'manager', 'admin']
+    roles = [
+        ROLE_ADMIN_NAME, 
+        ROLE_COURIER_NAME, 
+        ROLE_CUSTOMER_NAME, 
+        ROLE_MANAGER_NAME, 
+        ROLE_TELEGRAM_BOT_NAME
+        ]
+
     with Session(engine, expire_on_commit=False) as session:
         for role in roles: 
             roles_query = session.query(Roles).filter_by(role_name = role).first()
