@@ -6,12 +6,6 @@ from app.routers import orders, users, couriers, admins, bot
 
 app = FastAPI()
 
-#Сегодня
-#TODO: Редактирование данных пользователя
-
-#TODO: APSCHEDULER
-#TODO: Админ панель? 
-
 
 origins = [
     "http://127.0.0.1",
@@ -22,13 +16,13 @@ origins = [
 ]
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=origins,
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 
 app.include_router(
@@ -57,7 +51,7 @@ app.include_router(
 app.include_router(
     bot.router,
     prefix="/api/bot",
-    tags=['BOT']
+    tags=['bot']
 )
 
 if __name__ == '__main__':
