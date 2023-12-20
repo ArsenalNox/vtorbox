@@ -1,11 +1,3 @@
-from fastapi import APIRouter
-
-
-router = APIRouter()
-
-#DONE: Создание пользователя админом
-#TODO: Редактирование ролей пользователей
-#TODO: Ручное добавление клиента
 
 #TODO: Пригласить пользователя по e-mail
 
@@ -20,8 +12,40 @@ router = APIRouter()
 #TODO: Редактирование текстов бота
 #TODO: Пул заявок
 
+from typing import Annotated
+from fastapi import APIRouter, Depends, HTTPException, status, Security
+from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 
-@router.post("/admin/")
-async def authenticate_admin():
-    pass
+from ..models import Users, Orders, Session, engine, Roles, Permissions
+from ..auth import (
+    oauth2_scheme, 
+    pwd_context, 
+    get_password_hash, 
+    verify_password, 
+    create_access_token,
+    get_current_active_user,
+    get_current_user,
+    ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
+)
+
+from ..validators import (
+    UserSignUp as UserSignUpSchema,
+    UserLogin as UserLoginSchema,
+    UserCreationValidator as UserCreationData,
+    UserUpdateValidator as UserUpdateData
+
+)
+
+from passlib.context import CryptContext
+from datetime import timedelta
+
+from jose import jwt
+
+import os, uuid
+from dotenv import load_dotenv
+
+
+load_dotenv()
+router = APIRouter()
 
