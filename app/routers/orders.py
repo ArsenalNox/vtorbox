@@ -3,12 +3,20 @@
 """
 from typing import Annotated
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Security
 from fastapi.responses import JSONResponse
 
 from datetime import datetime
 
-from ..validators import Order as OrderValidator
+from ..validators import (
+    Order as OrderValidator,
+    UserLogin as UserLoginSchema
+)
+
+from ..auth import (
+    get_current_user
+)
+
 from ..models import Orders, Users, Session, engine
 
 router = APIRouter()
@@ -73,6 +81,7 @@ async def get_all_orders():
     """
     Получить все заявки
     """
+    #TODO: Пагинация заявок
 
     orders = Orders.get_all_orders()
     if orders:    
@@ -140,11 +149,14 @@ async def get_order_by_id(order_id:int):
             }
         }
 })
-async def create_order(order_data: OrderValidator):
+async def create_order(
+    order_data: OrderValidator,
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)]
+    ):
     """
-    Создание заявки
+    Создание заявки админом или менеджером
     """
-
+    #TODO: Опциональная аунтефикация на создание? 
     with Session(engine, expire_on_commit=False) as session:
 
         user = Users.get_or_create(t_id=order_data.user_tg_id)
@@ -154,7 +166,7 @@ async def create_order(order_data: OrderValidator):
             district           = order_data.district,
             region             = order_data.region,
             distance_from_mkad = order_data.distance_from_mkad,
-            address            = order_data.address,
+            address            = order_data.address, #TODO: Создание адреса 
             full_adress        = order_data.full_adress,
             weekday            = order_data.weekday,
         )
