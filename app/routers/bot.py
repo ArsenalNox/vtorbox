@@ -81,8 +81,6 @@ async def create_bot_client_from_link(
 
         return 
 
-
-
 @router.get("/users/phone", tags=["users", "bot"])
 async def check_user_by_phone(
     phone_number: str,
@@ -111,7 +109,7 @@ async def check_user_by_promocode(
     Поиск пользователя по промокоду (search-user-by-promocode)
     """
     with Session(engine, expire_on_commit=False) as session:
-        user_query = session.query(Usres).filter_by(link_code=promocode).first()
+        user_query = session.query(Users).filter_by(link_code=promocode).first()
         if user_query:
             return user_query
         else:

@@ -4,9 +4,9 @@ from bot.handlers.command_handler import CommandHandler
 from bot.handlers.text_handler import TextHandler
 from bot.handlers.address_handler import AddressHandler
 from bot.handlers.questionnaire_handler import QuestionnaireHandler
-from bot.handlers.application_handler import ApplicationHandler
+from bot.handlers.order import ApplicationHandler
 from bot.handlers.payment_handler import PaymentHandler
-from bot.handlers.notification_handler import NotificationHandler
+from bot.handlers.schedule import NotificationHandler
 
 
 class MainHandler:

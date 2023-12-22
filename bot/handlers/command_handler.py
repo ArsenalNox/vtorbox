@@ -1,3 +1,4 @@
+import http
 import json
 import time
 
@@ -15,6 +16,7 @@ from bot.services.users import UserService
 from bot.settings import settings
 from bot.states.states import RegistrationUser
 from bot.utils.format_text import delete_messages_with_btn
+from bot.utils.handle_data import HEADERS
 from bot.utils.messages import MESSAGES
 
 
@@ -42,23 +44,28 @@ class CommandHandler(Handler):
                 promocode_in_msg = ['']
 
             # ищем пользователя из БД по промокоду и затем добавляем ему данные телеграмма в БД
-            async with aiohttp.ClientSession() as session:
-                async with session.get(settings.local_url + f'search-user-by-promocode?promocode={promocode_in_msg[0]}') as resp:
-                    user = await resp.json()
+            response = requests.get(settings.local_url + f'users/promocode?promocode={promocode_in_msg[0]}', headers=HEADERS)
+            user = response.json()
 
-            if user:
+            if user and response.status_code == http.HTTPStatus.OK:
                 user_data = json.dumps({
-                    'user_id': user['id'],
                     'tg_id': message.from_user.id,
                     'username': message.from_user.username,
-                    'fullname': message.from_user.full_name
+                    'fullname': message.from_user.full_name,
+                    'promocode': promocode_in_msg[0]
                 })
 
                 # обновляем данные пользователя данными из телеграма
-                requests.post(settings.local_url + 'add-user-data-from-site', data=user_data)
+                requests.put(settings.local_url + 'users/botclient/link', data=user_data, headers=HEADERS)
 
                 await message.answer(
-                    MESSAGES['START'],
+                    MESSAGES['START']
+                )
+                await message.answer(
+                    MESSAGES['ABOUT']
+                )
+                await message.answer(
+                    MESSAGES['MENU'],
                     reply_markup=self.kb.start_menu_btn()
                 )
 
@@ -70,7 +77,7 @@ class CommandHandler(Handler):
                 })
 
                 # создаем пользователя
-                requests.post(settings.local_url + 'create-user', data=user_data)
+                requests.post(settings.local_url + 'user', data=user_data, headers=HEADERS)
 
                 await message.answer(
                     MESSAGES['REGISTRATION_MENU'],
