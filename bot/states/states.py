@@ -10,10 +10,12 @@ class AddAddressState(StatesGroup):
 class EditQuestionnaireState(StatesGroup):
     """Состояния для изменения анкеты пользователя"""
 
-    fullname = State()
-    comment = State()
+    first_name = State()
+    last_name = State()
     phone_number = State()
     email = State()
+    approve_phone = State()
+    approve_email = State()
 
 
 class RegistrationUser(StatesGroup):

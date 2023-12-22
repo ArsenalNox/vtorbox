@@ -3,7 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from bot.handlers.base_handler import Handler
-from bot.keyboards.application_kb import ApplicationKeyboard
+from bot.keyboards.order import OrderKeyboard
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
 from bot.utils.messages import MESSAGES
@@ -13,7 +13,7 @@ class ApplicationHandler(Handler):
     def __init__(self, bot: Bot):
         super().__init__(bot)
         self.router = Router()
-        self.kb = ApplicationKeyboard()
+        self.kb = OrderKeyboard()
 
     def handle(self):
         @self.router.message(F.text.startswith(BUTTONS['CREATE_APPLICATION']))
@@ -28,8 +28,7 @@ class ApplicationHandler(Handler):
             )
 
             await message.answer(
-                MESSAGES['CREATE_APPLICATION'],
-                reply_markup=self.kb.start_menu_btn()
+                MESSAGES['CREATE_APPLICATION']
             )
 
         @self.router.message(F.text.startswith(BUTTONS['APPLICATIONS_HISTORY']))
@@ -45,5 +44,5 @@ class ApplicationHandler(Handler):
 
             await message.answer(
                 MESSAGES['APPLICATIONS_HISTORY'],
-                reply_markup=self.kb.start_menu_btn()
+                reply_markup=self.kb.order_menu_btn()
             )
