@@ -17,7 +17,16 @@ from ..auth import (
     get_current_user
 )
 
-from ..models import Orders, Users, Session, engine
+from ..models import (
+    engine, 
+    Orders, 
+    Users, 
+    Session, 
+    Address,
+    UsersAddress
+    )
+
+import re
 
 router = APIRouter()
 
@@ -87,7 +96,10 @@ async def get_all_orders():
     if orders:    
         return [orders]
     else:
-        return JSONResponse(status_code=404, content={"message": "No orders found"})
+        return JSONResponse(
+            status_code=404, 
+            content={"message": "No orders found"}
+            )
 
 
 @router.get('/orders/active', tags=["orders"])
@@ -154,21 +166,51 @@ async def create_order(
     current_user: Annotated[UserLoginSchema, Security(get_current_user)]
     ):
     """
-    Создание заявки админом или менеджером
+    Создание заявки
     """
-    #TODO: Опциональная аунтефикация на создание? 
-    with Session(engine, expire_on_commit=False) as session:
+    #TODO Переделать под новые адреса 
+    #TODO Добавить поддержку добавления контейнера
+    #TODO Оповещение менеджера при создании заявки
 
-        user = Users.get_or_create(t_id=order_data.user_tg_id)
+        
+    with Session(engine, expire_on_commit=False) as session:
+        user = None
+
+        if re.match(r'(.*)-(.*)-(.*)-(.*)', str(order_data.from_user)):
+            user = session.query(Users).filter_by(id = order_data.from_user).first()
+        else:
+            user = session.query(Users).filter_by(telegram_id = int(order_data.from_user)).first()
+            if user:
+                order_data.from_user = user.id 
+
+        if not user:
+            return JSONResponse({
+                "message": f"No user with id '{order_data.from_user}' found"
+            }, status_code=404)
+
+
+        # user_id: int
+        # address_id: str
+        # day: str 
+        # box_type_id: int
+        # bot_count: int
+
+        address = session.query(Address).\
+            join(UsersAddress, UsersAddress.address_id == Address.id).\
+            join(Users, UsersAddress.user_id == Users.id). \
+            where(Users.telegram_id == user.telegram_id, Address.id == order_data.address_id).first()
+
+        if not address:
+            return JSONResponse({
+                "message": f"No address with id '{order_data.from_user}' found"
+            }, status_code=404)
+
 
         new_order = Orders(
-            from_user          = user.id,
-            district           = order_data.district,
-            region             = order_data.region,
-            distance_from_mkad = order_data.distance_from_mkad,
-            address            = order_data.address, #TODO: Создание адреса 
-            full_adress        = order_data.full_adress,
-            weekday            = order_data.weekday,
+            from_user   = order_data.from_user,
+            address_id  = order_data.address_id,
+            weekday     = order_data.day,
+
         )
 
         session.add(new_order)
@@ -176,7 +218,7 @@ async def create_order(
 
     return {
         "status": 'created',
-        "content": order_data
+        "content": new_order
     }
 
 

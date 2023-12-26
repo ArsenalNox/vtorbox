@@ -15,6 +15,7 @@ from ..models import (
     Users, Orders, Session, engine, Roles, Permissions,
     ROLE_CUSTOMER_NAME
     )
+
 from ..auth import (
     oauth2_scheme, 
     pwd_context, 
@@ -49,7 +50,6 @@ router = APIRouter()
 #TODO: Ручная привязка пользователя к боту #невозможно если пользователь не писал в тг
 #TODO: Отправка сообщения пользователю через бота 
 
-
 @router.get('/users', tags=["admins", "managers"], responses={
     200: {
         "description": "Получение всех пользователей",
@@ -71,7 +71,7 @@ router = APIRouter()
     }
 })
 async def get_all_users(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
+        current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
         role_name: str = ROLE_CUSTOMER_NAME,
 
         #Применимо для клиентов
@@ -92,8 +92,6 @@ async def get_all_users(
             return users
 
     return []
-
-
 
 
 @router.post('/users', tags=["admins"])
@@ -139,7 +137,7 @@ async def create_user(
 
                 user_role = Permissions(
                     user_id = new_user.id,
-                    role_id = Roles.get_role(role).id #TODO: заменить на role_query
+                    role_id = Roles.get_role(role).id
                 )
 
                 session.add(user_role)
@@ -156,7 +154,7 @@ async def delete_user():
     pass
 
 
-@router.put('/users', tags=["admin"])
+@router.put('/user', tags=["admin"])
 async def update_user_data(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
     new_user_data: UserUpdateData
@@ -340,7 +338,6 @@ async def get_current_user_info(
             "user_data": query,
             "token_data": token_data
             }
-
 
 
 @router.post('/users/import_clients', tags=["admin"])

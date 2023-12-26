@@ -25,20 +25,8 @@ connection_url = URL.create(
     password=getenv("POSTGRES_PASSWORD")
 )
 
-ROLE_ADMIN_NAME = 'admin'
-ROLE_COURIER_NAME = 'courier'
-ROLE_MANAGER_NAME = 'manager'
-ROLE_CUSTOMER_NAME = 'customer'
-ROLE_TELEGRAM_BOT_NAME = 'bot'
-
 engine = create_engine(connection_url)
 Base = declarative_base()
-
-#TODO: Модель пользователя
-#TODO: Модель менеждера
-#TODO: Модель Админа
-#TODO: Модель заявки
-#TODO: Модель курьера
 
 
 class Orders(Base):
@@ -49,16 +37,11 @@ class Orders(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     from_user = Column(UUID(as_uuid=True), ForeignKey('users.id'))
-    address = Column(UUID(as_uuid=True), ForeignKey('address.id'))
+    address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'))
 
-    weekday = Column(String())
-
+    weekday = Column(String()) 
     interval = Column(String())
-    subscription = Column(String(), nullable=True)
-    
-    #Тариф? 
-    tariff = Column(String(), nullable=True)
-    
+
     #Дата последнего вывоза
     last_disposal = Column(DateTime(), default=None, nullable=True)
     
@@ -69,12 +52,12 @@ class Orders(Base):
     legal_entity = Column(Boolean(), default=False)
     
     #Кол-во вывозов с даты оплаты
-    times_completed = Column(Integer)
+    times_completed = Column(Integer())
 
-    #Дата последней оплаты
-    payment_day = Column(DateTime(), nullable=True)
+    box_type_id = Column(UUID(as_uuid=True), ForeignKey('boxtypes.id'))
+    box_count = Column(Integer())
 
-    disabled = Column(Boolean(), default=False)
+    status = Column(UUID(as_uuid=True), ForeignKey('order_statuses.id'))
 
     @staticmethod
     def get_all_orders():
@@ -84,7 +67,7 @@ class Orders(Base):
 
 class RoutedOrders(Base):
     """
-    Принятые заказы
+    Принятые заказы на выполнении у курьера
     """
 
     __tablename__ = 'routed_orders'
@@ -101,7 +84,7 @@ class RoutedOrders(Base):
     status = Column(String(), nullable=True)
 
     #Комментарий к выполнению от менеджера
-    #SUGGESTION: Перенести коммента в отдельную таблицу
+    #SUGGESTION: Перенести коммента в отдельную таблицу? 
     comment_manager = Column(String(), nullable=True)
     #Комментарий к выполнению от курьера
     comment_courier = Column(String(), nullable=True)
@@ -121,7 +104,10 @@ class Users(Base):
     telegram_id = Column(BigInteger(), unique=True, nullable=True)
     telegram_username = Column(String(), nullable=True)
     phone_number = Column(String(), unique=True, nullable=True)
-    full_name = Column(String(), nullable=True)
+    
+    firstname = Column(String(), nullable=True)
+    secondname = Column(String(), nullable=True)
+    
     additional_info = Column(Text(), comment='доп. инфа', nullable=True)
     date_created = Column(DateTime(), default=datetime.now())
     last_action = Column(DateTime(), default=datetime.now())
@@ -165,6 +151,7 @@ class Users(Base):
                 session.commit()
 
         return user
+    
 
     #TODO: Свойста по ролям
     @property
@@ -202,6 +189,7 @@ class Address(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     address = Column(String(), nullable=False)
+    detail = Column(String(), nullable=True)
     latitude = Column(String(), nullable=False)
     longitude = Column(String(), nullable=False)
     main = Column(Boolean(), default=False)
@@ -210,6 +198,8 @@ class Address(Base):
     region = Column(String())
     distance_from_mkad = Column(String())
     point_on_map = Column(String())
+
+    comment = Column(String(), nullable=True)
 
     def __repr__(self):
         return f'{self.id}'
@@ -251,7 +241,7 @@ class Roles(Base):
     @property
     def customer_role(self):
         with Session(engine, expire_on_commit=False) as session:
-            query = session.query(Roles).filter_by(role_name='customer').first()
+            query = session.query(Roles).filter_by(role_name=ROLE_CUSTOMER_NAME).first()
             return query.id
 
     @property
@@ -301,9 +291,64 @@ class OrderStatuses(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
+    status_name = Column(String(), nullable=False)
+    description = Column(String(), nullable=False)
+    
+
+class BoxTypes(Base):
+    """
+    Модель типов контейнеров
+    """
+    
+    __tablename__ = "boxtypes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    box_name = Column(String(), nullable=False)
+    pricing_default = Column(Float()) #За еденицу
+    volume = Column(Float())
+    weight_limit = Column(Float())
+
+
+class Payments(Base):
+    """
+    Платежи
+    """
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    __tablename__ = "payments"
+
 
 Base.metadata.create_all(engine)
 
+#Роли пользователей в системе
+ROLE_ADMIN_NAME = 'admin'
+ROLE_COURIER_NAME = 'courier'
+ROLE_MANAGER_NAME = 'manager'
+ROLE_CUSTOMER_NAME = 'customer'
+ROLE_TELEGRAM_BOT_NAME = 'bot'
+
+
+ORDER_STATUS_DEFAULT = "created"
+ORDER_STATUS_PROCESSING = "processing"
+
+#Подстатусы от в работе
+ORDER_STATUS_AWAITING_CONFIRMATION = "awaiting_confirmation"
+ORDER_STATUS_CONFIRMED = "confirmed"
+ORDER_STATUS_COURIER_PROGRESS = "courier_progress"
+ORDER_STATUS_AWAITING_PAYMENT = "awaiting_payment"
+ORDER_STATUS_PAYED = "payed"
+
+ORDER_STATUS_DONE = "done"
+
+
+
+BOX_TYPE_TEST1 = {
+    "name": "Пакет",
+    "volume": "2",
+    "weight_limit": "15"
+}
 
 def init_role_table():
     roles = [
@@ -327,4 +372,10 @@ def init_status_table():
     pass
 
 
+def init_boxtype_table():
+    pass
+
+
 init_role_table()
+
+
