@@ -48,3 +48,13 @@ async def delete_messages_with_btn(data: dict, state: FSMContext, src: Message):
         )
         await state.update_data(msg=None)
 
+    if data.get('msg_ids'):
+        for address_id, msg_id in data.get('msg_ids').items():
+            await src.bot.edit_message_reply_markup(
+                chat_id=data.get('chat_id'),
+                message_id=msg_id
+            )
+        await state.update_data(msg_ids=[])
+
+
+

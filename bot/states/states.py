@@ -5,6 +5,8 @@ class AddAddressState(StatesGroup):
     """Состояния для создания адреса"""
 
     address = State()
+    detail = State()
+    comment = State()
 
 
 class EditQuestionnaireState(StatesGroup):
@@ -22,4 +24,14 @@ class RegistrationUser(StatesGroup):
     """Состояния для регистрации пользователей"""
 
     phone = State()
+
+
+class CreateOrder(StatesGroup):
+    """Состояния для создания заявки"""
+
+    date = State()
+    address = State()
+    container = State()
+    count_container = State()
+
 

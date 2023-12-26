@@ -18,6 +18,7 @@ from bot.states.states import RegistrationUser
 from bot.utils.format_text import delete_messages_with_btn
 from bot.utils.handle_data import HEADERS
 from bot.utils.messages import MESSAGES
+from bot.utils.requests_to_api import req_to_api
 
 
 class CommandHandler(Handler):
@@ -44,10 +45,12 @@ class CommandHandler(Handler):
                 promocode_in_msg = ['']
 
             # ищем пользователя из БД по промокоду и затем добавляем ему данные телеграмма в БД
-            response = requests.get(settings.local_url + f'users/promocode?promocode={promocode_in_msg[0]}', headers=HEADERS)
-            user = response.json()
+            status_code, user = req_to_api(
+                method='get',
+                url=f'users/promocode?promocode={promocode_in_msg[0]}'
+            )
 
-            if user and response.status_code == http.HTTPStatus.OK:
+            if user and status_code == http.HTTPStatus.OK:
                 user_data = json.dumps({
                     'tg_id': message.from_user.id,
                     'username': message.from_user.username,
@@ -56,7 +59,11 @@ class CommandHandler(Handler):
                 })
 
                 # обновляем данные пользователя данными из телеграма
-                requests.put(settings.local_url + 'users/botclient/link', data=user_data, headers=HEADERS)
+                req_to_api(
+                    method='put',
+                    url='users/botclient/link',
+                    data=user_data
+                )
 
                 await message.answer(
                     MESSAGES['START']
@@ -77,7 +84,11 @@ class CommandHandler(Handler):
                 })
 
                 # создаем пользователя
-                requests.post(settings.local_url + 'user', data=user_data, headers=HEADERS)
+                req_to_api(
+                    method='post',
+                    url='user',
+                    data=user_data
+                )
 
                 await message.answer(
                     MESSAGES['REGISTRATION_MENU'],

@@ -12,8 +12,8 @@ class BaseKeyboard:
 
         builder = ReplyKeyboardBuilder()
         builder.row(
-            KeyboardButton(text=BUTTONS['CREATE_APPLICATION']),
-            KeyboardButton(text=BUTTONS['APPLICATIONS_HISTORY'])
+            KeyboardButton(text=BUTTONS['CREATE_ORDER']),
+            KeyboardButton(text=BUTTONS['ORDER_HISTORY'])
 
         )
 

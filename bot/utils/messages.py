@@ -32,10 +32,10 @@ order_info_text = """
 
 questionnaire_text = """
 Анкета:
-Фамилия %LASTNAME%
-Имя %FIRSTNAME%
-Телефон %PHONE%
-Е-мейл %EMAIL%
+Фамилия: <b>{}</b>
+Имя: <b>{}</b>
+Телефон: <b>{}</b>
+Е-мейл: <b>{}</b>
 """
 
 
@@ -54,10 +54,10 @@ MESSAGES = {
     'REGISTRATION_MENU': registration_menu_text,
     'MENU': 'Главное меню',
     'SETTINGS': 'В данном меню вы можете управлять настройками сервиса',
-    'CREATE_APPLICATION': 'HERE Создать заявку',
+    'CREATE_ORDER': 'В какой день вам удобно принять курьера?',
     'APPLICATIONS_HISTORY': 'HERE История заявок',
     'MY_ADDRESSES': 'HERE Мои адреса',
-    'ADD_ADDRESS': 'Введите адрес(Укажите город, улицу и дом)',
+    'ADD_ADDRESS': 'В данном меню вы можете управлять своими адресами:',
     'PAYMENTS': 'HERE Способы оплаты',
     'QUESTIONNAIRE': questionnaire_text,
     'CHANGE_QUESTIONNAIRE': 'Выберите, что хотите изменить:',
@@ -73,6 +73,8 @@ MESSAGES = {
     'WRITE_YOUR_LASTNAME': 'Напишите вашу фамилию',
     'WRITE_YOUR_PHONE_NUMBER': 'Напишите номер телефон, начиная с 8',
     'WRITE_YOUR_EMAIL': 'Напишите адрес электронный почты',
+    'WRITE_YOUR_DETAIL_ADDRESS': 'Введите ваш подьезд и номер квартиры',
+    'WRITE_COMMENT_ADDRESS': 'Напишите комментарий к адресу\nЕсли его нет, то нажмите кнопку ниже',
     'PHONE_NOT_FOUND': 'Не найден указанный номер телефона\nПопробуйте ввести номер текстом',
     'PROMOCODE_NOT_FOUND': 'Промокод не найден, можете обратиться к менеджеру',
     'ORDER_INFO': order_info_text,
@@ -83,7 +85,22 @@ MESSAGES = {
     'CHANGE_SCHEDULE': 'Для изменения выберите ниже на клавиатуре тип вывоза:',
     'WRONG_PHONE_NUMBER': 'Неверный номер телефона! Введите номер, начиная с 8',
     'WRONG_EMAIL': 'Неверный email!',
-    'CHOOSE_SCHEDULE_PERIOD': 'Выберите по каким дням вывозить мусор:'
+    'WRONG_FIRSTNAME': 'Неверное имя! Оно должно состоять из букв',
+    'WRONG_LASTNAME': 'Неверная фамилия! Она должно состоять из букв',
+    'CHOOSE_SCHEDULE_PERIOD': 'Выберите по каким дням вывозить мусор:',
+    'CHOOSE_DAY_OF_WEEK': 'Выберите дни недели',
+    'CHOOSE_DAY_OF_MONTH': 'Выберите дни месяца',
+    'SAVE_SCHEDULE': 'Ваше расписание сохранено',
+    'ADD_NEW_ADDRESS': 'Отправьте адрес в виде строки (город улица дом подъезд квартира) или по кнопке с геопозицией',
+    'CHOOSE_DATE_ORDER': 'Выберите на клавиатуре либо введите в формате DD-MM-YYYY:',
+    'WRONG_ORDER_DATE': 'Неверный формат даты',
+    'CHOOSE_ADDRESS_ORDER': 'Выберите адрес:',
+    'CHOOSE_CONTAINER': 'Выберите тип контейнера для вывоза:',
+    'CHOOSE_COUNT_CONTAINER': 'Введите количество контейнеров:',
+    'ORDER_WAS_CREATED': 'Заявка создана! В ближайшее время она будет взята в работу',
+    'ADDRESS_INFO_DEDAULT': '<b>Адрес № {}</b> (по умолчанию)\n{}',
+    'ADDRESS_INFO_NOT_DEDAULT': '<b>Адрес № {}</b> \n{}',
+
 }
 
 
