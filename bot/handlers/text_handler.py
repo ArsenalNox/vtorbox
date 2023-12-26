@@ -18,6 +18,7 @@ from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
 from bot.utils.handle_data import phone_pattern, HEADERS
 from bot.utils.messages import MESSAGES
+from bot.utils.requests_to_api import req_to_api
 
 
 class TextHandler(Handler):
@@ -45,7 +46,11 @@ class TextHandler(Handler):
             })
 
             # создаем пользователя
-            requests.post(settings.local_url + 'user', data=user_data, headers=HEADERS)
+            req_to_api(
+                method='post',
+                url='user',
+                data=user_data
+            )
 
             await message.answer(
                 MESSAGES['START']
@@ -58,31 +63,20 @@ class TextHandler(Handler):
             #     video=
             # )
 
-            # получаем активную заявку пользователя
+            # получаем активные заявки пользователя
             # если есть, то выводим с такой кнопкой show_btn(order_id)
+            order_id = 1
             await message.answer(
                 MESSAGES['MENU'],
                 reply_markup=self.kb.start_menu_btn()
             )
             await state.set_state(state=None)
-
-        @self.router.callback_query(F.data.startswith('show'))
-        async def show_active_order(callback: CallbackQuery, state: FSMContext):
-            """Просмотр активной заявки пользователя"""
-
-            order_id = callback.data.split('_')[1]
-
-            # получаем заказ по его id
-            await callback.message.answer(
-                MESSAGES['ORDER_INFO'],
-                reply_markup=self.order_kb.order_menu_btn(order_id)
+            msg = await message.answer(
+                'test',
+                reply_markup=self.kb.show_btn(order_id)
             )
 
-            await callback.message.answer(
-                MESSAGES['MENU'],
-                reply_markup=self.kb.start_menu_btn()
-            )
-
+            await state.update_data(msg=msg.message_id)
 
         @self.router.message(RegistrationUser.phone, F.content_type.in_({'contact'}))
         async def catch_user_phone_number(message: Message, state: FSMContext):
@@ -95,9 +89,13 @@ class TextHandler(Handler):
                 src=message
             )
             phone = message.contact.phone_number
-            response = requests.get(settings.local_url + f'users/phone?phone_number={phone}', headers=HEADERS)
-            user = response.json()
-            if user and response.status_code == http.HTTPStatus.OK:
+
+            status_code, user = req_to_api(
+                method='get',
+                url=f'users/phone?phone_number={phone}'
+            )
+
+            if user and status_code == http.HTTPStatus.OK:
                 await state.set_state(state=None)
                 # логика отправки смс кода
 
@@ -109,13 +107,18 @@ class TextHandler(Handler):
 
         @self.router.message(RegistrationUser.phone)
         async def catch_text_user_phone(message: Message, state: FSMContext):
+
             data = await state.get_data()
             check_phone = re.search(phone_pattern, message.text)
 
             if check_phone and len(message.text) == 11:
                 phone = message.text
-                response = requests.get(settings.local_url + f'users/phone?phone_number={phone}', headers=HEADERS)
-                user = response.json()
+
+                status_code, user = req_to_api(
+                    method='get',
+                    url=f'users/phone?phone_number={phone}'
+                )
+
                 if user:
                     await state.set_state(state=None)
                     # логика отправки смс кода
@@ -128,18 +131,24 @@ class TextHandler(Handler):
 
             else:
                 promocode = message.text
-                response = requests.get(settings.local_url + f'users/promocode?promocode={promocode}', headers=HEADERS)
-                user = response.json()
+                status_code, user = req_to_api(
+                    method='get',
+                    url=f'users/promocode?promocode={promocode}'
+                )
 
-                if user and response.status_code == http.HTTPStatus.OK:
-                    user_data = {
+                if user and status_code == http.HTTPStatus.OK:
+                    user_data = json.dumps({
                         'tg_id': message.from_user.id,
                         'username': message.from_user.username,
                         'fullname': message.from_user.full_name
-                    }
+                    })
 
                     # регаем пользователя
-                    response = requests.post(settings.local_url + f'user', data=user_data, headers=HEADERS)
+                    req_to_api(
+                        method='post',
+                        url='user',
+                        data=user_data
+                    )
 
                     await message.answer(
                         MESSAGES['START'],
@@ -204,6 +213,8 @@ class TextHandler(Handler):
             )
 
             await state.update_data(chat_id=message.chat.id)
+            await state.update_data(selected_day_of_week=[])
+            await state.update_data(selected_day_of_month=[])
             await state.set_state(state=None)
 
             await message.answer(
