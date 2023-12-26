@@ -6,7 +6,6 @@ from app.routers import orders, users, couriers, admins, bot
 
 app = FastAPI()
 
-
 origins = [
     "http://127.0.0.1",
     "http://127.0.0.1:8000",
@@ -14,6 +13,17 @@ origins = [
     "http://localhost",
     "http://localhost:8080",
 ]
+
+
+#TODO: Таблица статусов заявки
+#TODO: Обновить модель заявки под новые адреса
+
+#TODO: Модель контейнеров
+#TODO: История изменений данных заявки
+#TODO: История вывоза 
+#TODO: Запись истории статуса заявки 
+#TODO: soft delete
+#TODO: Формирование пула заявок (ручная)
 
 
 # app.add_middleware(

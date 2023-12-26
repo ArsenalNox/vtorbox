@@ -7,44 +7,26 @@
 """
 import uuid
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, UUID4
 from typing import Optional
 
 
-#TODO: Модели под пользователей
-#TODO: Модели под заявку
-#TODO: Модели под админа
-#TODO: Модели под менеджера
-
-
 class Order(BaseModel):
-    user_tg_id: int
-    district: str
-    region: str
-    distance_from_mkad: int
-    address: str
-    full_adress: str | None = None 
-    weekday: int 
-    full_name: str | None = None
-    phone_number: str
-    price: float
-    is_legal_entity: bool | None = False
+    from_user: str
+    address_id: UUID4
+    day: str 
+    box_type_id: int
+    box_count: int
 
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
-                'user_tg_id': 7643079034697,
-                'district': 'МО',
-                'region': 'Красногорск',
-                'distance_from_mkad': 12,
-                'address': 'Ул. Пушкина 8',
-                'full_adress': '8-53. Домофон 53 и кнопка "вызов".' ,
-                'weekday': 6,
-                'full_name': 'Иванов Иван Иванович',
-                'phone_number': '+7 123 2323 88 88', 
-                'price': 350,
-                'is_legal_entity': False,
+                    'from_user': 7643079034697,
+                    'address_id': "1cac46a0-7635-4e01-aea4-e3b9f657ca79",
+                    'day': '1,2',
+                    'box_type_id': 1,
+                    'box_count': 5
                 }
             ]
         }
@@ -66,19 +48,20 @@ class CourierCreationValidator(BaseModel):
     tg_id: int
 
 
-class User(BaseModel):
+class UserOut(BaseModel):
     """
     Возврат данных пользвателя
     """
-    pass
+    email: EmailStr
 
+    id: UUID4
+    telegram_id: Optional[int]
+    telegram_username: Optional[str]
 
-class UserUpdateValidator(BaseModel):
-    """
-    Валидатор на обновление данных пользователя
-    Все поля кроме айди пользователя не обязательны
-    """
-    pass
+    phone_number: Optional[str]
+
+    firstname: Optional[str]
+    secondname: Optional[str]
 
 
 class OrderFilter(BaseModel):
@@ -110,7 +93,8 @@ class UserCreationValidator(BaseModel):
     telegram_id: int | None = None
     telegram_username: str | None = None
     phone_number: str | None = None
-    full_name: str
+    firstname: str
+    secondname: str
 
     role: str = "user"
     send_email_invite: bool = False #Отправить ли письмо с приглашением
@@ -119,6 +103,8 @@ class UserCreationValidator(BaseModel):
 class UserUpdateValidator(BaseModel):
     """
     Валидатор на обновление данных пользователя
+
+    Все поля кроме айди пользователя не обязательны
     """
     user_id: str #Может быть и тг айди 
 
@@ -126,7 +112,9 @@ class UserUpdateValidator(BaseModel):
     telegram_id: Optional[int] = None
     telegram_username: Optional[int] = None
     phone_number: Optional[int] = None
-    full_name: Optional[str] = None
+    firstname: Optional[str] = None
+    secondname: Optional[str] = None
+    email: Optional[EmailStr] = None
 
 
 class AuthToken(BaseModel):
@@ -147,7 +135,8 @@ class TokenData(BaseModel):
 class CreateUserData(BaseModel):
     tg_id: int
     username: str | None = None #Опциональные т.к пользователь может скрыть или не иметь
-    fullname: str | None = None 
+    firstname: str | None = None 
+    secondname: str | None = None
 
 
 class UpdateUserDataFromTG(CreateUserData):
@@ -163,15 +152,34 @@ class Address(BaseModel):
     Модель на создание/обновление адреса
     """
     main: bool = True
-    address: str #Текст адреса
-    latitude: str 
-    longitude: str 
+    address:   Optional[str] = None #Текст адреса
+    latitude:  Optional[float] = None
+    longitude: Optional[float] = None
+    detail: Optional[str] = None 
+    comment: Optional[str] = None
 
     district: str | None = None
     region: str | None = None 
-    distance_from_mkad: str | None = None
+    distance_from_mkad: int | None = None
     point_on_map: str | None = None
 
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    'main': 'false',
+                    'district': 'МО',
+                    'longitude': '55.158193',
+                    'latitude': '51.837447',
+                    'region': 'Красногорск',
+                    'distance_from_mkad': 12,
+                    'address': 'Оренбург Просторная 19/1',
+                    'detail': '8-53. Домофон 53 и кнопка "вызов".',
+                    'comment': "Злая собака"
+                }
+            ]
+        }
+    }
 
 class AddressUpdate(Address):
     """
