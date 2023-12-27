@@ -311,6 +311,10 @@ class OrderStatuses(Base):
 
     status_name = Column(String(), nullable=False)
     description = Column(String(), nullable=False)
+
+    @property
+    def default_status():
+        pass
     
 
 class BoxTypes(Base):
@@ -402,11 +406,6 @@ def init_role_table():
 
 def init_status_table():
     statuses = [
-        ROLE_ADMIN_NAME,
-        ROLE_COURIER_NAME,
-        ROLE_MANAGER_NAME,
-        ROLE_CUSTOMER_NAME,
-        ROLE_TELEGRAM_BOT_NAME,
         ORDER_STATUS_DEFAULT,
         ORDER_STATUS_PROCESSING,
         ORDER_STATUS_AWAITING_CONFIRMATION, 
