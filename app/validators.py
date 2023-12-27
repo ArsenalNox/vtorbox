@@ -7,30 +7,32 @@
 """
 import uuid
 
-from pydantic import BaseModel, EmailStr, UUID4
-from typing import Optional
-
+from pydantic import BaseModel, EmailStr, UUID4, Field
+from typing import Optional, Annotated, Any
+from typing_extensions import TypedDict
 
 class Order(BaseModel):
     from_user: str
     address_id: UUID4
     day: str 
-    box_type_id: int
+    # box_type_id: UUID4
+    box_name: str
     box_count: int
 
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
-                    'from_user': 7643079034697,
+                    'from_user': '851230989',
                     'address_id': "1cac46a0-7635-4e01-aea4-e3b9f657ca79",
                     'day': '1,2',
-                    'box_type_id': 1,
+                    'box_name': "Пакет",
                     'box_count': 5
                 }
             ]
         }
     }
+
 
 
 class OrderUpdate(BaseModel):
@@ -193,3 +195,33 @@ class AddressUpdate(Address):
     region: str | None = None 
     distance_from_mkad: str | None = None
     point_on_map: str | None = None
+
+
+class BoxType(BaseModel):
+    """
+    Модель контейнера
+    """
+    box_name: str
+    pricing_default: float 
+    volume: float
+    weight_limit: float
+
+
+class OrderOut(BaseModel):
+    tg_id: Optional[int] = None
+    interval: Any
+    day: Optional[str] = None
+    last_disposal: Any
+    times_completed: int | None = None
+    status: Any
+    date_created: Any
+    last_updated: Any
+    id: UUID4
+    address_id: UUID4
+    next_planned_date: Any
+    legal_entity: bool
+    box_type_id: Any
+    box_count: Any
+
+    address_data: Annotated[Optional[Address], Field(None)]
+    box_data: Annotated[Optional[BoxType], Field(None)]
