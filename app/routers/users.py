@@ -35,13 +35,16 @@ from ..validators import (
 
 )
 
+from app.utils import is_valid_uuid
+
 from passlib.context import CryptContext
 from datetime import timedelta
 
 from jose import jwt
 
-import os, uuid
 from dotenv import load_dotenv
+
+import os, uuid, re
 
 
 load_dotenv()
@@ -163,15 +166,12 @@ async def update_user_data(
     Обновление данных пользователя админом
     """
     with Session(engine, expire_on_commit=False) as session:
-        user_query = session.query(Users).filter_by(id=new_user_data.user_id).first()
-
+        user_query = Users.get_user(new_user_data.user_id)
+        
         if not user_query:
-            user_query = session.query(Users).filter_by(telegram_id=new_user_data.user_id).first()
-
-            if not user_query:
-                return JSONResponse({
-                    "message": "No such user"
-                    }, status_code=404)
+            return JSONResponse({
+                "message": "No such user"
+                }, status_code=404)
 
         for attr, value in new_user_data.model_dump().items():
 
@@ -202,12 +202,14 @@ async def update_user_self_data(
     """
 
 
-@router.get('/users/bot_linked')
+@router.get('/users/bot_linked', tags=['users'])
 async def get_bot_users():
     """
     Получение пользователей тг бота, или пользователей сайта связавших профиль с тг
     """
-    pass
+    with Session(engine, expire_on_commit=False) as session:
+        bot_users = session.query(Users).where(Users.link_code == None, Users.telegram_id is not None).all()
+        return bot_users
 
 
 @router.post('/users/signup', tags=["users"])
