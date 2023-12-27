@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import orders, users, couriers, admins, bot
+from app.routers import orders, users, couriers, admins, bot, boxes
 
 app = FastAPI()
 
@@ -14,11 +14,13 @@ origins = [
     "http://localhost:8080",
 ]
 
+#TODO: Конвертация DAY в создании заявки на datetime
+#TODO: редактирование заявок пользователем
+#TODO: Обновление статуса заявки админом или менеджером
+#TODO: Создание контейнеров
 
 #TODO: Таблица статусов заявки
-#TODO: Обновить модель заявки под новые адреса
 
-#TODO: Модель контейнеров
 #TODO: История изменений данных заявки
 #TODO: История вывоза 
 #TODO: Запись истории статуса заявки 
@@ -46,12 +48,15 @@ app.include_router(
     # prefix="/api",
 )
 
+app.include_router(
+    boxes.router,
+    prefix="/api"
+)
 
 app.include_router(
     couriers.router,
     prefix="/api",
 )
-
 
 app.include_router(
     admins.router,
