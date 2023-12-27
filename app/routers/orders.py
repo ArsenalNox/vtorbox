@@ -10,7 +10,8 @@ from datetime import datetime
 
 from ..validators import (
     Order as OrderValidator,
-    UserLogin as UserLoginSchema
+    UserLogin as UserLoginSchema,
+    OrderOut
 )
 
 from ..auth import (
@@ -23,15 +24,17 @@ from ..models import (
     Users, 
     Session, 
     Address,
-    UsersAddress
+    UsersAddress,
+    BoxTypes
     )
+from uuid import UUID
 
-import re
+import re 
 
 router = APIRouter()
 
 
-@router.get('/orders/filter/', tags=["orders"])
+@router.get('/orders/filter/', tags=["orders", "admin"])
 async def get_filtered_orders(
         by_date: bool = False, 
         datetime_start: Annotated[datetime | None, Body()] = None,
@@ -56,7 +59,7 @@ async def get_filtered_orders(
         return JSONResponse(status_code=404, content={"message": "No orders found"})
 
 
-@router.get('/orders', tags=["orders"], responses={
+@router.get('/orders', tags=["orders", "admin"], responses={
         200: {
             "description": "Получение всех заявок",
             "content": {
@@ -107,7 +110,7 @@ async def get_active_orders():
     pass
 
 
-@router.get('/orders/{order_id}', tags=["orders"], 
+@router.get('/orders/{order_id}', tags=["orders", "bot"], 
     responses={
         200: {
             "description": "Заявка полученная по айди",
@@ -131,36 +134,89 @@ async def get_active_orders():
         }
     }
     )
-async def get_order_by_id(order_id:int):
+async def get_order_by_id(order_id: UUID):
     """
     Получение конкретной заявки
     """
-    return [{'order_id': 1, 'user_id': 1}]
+    with Session(engine, expire_on_commit=False) as session:
+        order = session.query(Orders, Address).\
+                join(Address, Address.id == Orders.address_id).\
+                where(Orders.id == order_id).order_by(Orders.date_created).first()
+
+        if not order:
+            return JSONResponse({
+                "message": "not found"
+            },status_code=404)
+
+        return_data = []
+
+        user = session.query(Users).filter_by(id = order[0].from_user).first()
+        order_data = OrderOut(**order[0].__dict__)
+        order_data.tg_id = user.telegram_id
+        order_data.address_data = order[1]
+
+        return_data.append(order_data)
+
+        return return_data
 
 
-@router.post('/orders/create', tags=["orders"], 
-    responses={
-        200: {
-            "status": 'created',
-            "content": {
-                "application/json": {
-                    "example": {
-                        'user_tg_id': 7643079034697,
-                        'district': 'МО',
-                        'region': 'Красногорск',
-                        'distance_from_mkad': 12,
-                        'address': 'Ул. Пушкина 8',
-                        'full_adress': '8-53. Домофон 53 и кнопка "вызов".' ,
-                        'weekday': 6,
-                        'full_name': 'Иванов Иван Иванович',
-                        'phone_number': '+7 123 2323 88 88', 
-                        'price': 350,
-                        'is_legal_entity': False,
-                    }
-                }
-            }
-        }
-})
+@router.get('/users/orders/', tags=['bot', 'orders'])
+async def get_user_orders(tg_id: int = None, user_id: UUID = None, order_id: UUID = None):
+    """
+    Получение заявок пользователя 
+    """
+    user = None
+
+    with Session(engine, expire_on_commit=False) as session:
+        if tg_id:
+            user = session.query(Users).filter_by(telegram_id=tg_id).first()
+        elif user_id:
+            user = session.query(Users).filter_by(id=user_id).first()
+        else:
+            return JSONResponse({
+                "message": "At least one type of user id is required"
+            }, status_code=422)
+
+        if not user:
+            return JSONResponse({
+                "message": "No user found"
+            }, status_code=422)
+
+        orders = None
+        if not (order_id == None):
+            orders = session.query(Orders, Address, BoxTypes).\
+                join(Address, Address.id == Orders.address_id).\
+                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                where(Orders.id == order_id).order_by(Orders.date_created).\
+                where(Orders.from_user == user.id).order_by(Orders.date_created).all()
+        else:
+            orders = session.query(Orders, Address).\
+                join(Address, Address.id == Orders.address_id).\
+                where(Orders.from_user == user.id).order_by(Orders.date_created).all()
+
+
+
+        return_data = []
+
+        for order in orders:
+            order_data = OrderOut(**order[0].__dict__)
+            order_data.tg_id = user.telegram_id
+            try:
+                order_data.address_data = order[1]
+            except IndexError: 
+                order_data.address_data = None
+
+            try:
+                order_data.box_data = order[2]
+            except IndexError:
+                order_data.box_data = None
+
+            return_data.append(order_data)
+
+        return return_data
+
+
+@router.post('/orders/create', tags=["orders", "bot"])
 async def create_order(
     order_data: OrderValidator,
     current_user: Annotated[UserLoginSchema, Security(get_current_user)]
@@ -174,20 +230,13 @@ async def create_order(
 
         
     with Session(engine, expire_on_commit=False) as session:
-        user = None
-
-        if re.match(r'(.*)-(.*)-(.*)-(.*)', str(order_data.from_user)):
-            user = session.query(Users).filter_by(id = order_data.from_user).first()
-        else:
-            user = session.query(Users).filter_by(telegram_id = int(order_data.from_user)).first()
-            if user:
-                order_data.from_user = user.id 
-
+        user = Users.get_user(order_data.from_user)
         if not user:
             return JSONResponse({
                 "message": f"No user with id '{order_data.from_user}' found"
-            }, status_code=404)
-
+            }, status_code=422)
+        else:
+            order_data.from_user = user.id 
 
         # user_id: int
         # address_id: str
@@ -198,19 +247,25 @@ async def create_order(
         address = session.query(Address).\
             join(UsersAddress, UsersAddress.address_id == Address.id).\
             join(Users, UsersAddress.user_id == Users.id). \
-            where(Users.telegram_id == user.telegram_id, Address.id == order_data.address_id).first()
+            where(Users.id == user.id, Address.id == order_data.address_id).first()
+
+        container = session.query(BoxTypes).filter_by(box_name = order_data.box_name).first()
+        if not container:
+            return JSONResponse({
+                "message": f"no {order_data.box_name} container found"
+            }, status_code=422)
 
         if not address:
             return JSONResponse({
-                "message": f"No address with id '{order_data.from_user}' found"
-            }, status_code=404)
-
+                "message": f"No user address with id '{order_data.from_user}' found"
+            }, status_code=422)
 
         new_order = Orders(
-            from_user   = order_data.from_user,
+            from_user   = user.id,
             address_id  = order_data.address_id,
-            weekday     = order_data.day,
-
+            day     = order_data.day,
+            box_type_id = container.id,
+            box_count   = order_data.box_count
         )
 
         session.add(new_order)
@@ -218,7 +273,8 @@ async def create_order(
 
     return {
         "status": 'created',
-        "content": new_order
+        "content": new_order,
+        "data_given": order_data
     }
 
 
