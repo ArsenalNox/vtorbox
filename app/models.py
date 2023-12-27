@@ -12,8 +12,9 @@ from dotenv import load_dotenv
 from os import getenv
 
 from .exceptions import UserNoIdProvided
+from app.utils import is_valid_uuid
 
-import uuid
+import uuid, re
 
 load_dotenv()
 connection_url = URL.create(
@@ -39,7 +40,7 @@ class Orders(Base):
     from_user = Column(UUID(as_uuid=True), ForeignKey('users.id'))
     address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'))
 
-    weekday = Column(String()) 
+    day = Column(String()) 
     interval = Column(String())
 
     #Дата последнего вывоза
@@ -58,6 +59,9 @@ class Orders(Base):
     box_count = Column(Integer())
 
     status = Column(UUID(as_uuid=True), ForeignKey('order_statuses.id'))
+
+    date_created = Column(DateTime(), default=datetime.now())
+    last_updated = Column(DateTime(), default=datetime.now())
 
     @staticmethod
     def get_all_orders():
@@ -152,6 +156,20 @@ class Users(Base):
 
         return user
     
+    @staticmethod
+    def get_user(user_id: str):
+        """
+        Получить пользователя по его uuid4 или telegram_id
+        """
+        user_query = None
+        with Session(engine, expire_on_commit=False) as session:
+            if is_valid_uuid(user_id):
+                user_query = session.query(Users).filter_by(id=user_id).first()
+            elif re.match(r'[\d]+', user_id):
+                user_query = session.query(Users).filter_by(telegram_id=int(user_id)).first()
+
+        return user_query
+
 
     #TODO: Свойста по ролям
     @property
@@ -342,13 +360,27 @@ ORDER_STATUS_PAYED = "payed"
 
 ORDER_STATUS_DONE = "done"
 
-
-
 BOX_TYPE_TEST1 = {
-    "name": "Пакет",
+    "box_name": "Пакет",
+    "pricing_default": 500,
     "volume": "2",
     "weight_limit": "15"
 }
+
+BOX_TYPE_TEST2 = {
+    "box_name": "Пакет тканиевый",
+    "pricing_default": 20,
+    "volume": "2",
+    "weight_limit": "5"
+}
+
+BOX_TYPE_TEST3 = {
+    "box_name": "Фасеточка",
+    "pricing_default": 5,
+    "volume": "1",
+    "weight_limit": "1"
+}
+
 
 def init_role_table():
     roles = [
@@ -369,13 +401,42 @@ def init_role_table():
 
 
 def init_status_table():
-    pass
+    statuses = [
+        ROLE_ADMIN_NAME,
+        ROLE_COURIER_NAME,
+        ROLE_MANAGER_NAME,
+        ROLE_CUSTOMER_NAME,
+        ROLE_TELEGRAM_BOT_NAME,
+        ORDER_STATUS_DEFAULT,
+        ORDER_STATUS_PROCESSING,
+        ORDER_STATUS_AWAITING_CONFIRMATION, 
+        ORDER_STATUS_CONFIRMED,
+        ORDER_STATUS_COURIER_PROGRESS, 
+        ORDER_STATUS_AWAITING_PAYMENT,
+        ORDER_STATUS_PAYED,
+        ORDER_STATUS_DONE
+    ]
+
+
 
 
 def init_boxtype_table():
-    pass
+    box_types = [
+        BOX_TYPE_TEST1,
+        BOX_TYPE_TEST2,
+        BOX_TYPE_TEST3,
+    ]
+    with Session(engine, expire_on_commit=False) as session:
+        for box_type in box_types:
+            print(box_type)
+            box_query = session.query(BoxTypes).filter_by(box_name = box_type["box_name"]).first()
+            if not box_query:
+                new_box = BoxTypes(**box_type)
+                session.add(new_box)
+        session.commit()
 
 
 init_role_table()
+init_boxtype_table()
 
 
