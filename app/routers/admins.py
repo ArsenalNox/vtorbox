@@ -17,7 +17,16 @@ from fastapi import APIRouter, Depends, HTTPException, status, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 
-from ..models import Users, Orders, Session, engine, Roles, Permissions
+from ..models import (
+    engine, 
+    Session, 
+    OrderStatuses,
+)
+
+from ..validators import (
+    UserLogin as UserLoginSchema
+)
+
 from ..auth import (
     oauth2_scheme, 
     pwd_context, 
@@ -29,23 +38,26 @@ from ..auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
 )
 
-from ..validators import (
-    UserSignUp as UserSignUpSchema,
-    UserLogin as UserLoginSchema,
-    UserCreationValidator as UserCreationData,
-    UserUpdateValidator as UserUpdateData
-
-)
-
-from passlib.context import CryptContext
-from datetime import timedelta
-
-from jose import jwt
-
 import os, uuid
 from dotenv import load_dotenv
 
 
 load_dotenv()
 router = APIRouter()
+
+@router.get('/statuses', tags=['admins'])
+async def get_all_statueses(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)]
+):
+    """
+    Получение списка всех статусов
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        statuses = session.query(OrderStatuses).all()
+        return statuses
+
+
+@router.put('/statuses/{status_id}', tags=['admins'])
+async def change_status():
+    pass
 
