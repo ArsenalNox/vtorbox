@@ -10,7 +10,7 @@ import uuid
 from pydantic import BaseModel, EmailStr, UUID4, Field
 from typing import Optional, Annotated, Any
 from typing_extensions import TypedDict
-
+from datetime import datetime
 class Order(BaseModel):
     from_user: str
     address_id: UUID4
@@ -25,7 +25,7 @@ class Order(BaseModel):
                 {
                     'from_user': '851230989',
                     'address_id': "1cac46a0-7635-4e01-aea4-e3b9f657ca79",
-                    'day': '1,2',
+                    'day': 'завтра',
                     'box_name': "Пакет",
                     'box_count': 5
                 }
@@ -207,21 +207,34 @@ class BoxType(BaseModel):
     weight_limit: float
 
 
+class Status(BaseModel):
+    """
+    Статус
+    """
+    status_name: str
+    description: str
+
+
 class OrderOut(BaseModel):
     tg_id: Optional[int] = None
-    interval: Any
-    day: Optional[str] = None
-    last_disposal: Any
+    day: Optional[datetime] = None
+    last_disposal: Optional[datetime] = None
     times_completed: int | None = None
     status: Any
-    date_created: Any
-    last_updated: Any
+    date_created: datetime
+    last_updated: datetime
     id: UUID4
     address_id: UUID4
     next_planned_date: Any
     legal_entity: bool
     box_type_id: Any
     box_count: Any
+    
+    on_interval: bool
+
+    interval_type: Optional[str] = None
+    intreval: Optional[str] = None
 
     address_data: Annotated[Optional[Address], Field(None)]
     box_data: Annotated[Optional[BoxType], Field(None)]
+    status_data: Annotated[Optional[Status], Field(None)]
