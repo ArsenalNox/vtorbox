@@ -40,8 +40,16 @@ class Orders(Base):
     from_user = Column(UUID(as_uuid=True), ForeignKey('users.id'))
     address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'))
 
-    day = Column(String()) 
-    interval = Column(String())
+    day = Column(DateTime(), nullable=True)
+    
+    #Регулярная ли заявка
+    on_interval = Column(Boolean(), default=False)
+
+    #Тип интервала (Дни недели/Дни месяца)
+    interval_type = Column(String(), default=None, nullable=True)
+
+    #Интервал заявки
+    intreval = Column(String(), default=None, nullable=True)
 
     #Дата последнего вывоза
     last_disposal = Column(DateTime(), default=None, nullable=True)
@@ -312,10 +320,32 @@ class OrderStatuses(Base):
     status_name = Column(String(), nullable=False)
     description = Column(String(), nullable=False)
 
-    @property
-    def default_status():
-        pass
-    
+    @staticmethod
+    def status_default():
+        with Session(engine,expire_on_commit=False) as session:
+            query = session.query(OrderStatuses).\
+                filter_by(status_name=ORDER_STATUS_DEFAULT["status_name"]).first()
+            return query
+
+    @staticmethod
+    def status_processing():
+        with Session(engine,expire_on_commit=False) as session:
+            query = session.query(OrderStatuses).\
+                filter_by(status_name=ORDER_STATUS_PROCESSING["status_name"]).first()
+            return query
+
+
+class OrderStatusHistory(Base):
+    """
+    История статуса заявки
+    """
+    __tablename__ = "order_status_history"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_id = Column(UUID(as_uuid=True), ForeignKey('orders.id'))
+    status_id = Column(UUID(as_uuid=True), ForeignKey('order_statuses.id'))
+    date = Column(DateTime(), default=datetime.now())
+
 
 class BoxTypes(Base):
     """
@@ -352,17 +382,41 @@ ROLE_CUSTOMER_NAME = 'customer'
 ROLE_TELEGRAM_BOT_NAME = 'bot'
 
 
-ORDER_STATUS_DEFAULT = "created"
-ORDER_STATUS_PROCESSING = "processing"
+ORDER_STATUS_DEFAULT = {
+    "status_name": "создана",
+    "description": "заявка не включена в работу"
+    }
+ORDER_STATUS_PROCESSING = {
+    "status_name": "в работе",
+    "description": "заявка находится в выдаче активных"
+    }
 
 #Подстатусы от в работе
-ORDER_STATUS_AWAITING_CONFIRMATION = "awaiting_confirmation"
-ORDER_STATUS_CONFIRMED = "confirmed"
-ORDER_STATUS_COURIER_PROGRESS = "courier_progress"
-ORDER_STATUS_AWAITING_PAYMENT = "awaiting_payment"
-ORDER_STATUS_PAYED = "payed"
+ORDER_STATUS_AWAITING_CONFIRMATION = {
+    "status_name": "ожидается подтверждение",
+    "description": "ожидается подтверждение от клиента"
+    }
+ORDER_STATUS_CONFIRMED = {
+    "status_name": "подтверждена",
+    "description": "подтверждена клиентом"
+    }
+ORDER_STATUS_COURIER_PROGRESS = {
+    "status_name": "передана курьеру",
+    "description": "передана курьеру на выполнение"
+    }
+ORDER_STATUS_AWAITING_PAYMENT = {
+    "status_name": "ожидается оплата",
+    "description": "обработанно курьером, ожидается оплата"
+    }
+ORDER_STATUS_PAYED = {
+    "status_name": "оплаченна",
+    "description": "заявка оплаченна"
+    }
+ORDER_STATUS_DONE = {
+    "status_name": "обработанна",
+    "description": "обработанна"
+    }
 
-ORDER_STATUS_DONE = "done"
 
 BOX_TYPE_TEST1 = {
     "box_name": "Пакет",
@@ -416,7 +470,13 @@ def init_status_table():
         ORDER_STATUS_DONE
     ]
 
-
+    with Session(engine, expire_on_commit=False) as session:
+        for status in statuses:
+            status_query = session.query(OrderStatuses).filter_by(status_name = status['status_name']).first()
+            if not status_query:
+                new_status = OrderStatuses(**status)
+                session.add(new_status)
+        session.commit()
 
 
 def init_boxtype_table():
@@ -427,15 +487,12 @@ def init_boxtype_table():
     ]
     with Session(engine, expire_on_commit=False) as session:
         for box_type in box_types:
-            print(box_type)
             box_query = session.query(BoxTypes).filter_by(box_name = box_type["box_name"]).first()
             if not box_query:
                 new_box = BoxTypes(**box_type)
                 session.add(new_box)
         session.commit()
 
-
 init_role_table()
 init_boxtype_table()
-
-
+init_status_table()
