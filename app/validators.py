@@ -227,6 +227,7 @@ class OrderOut(BaseModel):
     interval_type: Optional[str] = None
     intreval: Optional[str] = None
 
+    #TODO: Убрать annotated 
     address_data: Annotated[Optional[Address], Field(None)]
     box_data: Annotated[Optional[BoxType], Field(None)]
     status_data: Annotated[Optional[Status], Field(None)]
