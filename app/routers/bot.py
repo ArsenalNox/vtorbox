@@ -26,9 +26,11 @@ from ..validators import (
     UserLogin as UserLoginSchema
 )
 
-import requests
 
+import requests
 import os, uuid
+
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -189,8 +191,9 @@ async def get_addresses(
     with Session(engine, expire_on_commit=False) as session:
         addresses = session.query(Address).\
             join(UsersAddress, UsersAddress.address_id == Address.id).\
-            join(Users, UsersAddress.user_id == Users.id). \
-            where(Users.telegram_id == tg_id).all()
+            join(Users, UsersAddress.user_id == Users.id).\
+            where(Users.telegram_id == tg_id).\
+            where(Address.deleted_at == None).all()
 
         return addresses
 
@@ -207,7 +210,8 @@ async def get_main_address(
         address = session.query(Address).\
             join(UsersAddress, UsersAddress.address_id == Address.id).\
             join(Users, UsersAddress.user_id == Users.id). \
-            where(Users.telegram_id == tg_id, Address.main == True).first()
+            where(Users.telegram_id == tg_id, Address.main == True).\
+            where(Address.deleted_at == None).first()
         
         return address
 
@@ -234,7 +238,7 @@ async def add_user_address(
             address = session.query(Address).filter_by(
                 latitude=str(address_data.latitude),
                 longitude=str(address_data.longitude)
-            ).first()
+            ).where(Address.deleted_at == None).first()
         
             if address:
                 return JSONResponse({
@@ -267,7 +271,7 @@ async def add_user_address(
             #Если предоставили только текстовый адрес получаем коорды
             address = session.query(Address).filter_by(
                 address = address_data.address
-            ).first()
+            ).where(Address.deleted_at == None).first()
         
             if address:
                 return JSONResponse({
@@ -302,7 +306,7 @@ async def add_user_address(
             update_query = session.query(Address).\
                 join(UsersAddress, UsersAddress.address_id == Address.id).\
                 join(Users, UsersAddress.user_id == Users.id). \
-                where(Users.telegram_id == tg_id).all()
+                where(Users.telegram_id == tg_id).where(Address.deleted_at == None).all()
 
             #TODO: Перенести Update в query
             for address in update_query: 
@@ -336,12 +340,15 @@ async def get_address_information_by_id(
         addresses = session.query(Address).\
             join(UsersAddress, UsersAddress.address_id == Address.id).\
             join(Users, UsersAddress.user_id == Users.id). \
-            where(Users.telegram_id == tg_id, Address.id == address_id).first()
+            where(Users.telegram_id == tg_id, Address.id == address_id).\
+            where(Address.deleted_at == None).first()
 
         if addresses:
             return addresses
         else:
-            return None
+            return JSONResponse({
+                "message": "Not found"
+            },status_code=404)
 
 
 @router.put('/user/addresses/{address_id}', tags=["addresses", "bot"])
@@ -362,13 +369,19 @@ async def update_user_addresses(
             update_query = session.query(Address).\
                 join(UsersAddress, UsersAddress.address_id == Address.id).\
                 join(Users, UsersAddress.user_id == Users.id). \
-                where(Users.telegram_id == tg_id).all()
+                where(Users.telegram_id == tg_id).\
+                where(Address.deleted_at == None).all()
 
             #TODO: Update в query
             for address in update_query: 
                 address.main = False
 
-        address_query = session.query(Address).filter_by(id=address_id).first()
+        address_query = session.query(Address).filter_by(id=address_id).\
+            where(Address.deleted_at == None).first()
+        if not address_query:
+            return JSONResponse({
+                "message": "Not found"
+            },status_code=404)
 
         #Обновляем данные адреса на новые  
         for attr, value in new_address_data.model_dump().items():
@@ -391,16 +404,20 @@ async def delete_user_address(
 
         select_query = session.query(Address).\
                     join(UsersAddress, UsersAddress.address_id == Address.id).\
-                    join(Users, UsersAddress.user_id == Users.id). \
-                    where(Users.telegram_id == tg_id, Address.id == address_id).first()
+                    join(Users, UsersAddress.user_id == Users.id).\
+                    where(Users.telegram_id == tg_id, Address.id == address_id).\
+                    where(Address.deleted_at == None).first()
 
         if not select_query:
             return JSONResponse({
                 "message": "No address found"
             }, status_code=404)
 
-        delete_query = session.query(UsersAddress).filter_by(address_id = address_id).delete()
-        delete_query = session.query(Address).filter_by(id = address_id).delete()
+        delete_user_address_query = session.query(UsersAddress).filter_by(address_id = address_id).\
+            update({"deleted_at": datetime.now()})
+
+        delete_address_query = session.query(Address).filter_by(id = address_id).\
+            update({"deleted_at": datetime.now()})
 
         session.commit()
 
