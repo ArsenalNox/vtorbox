@@ -15,6 +15,11 @@ from .validators import (
     TokenData
 )
 
+from app.exceptions import (
+    credentials_exception,
+    premissions_exception
+)
+
 import os
 from dotenv import load_dotenv
 
@@ -30,7 +35,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
 
 class User(BaseModel):
     username: str
@@ -74,6 +79,8 @@ def get_user(username: str):
         if query:
             userdict["username"] = query.email
             userdict["hashed_password"] = query.password
+            if query.deleted_at:
+                userdict["disabled"] = True
 
     return UserInDB(**userdict)
 
