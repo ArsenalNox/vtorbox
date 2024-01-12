@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Float, Boolean, BigInteger, UUID
 from sqlalchemy.orm import declarative_base, relationship, backref, Session
 from sqlalchemy.engine import URL
+from sqlalchemy.sql import func
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -70,6 +71,8 @@ class Orders(Base):
 
     date_created = Column(DateTime(), default=datetime.now())
     last_updated = Column(DateTime(), default=datetime.now())
+    
+    deleted_at = Column(DateTime(), default=None, nullable=True)
 
     @staticmethod
     def get_all_orders():
@@ -101,6 +104,8 @@ class RoutedOrders(Base):
     #Комментарий к выполнению от курьера
     comment_courier = Column(String(), nullable=True)
 
+    deleted_at = Column(DateTime(), default=None, nullable=True)
+
 
 class Users(Base):
     """
@@ -129,7 +134,9 @@ class Users(Base):
     link_code = Column(String(), unique=True, default=str(uuid.uuid4())[:8])
     allow_messages_from_bot = Column(Boolean(), default=True)
 
-    # disabled = Column(Boolean(), default=True)
+    disabled = Column(Boolean(), default=False)
+
+    deleted_at = Column(DateTime(), default=None, nullable=True)
 
     def get_or_create(
             t_id: int = None,
@@ -164,6 +171,23 @@ class Users(Base):
 
         return user
     
+
+    def get_or_404(
+            t_id: int = None,
+            internal_id: int = None, 
+            ):
+        with Session(engine, expire_on_commit=False) as session:
+            user_query = None
+            if t_id:
+                user_query = session.query(Users).filter_by(telegram_id = t_id).\
+                    where(User.deleted_at == None).first()
+            elif internal_id:
+                user_query = session.query(Users).filter_by(id = internal_id).\
+                    where(User.deleted_at == None).first()
+            
+            return user_query
+
+
     @staticmethod
     def get_user(user_id: str):
         """
@@ -227,6 +251,8 @@ class Address(Base):
 
     comment = Column(String(), nullable=True)
 
+    deleted_at = Column(DateTime(), default=None, nullable=True)
+
     def __repr__(self):
         return f'{self.id}'
 
@@ -239,6 +265,8 @@ class UsersAddress(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
     address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'))
+
+    deleted_at = Column(DateTime(), default=None, nullable=True)
 
     def __repr__(self):
         return f'User:{self.user_id} - Address:{self.address_id}'
@@ -254,6 +282,8 @@ class Roles(Base):
 
     id = Column(Integer(), unique=True, primary_key=True)
     role_name = Column(String(), default='')
+
+    deleted_at = Column(DateTime(), default=None, nullable=True)
 
     @staticmethod
     def get_role(role_name: str):
@@ -301,16 +331,12 @@ class Permissions(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
     role_id = Column(Integer(), ForeignKey('roles.id'))
 
+    deleted_at = Column(DateTime(), default=None, nullable=True)
+
 
 class OrderStatuses(Base):
     """
     Модель статусов заявки
-
-    Статусы заявки:
-    Создана (это свободный статус, сюда попадают заявки, если их создали например из бота, а администратор еще не включил ее в работу)
-    В работе (это статус, когда заявка попадает в выдачу активных и берется сервисом в обработку, взаимодействие от клиента. У этого статуса есть еще подстатусы: Ожидаю подтверждение от клиента, Передана курьеру, Обработана курьером)
-    Ожидает оплаты (заявка уже прошла активную фазу работы, клиенту выдали ссылку для оплаты и ждем поступления оплаты, этот статус попадает во вкладку Требуют внимания)
-    Обработана (заявка прошла весь путь и закрыта как выполненная)
     """
 
     __tablename__ = 'order_statuses'
@@ -319,6 +345,8 @@ class OrderStatuses(Base):
 
     status_name = Column(String(), nullable=False)
     description = Column(String(), nullable=False)
+
+    deleted_at = Column(DateTime(), default=None, nullable=True)
 
     @staticmethod
     def status_default():
@@ -346,6 +374,8 @@ class OrderStatusHistory(Base):
     status_id = Column(UUID(as_uuid=True), ForeignKey('order_statuses.id'))
     date = Column(DateTime(), default=datetime.now())
 
+    deleted_at = Column(DateTime(), default=None, nullable=True)
+
 
 class BoxTypes(Base):
     """
@@ -361,6 +391,8 @@ class BoxTypes(Base):
     volume = Column(Float())
     weight_limit = Column(Float())
 
+    deleted_at = Column(DateTime(), default=None, nullable=True)
+
 
 class Payments(Base):
     """
@@ -369,7 +401,55 @@ class Payments(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
+    deleted_at = Column(DateTime(), default=None, nullable=True)
+
     __tablename__ = "payments"
+
+
+class WeekDaysWork(Base):
+    """
+    Указание нерабочих дней в неделю, регулярные
+    """
+
+    __tablename__ = 'week_days_work'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    deleted_at = Column(DateTime(), default=None, nullable=True)
+
+
+class DaysWork(Base):
+    """
+    Указание нерабочих дней, по дате
+    """
+
+    __tablename__ = 'days_work'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    deleted_at = Column(DateTime(), default=None, nullable=True)
+
+
+class Notifications(Base):
+    """
+    Пользовательские уведомления
+    """
+
+    __tablename__ = 'notifications'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    deleted_at = Column(DateTime(), default=None, nullable=True)
+
+
+class NotificationTypes(Base):
+    """
+    Типы уведомлений
+    """
+
+    __tablename__ = 'notification_types'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    deleted_at = Column(DateTime(), default=None, nullable=True)
 
 
 Base.metadata.create_all(engine)
@@ -416,6 +496,14 @@ ORDER_STATUS_DONE = {
     "status_name": "обработанна",
     "description": "обработанна"
     }
+ORDER_STATUS_DELETED = {
+    "status_name": "удалена",
+    "description": "заявка была удалена"
+}
+ORDER_STATUS_CANCELED = {
+    "status_name": "отменена",
+    "description": "заявка была отменена"
+}
 
 
 BOX_TYPE_TEST1 = {
@@ -467,7 +555,9 @@ def init_status_table():
         ORDER_STATUS_COURIER_PROGRESS, 
         ORDER_STATUS_AWAITING_PAYMENT,
         ORDER_STATUS_PAYED,
-        ORDER_STATUS_DONE
+        ORDER_STATUS_DONE,
+        ORDER_STATUS_DELETED,
+        ORDER_STATUS_CANCELED
     ]
 
     with Session(engine, expire_on_commit=False) as session:
@@ -493,6 +583,8 @@ def init_boxtype_table():
                 session.add(new_box)
         session.commit()
 
+
+# if __name__ == "__main__":
 init_role_table()
 init_boxtype_table()
 init_status_table()
