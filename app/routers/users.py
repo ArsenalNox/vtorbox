@@ -11,8 +11,12 @@ from fastapi import APIRouter, Depends, HTTPException, status, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 
+from datetime import datetime
+
+from sqlalchemy import desc, asc
+
 from ..models import (
-    Users, Orders, Session, engine, Roles, Permissions,
+    Users, Orders, Session, engine, Roles, Permissions, Address, UsersAddress, BoxTypes, OrderStatuses,
     ROLE_CUSTOMER_NAME
     )
 
@@ -31,8 +35,8 @@ from ..validators import (
     UserSignUp as UserSignUpSchema,
     UserLogin as UserLoginSchema,
     UserCreationValidator as UserCreationData,
-    UserUpdateValidator as UserUpdateData
-
+    UserUpdateValidator as UserUpdateData,
+    UserOut, OrderOut
 )
 
 from app.utils import is_valid_uuid
@@ -44,13 +48,12 @@ from jose import jwt
 
 from dotenv import load_dotenv
 
-import os, uuid, re
+import os, uuid, re, json
 
 
 load_dotenv()
 router = APIRouter()
 
-#TODO: Ручная привязка пользователя к боту #невозможно если пользователь не писал в тг
 #TODO: Отправка сообщения пользователю через бота 
 
 @router.get('/users', tags=["admins", "managers"], responses={
@@ -76,23 +79,67 @@ router = APIRouter()
 async def get_all_users(
         current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
         role_name: str = ROLE_CUSTOMER_NAME,
-
+        non_deleted: bool = True,
         #Применимо для клиентов
         with_orders: bool = False,
         with_active_orders: bool = False,
-        with_inactive_orders: bool = False
+        with_inactive_orders: bool = False, #все кроме активных
 
         #Применимо для всех
+        limit: int = 5,
+        page: int = 0,
     ):
     """
     Получение пользователей по фильтру
     """
 
-    #TODO: Пагинация
+    #DONE: Пагинация
     with Session(engine, expire_on_commit=False) as session:
-        users = session.query(Users).all()
-        if users:
-            return users
+        users = session.query(Users).offset(page  * limit).limit(limit).all()
+
+        total = len(users)
+
+        data = []
+        for user in users:
+
+            user_data = UserOut(**user.__dict__)
+
+            if with_orders:
+                orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
+                    join(Address, Address.id == Orders.address_id).\
+                    join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                    join(OrderStatuses, OrderStatuses.id == Orders.status).\
+                    where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
+                
+                user_data.orders = []
+                for order in orders:
+
+                    order_data = OrderOut(**order[0].__dict__)
+
+                    try:
+                        order_data.address_data = order[1]
+                    except IndexError: 
+                        order_data.address_data = None
+
+                    try:
+                        order_data.box_data = order[2]
+                    except IndexError:
+                        order_data.box_data = None
+
+                    try:
+                        order_data.status_data = order[3]
+                    except IndexError:
+                        order_data.status_data = None
+
+                    user_data.orders.append(order_data)
+
+            data.append(user_data)
+
+
+        return {
+            "count": total,
+            "data": data
+        }
 
     return []
 
@@ -132,7 +179,6 @@ async def create_user(
         session.refresh(new_user)
 
         #Если админ - добавить все роли?
-        
 
         for role in str(user_role).split(' '):
             role_query = Roles.get_role(role)
@@ -150,11 +196,36 @@ async def create_user(
 
 
 @router.delete('/users', tags=["admins"])
-async def delete_user():
+async def delete_user(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
+    tg_id: int | None = None,
+    user_id: uuid.UUID | None = None 
+):
     """
     Удаление пользователя (Отправляется в disabled)
     """
-    pass
+    if (not tg_id) and (not user_id):
+        return JSONResponse({
+            "message": "Required at least one type id in arguments"
+        }, status_code=422)
+
+    with Session(engine, expire_on_commit=False) as session:
+        user_query = None
+        if tg_id:
+            user_query = session.query(Users).filter_by(telegram_id = tg_id).where(deleted_at = None).first()
+        elif user_id:
+            user_query = session.query(Users).filter_by(id = user_id).where(Users.deleted_at == None).first()
+
+        if not user_query:
+            return JSONResponse({
+                "message": "No such user"
+                }, status_code=404)
+
+        user_query.deleted_at = datetime.now()
+        session.add(user_query)
+        session.commit()
+
+        return
 
 
 @router.put('/user', tags=["admin"])
