@@ -50,21 +50,6 @@ class CourierCreationValidator(BaseModel):
     tg_id: int
 
 
-class UserOut(BaseModel):
-    """
-    Возврат данных пользвателя
-    """
-    email: EmailStr
-
-    id: UUID4
-    telegram_id: Optional[int]
-    telegram_username: Optional[str]
-
-    phone_number: Optional[str]
-
-    firstname: Optional[str]
-    secondname: Optional[str]
-
 
 class OrderFilter(BaseModel):
     """
@@ -207,6 +192,13 @@ class BoxType(BaseModel):
     weight_limit: float
 
 
+class BoxUpdate(BaseModel):
+    box_name: Optional[str]
+    pricing_default: Optional[float] 
+    volume: Optional[float]
+    weight_limit: Optional[float]
+
+
 class Status(BaseModel):
     """
     Статус
@@ -238,3 +230,28 @@ class OrderOut(BaseModel):
     address_data: Annotated[Optional[Address], Field(None)]
     box_data: Annotated[Optional[BoxType], Field(None)]
     status_data: Annotated[Optional[Status], Field(None)]
+
+
+class UserOut(BaseModel):
+    """
+    Возврат данных пользвателя
+    """
+    email: Optional[EmailStr] 
+
+    id: UUID4
+    telegram_id: Optional[int]
+    telegram_username: Optional[str]
+
+    phone_number: Optional[str]
+
+    firstname: Optional[str]
+    secondname: Optional[str]
+
+    # orders: Optional[list[Annotated[Optional[OrderOut], Field(None)]]]
+    orders: Optional[list[OrderOut]] = None
+
+
+class StatusOut(BaseModel):
+    status_name: str
+    description: str
+    id: UUID4
