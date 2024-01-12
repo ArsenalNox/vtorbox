@@ -123,24 +123,51 @@ async def get_active_orders():
             "content": {
                 "application/json": {
                     "example": {
-                        'user_tg_id': 7643079034697,
-                        'district': 'МО',
-                        'region': 'Красногорск',
-                        'distance_from_mkad': 12,
-                        'address': 'Ул. Пушкина 8',
-                        'full_adress': '8-53. Домофон 53 и кнопка "вызов".' ,
-                        'weekday': 6,
-                        'full_name': 'Иванов Иван Иванович',
-                        'phone_number': '+7 123 2323 88 88', 
-                        'price': 350,
-                        'is_legal_entity': False,
+                        "tg_id": 851230989,
+                        "day": "2024-01-14T00:00:00",
+                        "last_disposal": 'null',
+                        "times_completed": 'null',
+                        "status": "32c9cfba-7774-4fb1-95be-76a897dc2e54",
+                        "date_created": "2024-01-12T14:15:57.364705",
+                        "last_updated": "2024-01-12T14:15:34.617734",
+                        "id": "5a56a39a-11f7-4a99-9c99-e90043c8b754",
+                        "address_id": "e2dbda30-0593-4d67-a7bc-cf56b406eb2c",
+                        "next_planned_date": 'null',
+                        "legal_entity": 'false',
+                        "box_type_id": "a6996b4d-ef7d-4054-8340-5f850d1543e6",
+                        "box_count": 1,
+                        "on_interval": 'false',
+                        "interval_type": 'null',
+                        "intreval": 'null',
+                        "address_data": {
+                            "address": "Москва Пушкина 10",
+                            "district": 'null',
+                            "distance_from_mkad": 'null',
+                            "comment": 'null',
+                            "detail": 'null',
+                            "longitude": "37.210662",
+                            "latitude": "55.609151",
+                            "main": 'false',
+                            "region": 'null',
+                            "point_on_map": 'null'
+                        },
+                        "box_data": {
+                            "pricing_default": 500,
+                            "box_name": "Пакет",
+                            "volume": 2,
+                            "weight_limit": 15
+                        },
+                        "status_data": {
+                            "status_name": "подтверждена",
+                            "description": "подтверждена клиентом"
+                        }
                     }
                 }
             }
         }
     }
     )
-async def get_order_by_id(order_id: UUID):
+async def get_order_by_id(order_id: UUID) -> OrderOut:
     """
     Получение конкретной заявки
     """
