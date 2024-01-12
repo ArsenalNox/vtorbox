@@ -24,7 +24,8 @@ from ..models import (
 )
 
 from ..validators import (
-    UserLogin as UserLoginSchema
+    UserLogin as UserLoginSchema,
+    StatusOut
 )
 
 from ..auth import (
@@ -54,7 +55,8 @@ async def get_all_statueses(
     """
     with Session(engine, expire_on_commit=False) as session:
         statuses = session.query(OrderStatuses).all()
-        return statuses
+        statuses_list = [StatusOut(**status.__dict__) for status in statuses]
+        return statuses_list
 
 
 @router.put('/statuses/{status_id}', tags=['admins'])
