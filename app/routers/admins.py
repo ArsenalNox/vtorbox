@@ -46,10 +46,11 @@ from dotenv import load_dotenv
 load_dotenv()
 router = APIRouter()
 
-@router.get('/statuses', tags=['admins'])
+
+@router.get('/statuses', tags=['statuses'])
 async def get_all_statueses(
     current_user: Annotated[UserLoginSchema, Security(get_current_user)]
-):
+) -> list[StatusOut]:
     """
     Получение списка всех статусов
     """
@@ -57,6 +58,20 @@ async def get_all_statueses(
         statuses = session.query(OrderStatuses).all()
         statuses_list = [StatusOut(**status.__dict__) for status in statuses]
         return statuses_list
+
+
+@router.get('/statuses/name', tags=['statuses'])
+async def get_status_info_by_name(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
+    status_name: str
+) -> StatusOut:
+    """
+    Получение статуса по его названию
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        status_name = f"%{status_name}%"
+        status = session.query(OrderStatuses).filter(OrderStatuses.status_name.like(status_name)).first()
+        return status
 
 
 @router.put('/statuses/{status_id}', tags=['admins'])
