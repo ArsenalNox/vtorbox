@@ -16,7 +16,8 @@ from datetime import datetime
 from sqlalchemy import desc, asc
 
 from ..models import (
-    Users, Orders, Session, engine, Roles, Permissions, Address, UsersAddress, BoxTypes, OrderStatuses,
+    Users, Orders, Session, engine, Roles, Permissions, 
+    Address, UsersAddress, BoxTypes, OrderStatuses,
     ROLE_CUSTOMER_NAME
     )
 
@@ -78,7 +79,7 @@ router = APIRouter()
 })
 async def get_all_users(
         current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
-        role_name: str = ROLE_CUSTOMER_NAME,
+        role_name: str = None,
         non_deleted: bool = True,
         #Применимо для клиентов
         with_orders: bool = False,
@@ -88,6 +89,7 @@ async def get_all_users(
         #Применимо для всех
         limit: int = 5,
         page: int = 0,
+        show_deleted: bool = True
     ):
     """
     Получение пользователей по фильтру
@@ -95,21 +97,38 @@ async def get_all_users(
 
     #DONE: Пагинация
     with Session(engine, expire_on_commit=False) as session:
-        users = session.query(Users).offset(page  * limit).limit(limit).all()
+        
+        query = session.query(Users,Roles,Permissions).\
+                    join(Roles, Permissions.role_id == Roles.id).\
+                    join(Users, Permissions.user_id == Users.id)
+
+        if not show_deleted:
+
+            query = query.filter(Users.deleted_at == None)
+
+        if role_name:
+            print(role_name)
+            # role_name = f"%{role_name}%"
+            # role_query = session.query(Roles).filter(Roles.role_name.like(role_name)).first()
+            query = query.filter(Roles.role_name.like(f"%{role_name}%"))
+            print(query)
+
+        users = query.offset(page  * limit).limit(limit).all()
+        # users = session.query(Users, Roles, Permissions).filter_by(*filters).offset(page  * limit).limit(limit).all()
 
         total = len(users)
-
         data = []
         for user in users:
 
-            user_data = UserOut(**user.__dict__)
+            user_data = UserOut(**user[0].__dict__)
 
+            #TODO: Фильтр по статусу заявки
             if with_orders:
                 orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                     join(Address, Address.id == Orders.address_id).\
                     join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                     join(OrderStatuses, OrderStatuses.id == Orders.status).\
-                    where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
+                    where(Orders.from_user == user[0].id).order_by(asc(Orders.date_created)).all()
                 
                 user_data.orders = []
                 for order in orders:
