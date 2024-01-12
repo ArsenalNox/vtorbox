@@ -14,17 +14,15 @@ origins = [
     "http://localhost:8080",
 ]
 
-#TODO: Конвертация DAY в создании заявки на datetime
+#СЕГОДНЯ
+#TODO: soft delete
+
+#TODO: Придумать как реализовать интервалы
+
 #TODO: редактирование заявок пользователем
 #TODO: Обновление статуса заявки админом или менеджером
-#TODO: Создание контейнеров
 
-#TODO: Таблица статусов заявки
-
-#TODO: История изменений данных заявки
 #TODO: История вывоза 
-#TODO: Запись истории статуса заявки 
-#TODO: soft delete
 #TODO: Формирование пула заявок (ручная)
 
 
@@ -42,10 +40,9 @@ app.include_router(
     prefix="/api",
 )
 
-
 app.include_router(
     users.router,
-    # prefix="/api",
+    prefix="/api",
 )
 
 app.include_router(
