@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from datetime import datetime
 from datetime import timedelta
 
-from sqlalchemy import desc
+from sqlalchemy import desc, asc
 
 from ..validators import (
     Order as OrderValidator,
@@ -30,7 +30,8 @@ from ..models import (
     UsersAddress,
     BoxTypes,
     OrderStatuses,
-    OrderStatusHistory
+    OrderStatusHistory,
+    ORDER_STATUS_DELETED
     )
 from uuid import UUID
 
@@ -144,25 +145,39 @@ async def get_order_by_id(order_id: UUID):
     Получение конкретной заявки
     """
     with Session(engine, expire_on_commit=False) as session:
-        order = session.query(Orders, Address).\
-                join(Address, Address.id == Orders.address_id).\
-                where(Orders.id == order_id).order_by(Orders.date_created).first()
+        #Получение конкретной заявки
+        order = session.query(Orders, Address, BoxTypes, OrderStatuses).\
+            join(Address, Address.id == Orders.address_id).\
+            join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+            join(OrderStatuses, OrderStatuses.id == Orders.status).\
+            where(Orders.id == order_id).\
+            order_by(asc(Orders.date_created)).first()
 
         if not order:
             return JSONResponse({
                 "message": "not found"
             },status_code=404)
 
-        return_data = []
 
-        user = session.query(Users).filter_by(id = order[0].from_user).first()
         order_data = OrderOut(**order[0].__dict__)
-        order_data.tg_id = user.telegram_id
-        order_data.address_data = order[1]
+        order_data.tg_id = session.query(Users).filter_by(id=order[0].from_user).first().telegram_id
 
-        return_data.append(order_data)
+        try:
+            order_data.address_data = order[1]
+        except IndexError: 
+            order_data.address_data = None
 
-        return return_data
+        try:
+            order_data.box_data = order[2]
+        except IndexError:
+            order_data.box_data = None
+
+        try:
+            order_data.status_data = order[3]
+        except IndexError:
+            order_data.status_data = None
+
+        return order_data
 
 
 @router.get('/users/orders/', tags=['bot', 'orders'])
@@ -195,14 +210,13 @@ async def get_user_orders(tg_id: int = None, user_id: UUID = None, order_id: UUI
                 join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.id == order_id).\
-                where(Orders.from_user == user.id).order_by(desc(Orders.date_created)).all()
+                where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
         else:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
                 join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
-                where(Orders.from_user == user.id).order_by(desc(Orders.date_created)).all()
-
+                where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
 
         return_data = []
 
@@ -227,6 +241,9 @@ async def get_user_orders(tg_id: int = None, user_id: UUID = None, order_id: UUI
 
             return_data.append(order_data)
 
+        if (len(return_data) < 1):
+            return False
+
         return return_data
 
 
@@ -238,9 +255,7 @@ async def create_order(
     """
     Создание заявки
     """
-    #TODO Переделать под новые адреса 
-    #TODO Добавить поддержку добавления контейнера
-    #TODO Оповещение менеджера при создании заявки
+    #TODO: Оповещение менеджера при создании заявки
 
         
     with Session(engine, expire_on_commit=False) as session:
@@ -273,31 +288,16 @@ async def create_order(
                 "message": f"no {order_data.box_name} container found"
             }, status_code=422)
 
-        order_date = datetime.now()
-        match order_data.day:
-
-            case 'сегодня':
-                pass
-
-            case 'завтра':
-                order_date += timedelta(days=1)
-
-            case 'послезавтра':
-                order_date += timedelta(days=2)
-
-            case _:
-                #TODO: регулярка на дату
-                pass
-        
-        print(order_date)
+        order_data.day = datetime.strptime(order_data.day, "%d-%m-%Y").date()
 
         new_order = Orders(
             from_user   = user.id,
             address_id  = order_data.address_id,
-            day         = order_date,
+            day         = order_data.day,
             box_type_id = container.id,
             box_count   = order_data.box_count,
-            status      = OrderStatuses.status_default().id
+            status      = OrderStatuses.status_default().id,
+            date_created = datetime.now()
         )
 
         session.add(new_order)
@@ -317,7 +317,7 @@ async def create_order(
     }
 
 
-@router.get("/orders/{order_id}/history")
+@router.get("/orders/{order_id}/history", tags=['bot', 'orders'])
 async def get_order_status_history(
     order_id: UUID,
     tg_id: int,
@@ -332,11 +332,12 @@ async def get_order_status_history(
             join(Users, Users.id == Orders.from_user).\
             where(Users.telegram_id == tg_id).\
             where(Orders.id == order_id).\
+            where(Orders.deleted_at == None).\
             first()
 
         if not order:
             return JSONResponse({
-                "message": "User order not found"
+                "message": "user's order not found"
             }, status_code=404)
 
         history = session.query(OrderStatusHistory, OrderStatuses).\
@@ -348,6 +349,21 @@ async def get_order_status_history(
         return return_data
 
 
+@router.delete('/orders/all', tags=['bot', 'admin', 'orders'])
+async def delete_all_orders(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
+):
+    """
+    Удаление всех заявок (Именно чистка)
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        query = session.query(OrderStatusHistory).delete()
+        query = session.query(Orders).delete()
+        session.commit()
+
+        return 
+
+
 @router.delete('/orders/{order_id}', tags=["orders"])
 async def delete_order_by_id(order_id:UUID):
     """
@@ -355,8 +371,26 @@ async def delete_order_by_id(order_id:UUID):
     """
 
     with Session(engine, expire_on_commit=False) as session:
-        query = session.query(Orders).filter_by(id=order_id).delete()
+        query = session.query(OrderStatusHistory).filter_by(order_id=order_id).update({"deleted_at": datetime.now()})
+        query = session.query(Orders).filter_by(id=order_id).update({"deleted_at": datetime.now()})
+
+        order_query = session.query(Orders).filter_by(id=order_id).first()
+
+        status_query = session.query(OrderStatuses).\
+            filter_by(status_name=ORDER_STATUS_DELETED["status_name"]).first()
+
+        order_query.status = status_query.id
+
+        status_update = OrderStatusHistory(
+            order_id = order_query.id,
+            status_id = status_query.id
+        )
+
+        session.add(status_update)
+
+        session.add(order_query)
         session.commit()
+
         if query:
             return JSONResponse({
                 "message": 'deleted'
@@ -369,11 +403,50 @@ async def delete_order_by_id(order_id:UUID):
 
 
 @router.put('/orders/{order_id}/status', tags=["orders"])
-async def set_order_status():
+async def set_order_status(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
+    order_id: UUID,
+    status_text: str = None,
+    status_id: UUID = None,
+):
     """
     Обновление/Установка статуса заявки
     """
-    pass
+    if (not status_text) and (not status_id):
+        return JSONResponse({
+            "message": "status_text or status_id required"
+        },status_code=422)
+    
+    status_query = None
+    with Session(engine, expire_on_commit=False) as session:
+        
+        if status_text:
+            status_query = session.query(OrderStatuses).filter_by(status_name = status_text).first()
+        elif status_id:
+            status_query = session.query(OrderStatuses).filter_by(id = status_id).first()
+
+        if not status_query:
+            return JSONResponse({
+                "message": "status not found"
+            },status_code=404)
+        
+        order_query = session.query(Orders).filter_by(id = order_id).where(Orders.deleted_at == None).first()
+        if not order_query:
+            return JSONResponse({
+                "message": "order not found"
+            },status_code=404)
+
+        order_query.status = status_query.id
+
+        status_update = OrderStatusHistory(
+            order_id = order_query.id,
+            status_id = status_query.id
+        )
+        session.add(status_update)
+
+        session.add(order_query)
+        session.commit()
+
 
 
 @router.put('/orders/{order_id}/courier', tags=["orders"])
@@ -382,3 +455,10 @@ async def set_order_courier():
     Установить курьера на заказ
     """
     pass
+
+
+@router.get("/orders/process", tags=['managers', 'admins'])
+async def process_current_orders():
+    """
+    Обработка всех доступных заказов
+    """
