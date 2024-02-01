@@ -8,7 +8,7 @@
 import uuid
 
 from pydantic import BaseModel, EmailStr, UUID4, Field
-from typing import Optional, Annotated, Any
+from typing import Optional, Annotated, Any, List
 from typing_extensions import TypedDict
 from datetime import datetime
 class Order(BaseModel):
@@ -34,13 +34,15 @@ class Order(BaseModel):
     }
 
 
-
 class OrderUpdate(BaseModel):
     """
     Валидация на обновление данных заявки
     Отдельная т.к множество полей опциональные
     """
-    pass
+    address_id: Optional[UUID4] = None
+    # box_type_id: UUID4
+    box_name: Optional[str] = None
+    box_count: Optional[int] = None
 
 
 class CourierCreationValidator(BaseModel):
@@ -150,6 +152,16 @@ class Address(BaseModel):
     distance_from_mkad: int | None = None
     point_on_map: str | None = None
 
+    selected_day_of_week:  Optional[List[str]] = None
+    selected_day_of_month: Optional[List[str]] = None
+    interval_type: Optional[str] = None
+    interval: Optional[List[str]] = None
+
+    #TODO типы интервалов
+    #month_day
+    #week_day
+    #day_once
+
     model_config = {
         "json_schema_extra": {
             "examples": [
@@ -162,11 +174,12 @@ class Address(BaseModel):
                     'distance_from_mkad': 12,
                     'address': 'Оренбург Просторная 19/1',
                     'detail': '8-53. Домофон 53 и кнопка "вызов".',
-                    'comment': "Злая собака"
+                    'comment': "Злая собака",
                 }
             ]
         }
     }
+
 
 class AddressUpdate(Address):
     """
@@ -180,6 +193,8 @@ class AddressUpdate(Address):
     region: str | None = None 
     distance_from_mkad: str | None = None
     point_on_map: str | None = None
+    interval:  str = None
+    interval_type: str = None
 
 
 class BoxType(BaseModel):
@@ -217,15 +232,16 @@ class OrderOut(BaseModel):
     last_updated: datetime
     id: UUID4
     address_id: UUID4
-    next_planned_date: Any
     legal_entity: bool
     box_type_id: Any
     box_count: Any
     
-    on_interval: bool
 
     interval_type: Optional[str] = None
     intreval: Optional[str] = None
+
+    order_num: Optional[int] = None
+    user_order_num: Optional[int] = None
 
     #TODO: Убрать annotated 
     address_data: Annotated[Optional[Address], Field(None)]
@@ -250,9 +266,27 @@ class UserOut(BaseModel):
 
     # orders: Optional[list[Annotated[Optional[OrderOut], Field(None)]]]
     orders: Optional[list[OrderOut]] = None
+    roles: Optional[list[str]] = None
+    deleted_at: Optional[datetime] = None
+    link_code: Optional[str] = None
 
 
 class StatusOut(BaseModel):
     status_name: str
     description: str
     id: UUID4
+
+
+class AddressSchedule(BaseModel):
+    selected_day_of_week:  Optional[List[str]] = None
+    selected_day_of_month: Optional[List[str]] = None
+    interval_type: Optional[str] = None
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    'selected_day_of_month': ['1', '23', '24'],
+                    'interval_type': 'month_day'
+                }
+            ]}}
