@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 
 from ..models import (
-    Users, Session, engine, UsersAddress, Address,
+    Users, Session, engine, UsersAddress, Address, IntervalStatuses, Roles
     )
 
 from ..auth import (
@@ -23,7 +23,8 @@ from ..validators import (
     LinkClientWithPromocodeFromTG as UserLinkData,
     Address as AddressValidator,
     AddressUpdate as AddressUpdateValidator,
-    UserLogin as UserLoginSchema
+    UserLogin as UserLoginSchema,
+    AddressSchedule
 )
 
 
@@ -60,13 +61,22 @@ async def create_user(
         new_user = Users(
             telegram_id=body.tg_id,
             telegram_username = body.username,
-            firstname = body.first_name,
-            secondname = body.second_name,
+            firstname = body.firstname,
+            secondname = body.secondname,
             link_code = str(uuid.uuid4())[:10] 
             )
         
         session.add(new_user)
         session.commit()
+        
+        user_role = Permissions(
+            user_id = new_user.id,
+            role_id = Roles.customer_role()
+        )
+
+        session.add(new_user)
+        session.commit()
+
 
         return new_user
 
@@ -194,6 +204,9 @@ async def get_addresses(
             where(Users.telegram_id == tg_id).\
             where(Address.deleted_at == None).all()
 
+        for address in addresses:
+            address.interval = str(address.interval).split(', ')
+
         return addresses
 
 
@@ -212,6 +225,8 @@ async def get_main_address(
             where(Users.telegram_id == tg_id, Address.main == True).\
             where(Address.deleted_at == None).first()
         
+        address.interval = str(address.interval).split(', ')
+
         return address
 
 
@@ -288,6 +303,7 @@ async def add_user_address(
                     get('featureMember')[0]. \
                     get('GeoObject', {}).\
                     get('Point').get('pos')).split()
+
             except Exception as err: 
                 return JSONResponse({
                     "message": "No such address in allowed area"
@@ -312,23 +328,87 @@ async def add_user_address(
                 address.main = False
 
         #создаем новый адрес
-        address = Address(**address_data.model_dump())
+
+        #TODO: Сделать проверку на выпадание выходного на день вывоза
+        interval = None
+        if address_data.selected_day_of_week:
+            interval = ', '.join(address_data.selected_day_of_week)
+            if address_data.interval_type == None:
+                address_data.interval_type = INTERVAL_TYPE_WEEK_DAY
+            
+        if address_data.selected_day_of_month:
+            interval = ', '.join(address_data.selected_day_of_month)
+
+            if address_data.interval_type == None:
+                address_data.interval_type = INTREVAL_TYPE_MONTH_DAY
+        
+        address_data_dump = address_data.model_dump()
+        del address_data_dump["selected_day_of_month"]
+        del address_data_dump["selected_day_of_week"]
+
+        address_data_dump['interval'] = interval
+        address = Address(**address_data_dump)
+        address.inteval = interval
+        
         session.add(address)
         session.commit()
-
         user_address = UsersAddress(
             user_id=user.id,
-            address_id=address.id
+            address_id=address.id,
         )
+
         session.add(user_address)
         session.commit()
 
         return address
 
 
+@router.put('/user/addresses/{address_id}/schedule')
+async def set_address_schedule(
+    address_id: uuid.UUID,
+    tg_id: int,
+    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+    address_schedule: AddressSchedule
+    ):
+    """
+    Указать расписание адреса
+    """
+
+    with Session(engine, expire_on_commit=False) as session:
+
+        address_query = session.query(Address).filter_by(id=address_id).\
+            join(UsersAddress, UsersAddress.address_id == Address.id).\
+            join(Users, UsersAddress.user_id == Users.id).\
+            where(Address.deleted_at == None).\
+            where(Users.telegram_id == tg_id).\
+            first()
+
+        if not address_query:
+            return JSONResponse({
+                "message": "Not found"
+            },status_code=404)
+
+        #Обновляем расписание адреса на новое  
+        interval = None
+        if address_schedule.selected_day_of_week:
+            interval = ', '.join(address_schedule.selected_day_of_week)
+            address_schedule.interval_type = IntervalStatuses.WEEK_DAY
+            
+        if address_schedule.selected_day_of_month:
+            interval = ', '.join(address_schedule.selected_day_of_month)
+            address_schedule.interval_type = IntervalStatuses.MONTH_DAY
+
+        address_query.interval = interval
+        address_query.interval_type = address_schedule.interval_type
+
+        session.commit()
+
+        return address_query
+
+
 @router.get('/user/addresses/{address_id}', tags=["addresses", "bot"])
 async def get_address_information_by_id(
-    address_id: str, 
+    address_id: uuid.UUID, 
     tg_id: int,
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
     ):
@@ -343,6 +423,7 @@ async def get_address_information_by_id(
             where(Address.deleted_at == None).first()
 
         if addresses:
+            addresses.interval = str(addresses.interval).split(', ')
             return addresses
         else:
             return JSONResponse({
@@ -377,6 +458,7 @@ async def update_user_addresses(
 
         address_query = session.query(Address).filter_by(id=address_id).\
             where(Address.deleted_at == None).first()
+
         if not address_query:
             return JSONResponse({
                 "message": "Not found"
