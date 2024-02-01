@@ -1,4 +1,7 @@
+import logging
 import uvicorn
+import sys
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,33 +10,27 @@ from app.routers import orders, users, couriers, admins, bot, boxes
 app = FastAPI()
 
 origins = [
-    "http://127.0.0.1",
-    "http://127.0.0.1:8000",
-    "https://127.0.0.1",
-    "http://localhost",
-    "http://localhost:8080",
+    # "http://127.0.0.1",
+    # "http://127.0.0.1:8000",
+    # "https://127.0.0.1",
+    # "http://localhost",
+    # "http://localhost:8080",
+    "*"
 ]
 
 #СЕГОДНЯ
-#TODO: soft delete
-
-#TODO: Придумать как реализовать интервалы
-
-#TODO: редактирование заявок пользователем
-#TODO: Обновление статуса заявки админом или менеджером
+#TODO: подправить под soft delete'ы где не подправил 
 
 #TODO: История вывоза 
-#TODO: Формирование пула заявок (ручная)
 
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=origins,
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(
     orders.router,
