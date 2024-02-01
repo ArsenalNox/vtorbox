@@ -9,6 +9,8 @@ from sqlalchemy.engine import URL
 from sqlalchemy.sql import func
 from datetime import datetime
 
+from enum import Enum
+
 from dotenv import load_dotenv
 from os import getenv
 
@@ -31,6 +33,16 @@ engine = create_engine(connection_url)
 Base = declarative_base()
 
 
+def default_time():
+    return datetime.now()
+
+
+def order_order_num():
+    with Session(engine, expire_on_commit=False) as session:
+        count = session.query(Orders.id).count()
+        return count + 1
+
+
 class Orders(Base):
     """
     Модель заявки от пользователя
@@ -38,39 +50,25 @@ class Orders(Base):
     __tablename__ = "orders"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # id = Column(Integer(), primary_key=True, autoincrement=True)
     from_user = Column(UUID(as_uuid=True), ForeignKey('users.id'))
     address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'))
 
     day = Column(DateTime(), nullable=True)
-    
-    #Регулярная ли заявка
-    on_interval = Column(Boolean(), default=False)
-
-    #Тип интервала (Дни недели/Дни месяца)
-    interval_type = Column(String(), default=None, nullable=True)
-
-    #Интервал заявки
-    intreval = Column(String(), default=None, nullable=True)
-
-    #Дата последнего вывоза
-    last_disposal = Column(DateTime(), default=None, nullable=True)
-    
-    #Планируемая дата след. вызова
-    next_planned_date = Column(DateTime(), default=None, nullable=True)
 
     #От юр. лица или нет
     legal_entity = Column(Boolean(), default=False)
     
-    #Кол-во вывозов с даты оплаты
-    times_completed = Column(Integer())
-
     box_type_id = Column(UUID(as_uuid=True), ForeignKey('boxtypes.id'))
     box_count = Column(Integer())
 
+    order_num = Column(Integer(), default=order_order_num)
+    user_order_num = Column(Integer())
+
     status = Column(UUID(as_uuid=True), ForeignKey('order_statuses.id'))
 
-    date_created = Column(DateTime(), default=datetime.now())
-    last_updated = Column(DateTime(), default=datetime.now())
+    date_created = Column(DateTime(), default=default_time)
+    last_updated = Column(DateTime(), default=default_time)
     
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
@@ -78,7 +76,23 @@ class Orders(Base):
     def get_all_orders():
         with Session(engine, expire_on_commit=False) as session: 
             return session.query(Orders).all()
+    
+    
+    def update_status(__self__, status_id) -> None:
+        """
+        Указать новый статус зявки с записью изменения в историю заявки
+        """
+        with Session(engine, expire_on_commit=False) as session:
+            __self__.status = status_id
+            status_update = OrderStatusHistory(
+                order_id = __self__.id,
+                status_id = status_id
+            )
 
+            session.add(status_update)
+            session.commit()
+
+            return 
 
 class RoutedOrders(Base):
     """
@@ -104,6 +118,7 @@ class RoutedOrders(Base):
     #Комментарий к выполнению от курьера
     comment_courier = Column(String(), nullable=True)
 
+    # created_at = Column(datetime(), default=default_time)
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
 
@@ -124,10 +139,11 @@ class Users(Base):
     
     firstname = Column(String(), nullable=True)
     secondname = Column(String(), nullable=True)
+    patronymic = Column(String(), nullable=True)
     
     additional_info = Column(Text(), comment='доп. инфа', nullable=True)
-    date_created = Column(DateTime(), default=datetime.now())
-    last_action = Column(DateTime(), default=datetime.now())
+    date_created = Column(DateTime(), default=default_time)
+    last_action = Column(DateTime(), default=default_time)
     #last_login
     
     #Код для связки бота и пользователя
@@ -249,6 +265,20 @@ class Address(Base):
     distance_from_mkad = Column(String())
     point_on_map = Column(String())
 
+    #Регулярная ли заявка
+    on_interval = Column(Boolean(), default=False)
+    #Тип интервала (Дни недели/Дни месяца)
+    interval_type = Column(String(), default='once', nullable=True)
+    #Интервал заявки
+    interval = Column(String(), default=None, nullable=True)
+    #Дата последнего вывоза
+    last_disposal = Column(DateTime(), default=None, nullable=True)
+    #Планируемая дата след. вызова
+    next_planned_date = Column(DateTime(), default=None, nullable=True)
+    #Кол-во вывозов с даты оплаты
+    times_completed = Column(Integer())
+
+
     comment = Column(String(), nullable=True)
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
@@ -294,8 +324,8 @@ class Roles(Base):
             else:
                 return None
 
-    @property
-    def customer_role(self):
+    @staticmethod
+    def customer_role():
         with Session(engine, expire_on_commit=False) as session:
             query = session.query(Roles).filter_by(role_name=ROLE_CUSTOMER_NAME).first()
             return query.id
@@ -355,12 +385,22 @@ class OrderStatuses(Base):
                 filter_by(status_name=ORDER_STATUS_DEFAULT["status_name"]).first()
             return query
 
+
     @staticmethod
     def status_processing():
         with Session(engine,expire_on_commit=False) as session:
             query = session.query(OrderStatuses).\
                 filter_by(status_name=ORDER_STATUS_PROCESSING["status_name"]).first()
             return query
+
+    
+    @staticmethod
+    def status_awating_confirmation():
+        with Session(engine,expire_on_commit=False) as session:
+            query = session.query(OrderStatuses).\
+                filter_by(status_name=ORDER_STATUS_AWAITING_CONFIRMATION["status_name"]).first()
+            return query
+        
 
 
 class OrderStatusHistory(Base):
@@ -392,6 +432,12 @@ class BoxTypes(Base):
     weight_limit = Column(Float())
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
+
+    @staticmethod
+    def test_type():
+        with Session(engine, expire_on_commit=False) as session:
+            query = session.query(BoxTypes).first()
+            return query
 
 
 class Payments(Base):
@@ -462,6 +508,7 @@ ROLE_CUSTOMER_NAME = 'customer'
 ROLE_TELEGRAM_BOT_NAME = 'bot'
 
 
+#Статусы заявок
 ORDER_STATUS_DEFAULT = {
     "status_name": "создана",
     "description": "заявка не включена в работу"
@@ -470,8 +517,7 @@ ORDER_STATUS_PROCESSING = {
     "status_name": "в работе",
     "description": "заявка находится в выдаче активных"
     }
-
-#Подстатусы от в работе
+#Подстатусы заявок от в работе
 ORDER_STATUS_AWAITING_CONFIRMATION = {
     "status_name": "ожидается подтверждение",
     "description": "ожидается подтверждение от клиента"
@@ -506,20 +552,19 @@ ORDER_STATUS_CANCELED = {
 }
 
 
+#Типы контейнеров (временные)
 BOX_TYPE_TEST1 = {
     "box_name": "Пакет",
     "pricing_default": 500,
     "volume": "2",
     "weight_limit": "15"
 }
-
 BOX_TYPE_TEST2 = {
     "box_name": "Пакет тканиевый",
     "pricing_default": 20,
     "volume": "2",
     "weight_limit": "5"
 }
-
 BOX_TYPE_TEST3 = {
     "box_name": "Фасеточка",
     "pricing_default": 5,
@@ -528,7 +573,18 @@ BOX_TYPE_TEST3 = {
 }
 
 
+#Типы интервалов
+class IntervalStatuses():
+    MONTH_DAY = 'month_day'
+    WEEK_DAY = 'week_day'
+    DAY_ONCE = 'day_once'
+    ON_REQUEST = 'on_request'
+
+
 def init_role_table():
+    """
+    инициализировать таблицу ролей
+    """
     roles = [
         ROLE_ADMIN_NAME, 
         ROLE_COURIER_NAME, 
@@ -547,6 +603,9 @@ def init_role_table():
 
 
 def init_status_table():
+    """
+    инициализировать таблицу статусов
+    """
     statuses = [
         ORDER_STATUS_DEFAULT,
         ORDER_STATUS_PROCESSING,
@@ -570,6 +629,9 @@ def init_status_table():
 
 
 def init_boxtype_table():
+    """
+    инициализировать таблицу статусов
+    """
     box_types = [
         BOX_TYPE_TEST1,
         BOX_TYPE_TEST2,
