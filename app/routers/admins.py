@@ -21,6 +21,7 @@ from ..models import (
     engine, 
     Session, 
     OrderStatuses,
+    Roles, Permissions
 )
 
 from ..validators import (
@@ -41,7 +42,7 @@ from ..auth import (
 
 import os, uuid
 from dotenv import load_dotenv
-
+from app import Tags
 
 load_dotenv()
 router = APIRouter()
@@ -78,3 +79,15 @@ async def get_status_info_by_name(
 async def change_status():
     pass
 
+
+@router.get('/roles', tags=[Tags.roles])
+async def get_avaliable_roles(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])]
+):
+    """
+    Получение списка ролей
+    """
+
+    with Session(engine, expire_on_commit=False) as session:
+        roles_query = session.query(Roles).all()
+        return roles_query
