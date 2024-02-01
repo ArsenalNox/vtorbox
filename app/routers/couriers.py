@@ -4,6 +4,7 @@
 
 from fastapi import APIRouter
 from ..validators import CourierCreationValidator
+from app import Tags
 
 router = APIRouter()
 
@@ -15,6 +16,12 @@ async def create_new_courier(courier_data: CourierCreationValidator):
 
 @router.get('/courier/{courier_tg_id}', tags=["couriers"])
 async def get_courier_by_id():
+    pass
+
+
+
+@router.get('/courier/orders', tags=[Tags.couriers, Tags.orders])
+async def get_list_of_accepted_orders():
     pass
 
 
