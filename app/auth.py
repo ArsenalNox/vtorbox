@@ -15,17 +15,18 @@ from .validators import (
     TokenData
 )
 
-from app.exceptions import (
-    credentials_exception,
-    premissions_exception
-)
 
 import os
 from dotenv import load_dotenv
 
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
-from .models import engine, Users
+from .models import (
+    engine, 
+    Users,
+    Permissions,
+    Roles
+    )
 
 load_dotenv()
 
@@ -51,9 +52,11 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
+        to_encode.update({"exp": expire})
+
+    # else:
+    #     expire = datetime.utcnow() + timedelta(minutes=15)
+
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
     return encoded_jwt
