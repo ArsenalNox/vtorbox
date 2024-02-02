@@ -1,14 +1,14 @@
 
-FROM python:3.9
+FROM python:3.11
 
 ENV PYTHONUNBUFFERED=1
 
-RUN mkdir /app
+RUN mkdir /bot
 
-WORKDIR /app
+WORKDIR /bot
 
-COPY requirements.txt .
+COPY requirements_bot.txt .
 
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements_bot.txt
 
-COPY . .
+COPY bot/ bot/
