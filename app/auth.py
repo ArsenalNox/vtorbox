@@ -39,7 +39,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
 
 class User(BaseModel):
-    username: str
+    username: str | None = None
     disabled: bool = False
     access_token: str | None = None
 
@@ -79,13 +79,15 @@ def get_user(username: str):
 
     with Session(engine, expire_on_commit=False) as session:
         query = session.query(Users).filter_by(email=username).first()
+        print(query)
+        if not query:
+            return False
+
         if query:
             userdict["username"] = query.email
             userdict["hashed_password"] = query.password
             if query.deleted_at:
                 userdict["disabled"] = True
-        else:
-            return None
 
     return UserInDB(**userdict)
 
@@ -115,17 +117,21 @@ async def get_current_user(
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(payload)
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
         token_scopes = payload.get("scopes", [])
         token_data = TokenData(scopes=token_scopes, username=username)
-    except (JWTError, ValidationError):
+    except (JWTError, ValidationError) as error:
+        print(error)
+        print("Can't get payload")
         raise credentials_exception
 
     user = get_user(username=token_data.username)
 
     if user is None:
+        print("User is none")
         raise credentials_exception
 
     for scope in security_scopes.scopes:

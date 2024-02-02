@@ -654,7 +654,6 @@ def create_admin_user():
     Создать админского пользователя
     """
 
-
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     def get_password_hash(password):
         return pwd_context.hash(password)

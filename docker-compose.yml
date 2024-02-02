@@ -34,7 +34,6 @@ services:
       - PGPORT=5433
 
       - environment=dev
-      - SECRET_KEY="09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
       - ALGORITHM=HS256
       - ACCESS_TOKEN_EXPIRE_MINUTES=3600
       - Y_GEOCODER_KEY=37e2fe65-4dd4-40c5-9c4d-9a45a9f3587a
