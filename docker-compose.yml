@@ -1,3 +1,5 @@
+version: '3.4'
+
 services:
   db:
     container_name: project_db
@@ -26,6 +28,11 @@ services:
 
   web:
     environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=my_app
+      - PGPORT=5433
+
       - environment=dev
       - SECRET_KEY="09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
       - ALGORITHM=HS256
@@ -38,7 +45,9 @@ services:
       db:
         condition: service_healthy
 
-    build: .
+    build:
+      context: .
+      dockerfile: dockerfile
 
     ports:
       - "8000:8000"
@@ -47,14 +56,21 @@ services:
       - common-net
 
   bot:
-  build:
-    context: .
-    dockerfile: bot/dockerfile
-  container_name: aiogram_bot
-  command: sh -c "python3 -m bot.start_bot"
-  env_file:
-    - .env
+    build:
+      context: .
+      dockerfile: bot/.dockerfile
 
+    container_name: aiogram_bot
+    command: sh -c "python3 -m bot.start_bot"
+    env_file:
+      - .env
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    networks:
+      - common-net
 
 networks:
   common-net: {}
