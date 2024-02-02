@@ -8,13 +8,12 @@ from aiogram.types import Message, CallbackQuery
 from bot.handlers.base_handler import Handler
 from bot.keyboards.address_kb import AddressKeyboard
 from bot.keyboards.order import OrderKeyboard
-from bot.services.addresses import AddressService
-from bot.services.users import UserService
+
 from bot.settings import settings
 from bot.states.states import AddAddressState, CreateOrder
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn, format_addresses
-from bot.utils.handle_data import get_coordinates, get_found_result_geocoder_data, HEADERS
+from bot.utils.handle_data import HEADERS, show_address_list
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
@@ -40,43 +39,19 @@ class AddressHandler(Handler):
             )
 
             self.flag_to_return = False
-            # зарпос на получение всех адресов у юзера
+            # запрос на получение всех адресов у юзера
 
-            status_code, address_list = req_to_api(
+            status_code, address_list = await req_to_api(
                 method='get',
-                url=f'user/addresses/all?tg_id={message.from_user.id}',
-
+                url=f'bot/user/addresses/all?tg_id={message.from_user.id}',
             )
 
-            msg = await message.answer(
-                MESSAGES['ADD_ADDRESS'],
-                reply_markup=self.kb.add_address_btn(self.flag_to_return)
+            await show_address_list(
+                message=message,
+                state=state,
+                address_list=address_list,
+                self=self
             )
-            await state.update_data(msg=msg.message_id)
-
-            msg_ids = {}
-            count = 1  # счетчик для порядкового номера адресов
-            # отправляем все адреса пользователя с кнопками ('Удалить' и 'По умолчанию')
-            for address in address_list:
-                if address['main']:
-                    msg = await message.answer(
-                        MESSAGES['ADDRESS_INFO_DEDAULT'].format(
-                            count,
-                            address['address']
-                        ),
-                        reply_markup=self.kb.address_delete_default_btn(address)
-                    )
-                else:
-                    msg = await message.answer(
-                        MESSAGES['ADDRESS_INFO_NOT_DEDAULT'].format(
-                            count,
-                            address['address']
-                        ),
-                        reply_markup=self.kb.address_delete_default_btn(address)
-                    )
-                msg_ids[address['id']] = msg.message_id
-
-            await state.update_data(msg_ids=msg_ids)
 
             await message.answer(
                 MESSAGES['MENU'],
@@ -91,6 +66,7 @@ class AddressHandler(Handler):
                 data=data,
                 src=callback.message
             )
+
             # флаг для возврата к созданию заказа(после того как во время заказа пользователь нажмет 'Добавить адрес')
             self.flag_to_return = callback.data.split('_')[-1]
 
@@ -155,6 +131,7 @@ class AddressHandler(Handler):
             """Получение комментария к адресу и создание адреса в БД"""
 
             data = await state.get_data()
+            await state.set_state(state=None)
 
             # получаем данные из состояния и отправляем запрос в бек на создание адреса
             address_data = json.dumps(
@@ -166,18 +143,29 @@ class AddressHandler(Handler):
                 }
             )
 
-            req_to_api(
+            status_code, response = await req_to_api(
                 method='post',
-                url=f'user/addresses?tg_id={message.from_user.id}',
-                data=address_data
+                url=f'bot/user/addresses?tg_id={message.from_user.id}',
+                data=address_data,
             )
+            await state.update_data(address=response)
 
-            await state.set_state(state=None)
+            # если не удалось найти такой адрес, то выводим сообщение
+            if response.get('message'):
+                await message.answer(
+                    MESSAGES['WRONG_ADDRESS'],
+                    reply_markup=self.kb.settings_btn()
+                )
 
-            if eval(self.flag_to_return):
+            elif eval(self.flag_to_return):
+                # запрос на получение типов конейнера из БД
+                status_code, containers_types = await req_to_api(
+                    method='get',
+                    url=f'boxes',
+                )
                 await message.answer(
                     MESSAGES['CHOOSE_CONTAINER'],
-                    reply_markup=self.order_kb.choose_container_btn()
+                    reply_markup=self.order_kb.choose_container_btn(containers_types)
                 )
                 await state.set_state(CreateOrder.container)
                 self.flag_to_return = False
@@ -191,12 +179,6 @@ class AddressHandler(Handler):
         @self.router.message(F.text, AddAddressState.address)
         async def get_new_address_from_text(message: Message, state: FSMContext):
             """Получение и валидация нового адреса по тексту пользователя"""
-            data = await state.get_data()
-            await delete_messages_with_btn(
-                state=state,
-                data=data,
-                src=message
-            )
 
             data = await state.get_data()
             await delete_messages_with_btn(
@@ -224,11 +206,12 @@ class AddressHandler(Handler):
             )
 
             address_id = callback.data.split('_')[-1]
+            print(address_id)
 
             # запрос в бек на удаление адреса по его id
-            req_to_api(
+            await req_to_api(
                 method='delete',
-                url=f'user/addresses/{address_id}?tg_id={callback.message.chat.id}',
+                url=f'bot/user/addresses/{address_id}?tg_id={callback.message.chat.id}',
             )
 
             # удаляем сообщения с адресом
@@ -241,10 +224,9 @@ class AddressHandler(Handler):
 
                 await state.update_data(msg_ids={})
 
-            status_code, address_list = req_to_api(
+            status_code, address_list = await req_to_api(
                 method='get',
-                url=f'user/addresses/all?tg_id={callback.message.chat.id}',
-
+                url=f'bot/user/addresses/all?tg_id={callback.message.chat.id}',
             )
 
             msg_ids = {}
@@ -287,10 +269,9 @@ class AddressHandler(Handler):
 
                 await state.update_data(msg_ids={})
 
-
-            status_code, address = req_to_api(
+            status_code, address = await req_to_api(
                 method='get',
-                url=f'user/addresses/{address_id}?tg_id={callback.message.chat.id}'
+                url=f'bot/user/addresses/{address_id}?tg_id={callback.message.chat.id}',
             )
 
             # запрос в бек на установку по умолчанию по его id
@@ -300,34 +281,21 @@ class AddressHandler(Handler):
                     "main": True,
                 }
             )
-            req_to_api(
+            await req_to_api(
                 method='put',
-                url=f'user/addresses/{address_id}?tg_id={callback.message.chat.id}',
-                data=address_data
+                url=f'bot/user/addresses/{address_id}?tg_id={callback.message.chat.id}',
+                data=address_data,
             )
 
             # выводим список адресов после изменения адреса по умолчанию
-            status_code, address_list = req_to_api(
+            status_code, address_list = await req_to_api(
                 method='get',
-                url=f'user/addresses/all?tg_id={callback.message.chat.id}',
-
+                url=f'bot/user/addresses/all?tg_id={callback.message.chat.id}',
             )
 
-            msg_ids = {}
-            # отправляем все адреса пользователя с кнопками ('Удалить' и 'По умолчанию')
-            # если адрес установлен по умолчанию, то добавляем текст и 1 кнопка только
-            for address in address_list:
-                if address.get('main'):
-                    msg = await callback.message.answer(
-                        address['address'] + '(по умолчанию)',
-                        reply_markup=self.kb.address_delete_default_btn(address)
-                    )
-                    msg_ids[address['id']] = msg.message_id
-                else:
-                    msg = await callback.message.answer(
-                        address['address'],
-                        reply_markup=self.kb.address_delete_default_btn(address)
-                    )
-                    msg_ids[address['id']] = msg.message_id
-
-            await state.update_data(msg_ids=msg_ids)
+            await show_address_list(
+                message=callback.message,
+                state=state,
+                address_list=address_list,
+                self=self
+            )

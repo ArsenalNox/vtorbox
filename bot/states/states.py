@@ -35,3 +35,20 @@ class CreateOrder(StatesGroup):
     count_container = State()
 
 
+class YesOrNo(StatesGroup):
+    """Вопрос уточнение да/нет"""
+
+    question = State()
+
+
+class ChangeOrder(StatesGroup):
+    """Изменение заказа по типу или количеству контейнеров"""
+
+    container_type = State()
+    container_count = State()
+
+
+class Courier(StatesGroup):
+    """Отлов комментария к необработанной точке маршрута"""
+
+    point = State()
