@@ -19,6 +19,9 @@ from app.utils import is_valid_uuid
 
 import uuid, re
 
+from app.validators import UserCreationValidator
+from passlib.context import CryptContext
+
 load_dotenv()
 connection_url = URL.create(
     drivername="postgresql",
@@ -646,7 +649,61 @@ def init_boxtype_table():
         session.commit()
 
 
+def create_admin_user():
+    """
+    Создать админского пользователя
+    """
+
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    def get_password_hash(password):
+        return pwd_context.hash(password)
+
+    new_user_data = UserCreationValidator(
+        email="user3@example.com",
+        password="string",
+        role= "customer user admin bot manager courier"
+    )
+
+    with Session(engine, expire_on_commit=False) as session:
+        query_user = session.query(Users).filter_by(email=new_user_data.email).first()
+        if query_user: 
+            return
+
+        new_user_data.password = get_password_hash(new_user_data.password)
+        new_user_data = new_user_data.model_dump()
+        user_role = new_user_data["role"]
+        del new_user_data["role"]
+        del new_user_data["send_email_invite"]
+
+        new_user = Users(**new_user_data)
+
+        #Фикс: при flush uuid остаётся в сесси и не перегенерируется, т.е получаем Exception на unique field'е 
+        new_user.link_code = str(uuid.uuid4())[:10] 
+
+        session.add(new_user)
+        session.flush()
+        session.refresh(new_user)
+
+        #Если админ - добавить все роли?
+
+        for role in str(user_role).split(' '):
+            role_query = Roles.get_role(role)
+            if role_query:
+                user_role = Permissions(
+                    user_id = new_user.id,
+                    role_id = Roles.get_role(role).id
+                )
+
+                session.add(user_role)
+
+        session.commit()
+
+        return
+
+
 # if __name__ == "__main__":
 init_role_table()
 init_boxtype_table()
 init_status_table()
+create_admin_user()
