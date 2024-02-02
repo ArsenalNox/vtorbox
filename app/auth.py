@@ -84,6 +84,8 @@ def get_user(username: str):
             userdict["hashed_password"] = query.password
             if query.deleted_at:
                 userdict["disabled"] = True
+        else:
+            return None
 
     return UserInDB(**userdict)
 
