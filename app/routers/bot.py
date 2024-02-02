@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 
 from ..models import (
-    Users, Session, engine, UsersAddress, Address, IntervalStatuses, Roles
+    Users, Session, engine, UsersAddress, Address, IntervalStatuses, Roles, Permissions
     )
 
 from ..auth import (
