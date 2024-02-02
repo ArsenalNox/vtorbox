@@ -82,10 +82,10 @@ class UserCreationValidator(BaseModel):
     telegram_id: int | None = None
     telegram_username: str | None = None
     phone_number: str | None = None
-    firstname: str
-    secondname: str
+    firstname: str | None = None
+    secondname: str | None = None
 
-    role: str = "user"
+    role: str = "customer"
     send_email_invite: bool = False #Отправить ли письмо с приглашением
 
 
