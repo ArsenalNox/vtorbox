@@ -15,12 +15,18 @@ from .validators import (
     TokenData
 )
 
+
 import os
 from dotenv import load_dotenv
 
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
-from .models import engine, Users
+from .models import (
+    engine, 
+    Users,
+    Permissions,
+    Roles
+    )
 
 load_dotenv()
 
@@ -30,9 +36,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
 
 class User(BaseModel):
     username: str
@@ -48,9 +52,11 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
+        to_encode.update({"exp": expire})
+
+    # else:
+    #     expire = datetime.utcnow() + timedelta(minutes=15)
+
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
     return encoded_jwt
@@ -76,6 +82,8 @@ def get_user(username: str):
         if query:
             userdict["username"] = query.email
             userdict["hashed_password"] = query.password
+            if query.deleted_at:
+                userdict["disabled"] = True
 
     return UserInDB(**userdict)
 
@@ -96,11 +104,13 @@ async def get_current_user(
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
     else:
         authenticate_value = "Bearer"
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": authenticate_value},
     )
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -110,9 +120,12 @@ async def get_current_user(
         token_data = TokenData(scopes=token_scopes, username=username)
     except (JWTError, ValidationError):
         raise credentials_exception
+
     user = get_user(username=token_data.username)
+
     if user is None:
         raise credentials_exception
+
     for scope in security_scopes.scopes:
         if scope not in token_data.scopes:
             raise HTTPException(
@@ -120,7 +133,8 @@ async def get_current_user(
                 detail="Not enough permissions",
                 headers={"WWW-Authenticate": authenticate_value},
             )
-    
+
+    #TODO: Добавить подобие триггера на last_action 
     user.access_token = token
     return user
 
