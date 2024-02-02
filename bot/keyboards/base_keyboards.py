@@ -1,7 +1,6 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
-from bot.services.users import UserService
 from bot.utils.buttons import BUTTONS
 
 
@@ -33,6 +32,18 @@ class BaseKeyboard:
         builder = ReplyKeyboardBuilder()
         builder.row(
             KeyboardButton(text=BUTTONS['MENU']),
+        )
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
+    def start_btn(self) -> ReplyKeyboardMarkup:
+        """Кнопка на /start"""
+
+        builder = ReplyKeyboardBuilder()
+        builder.row(
+            KeyboardButton(text=BUTTONS['START']),
         )
         return builder.as_markup(
             resize_keyboard=True,
@@ -73,15 +84,30 @@ class BaseKeyboard:
             one_time_keyboard=True
         )
 
-    def show_btn(self, order_id: int) -> InlineKeyboardMarkup:
+    def show_btn(self, first_order: dict) -> InlineKeyboardMarkup:
         """ Кнопки 'Просмотреть' на активной заявки """
 
         builder = InlineKeyboardBuilder()
         builder.row(
             InlineKeyboardButton(
                 text=BUTTONS['SHOW'],
-                callback_data=f'show_{order_id}'
+                callback_data=f'show_{first_order["id"]}'
             ),
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
+    def courier_btn(self) -> ReplyKeyboardMarkup:
+        """ Кнопка 'Маршрут' для курьера """
+
+        builder = ReplyKeyboardBuilder()
+        builder.row(
+            KeyboardButton(
+                text=BUTTONS['ROUTE'],
+            )
         )
 
         return builder.as_markup(

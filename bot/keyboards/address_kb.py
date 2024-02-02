@@ -2,7 +2,6 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
 from bot.keyboards.base_keyboards import BaseKeyboard
-from bot.services.users import UserService
 from bot.utils.buttons import BUTTONS
 
 

@@ -10,7 +10,6 @@ from aiogram.types import Message, CallbackQuery
 from bot.handlers.base_handler import Handler
 from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.keyboards.questionnaire_kb import QuestionnaireKeyboard
-from bot.services.users import UserService
 from bot.settings import settings
 from bot.states.states import EditQuestionnaireState
 from bot.utils.buttons import BUTTONS
@@ -33,9 +32,9 @@ class QuestionnaireHandler(Handler):
 
             # получаем анкету по tg_id
 
-            status_code, user_data = req_to_api(
+            status_code, user_data = await req_to_api(
                 method='get',
-                url=f'users/telegram?tg_id={message.from_user.id}'
+                url=f'bot/users/telegram?tg_id={message.from_user.id}',
             )
 
             await message.answer(
@@ -62,11 +61,10 @@ class QuestionnaireHandler(Handler):
         async def set_firstname(message: Message, state: FSMContext):
             """Отлавливаем изменение имени"""
 
-            status_code, user_data = req_to_api(
+            status_code, user_data = await req_to_api(
                 method='get',
-                url=f'users/telegram?tg_id={message.from_user.id}'
+                url=f'bot/users/telegram?tg_id={message.from_user.id}',
             )
-
 
             # запрос на изменение имени у пользователя
             if message.text.isalpha():
@@ -76,10 +74,10 @@ class QuestionnaireHandler(Handler):
                     'user_id': user_data.get('id')
                 })
 
-                req_to_api(
+                await req_to_api(
                     method='put',
                     url='user',
-                    data=new_user_data
+                    data=new_user_data,
                 )
 
                 await state.set_state(state=None)
@@ -108,9 +106,9 @@ class QuestionnaireHandler(Handler):
         async def set_lastname(message: Message, state: FSMContext):
             """Отлавливаем изменение фамилии"""
 
-            status_code, user_data = req_to_api(
+            status_code, user_data = await req_to_api(
                 method='get',
-                url=f'users/telegram?tg_id={message.from_user.id}'
+                url=f'bot/users/telegram?tg_id={message.from_user.id}',
             )
 
             # запрос на изменение имени у пользователя
@@ -121,11 +119,12 @@ class QuestionnaireHandler(Handler):
                     'user_id': user_data.get('id')
                 })
 
-                req_to_api(
+                await req_to_api(
                     method='put',
                     url='user',
-                    data=new_user_data
+                    data=new_user_data,
                 )
+
                 await state.set_state(state=None)
 
                 # переходим к выводу анкеты
@@ -185,9 +184,9 @@ class QuestionnaireHandler(Handler):
 
             if message.text == '123':
 
-                status_code, user_data = req_to_api(
+                status_code, user_data = await req_to_api(
                     method='get',
-                    url=f'users/telegram?tg_id={message.from_user.id}'
+                    url=f'bot/users/telegram?tg_id={message.from_user.id}',
                 )
 
                 # запрос на изменение номера телефона у пользователя в БД
@@ -197,10 +196,10 @@ class QuestionnaireHandler(Handler):
                     'user_id': user_data.get('id')
                 })
 
-                req_to_api(
+                await req_to_api(
                     method='put',
                     url='user',
-                    data=new_user_data
+                    data=new_user_data,
                 )
 
                 await state.set_state(state=None)
@@ -252,9 +251,9 @@ class QuestionnaireHandler(Handler):
 
             if message.text == '123':
                 # запрос на изменение email у пользователя в БД
-                status_code, user_data = req_to_api(
+                status_code, user_data = await req_to_api(
                     method='get',
-                    url=f'users/telegram?tg_id={message.from_user.id}'
+                    url=f'bot/users/telegram?tg_id={message.from_user.id}',
                 )
 
                 new_user_data = json.dumps({
@@ -263,10 +262,10 @@ class QuestionnaireHandler(Handler):
                     'user_id': user_data.get('id')
                 })
 
-                req_to_api(
+                await req_to_api(
                     method='put',
                     url='user',
-                    data=new_user_data
+                    data=new_user_data,
                 )
 
                 await state.set_state(state=None)

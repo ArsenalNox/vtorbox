@@ -1,5 +1,6 @@
 import http
 import json
+import pprint
 import re
 
 import requests
@@ -16,7 +17,7 @@ from bot.states.states import RegistrationUser
 
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
-from bot.utils.handle_data import phone_pattern, HEADERS
+from bot.utils.handle_data import phone_pattern, show_active_orders
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
@@ -33,6 +34,9 @@ class TextHandler(Handler):
         async def start_bot_user(message: Message, state: FSMContext):
             """Старт бота для нового юзера бота"""
 
+            await state.set_state(state=None)
+            await state.update_data(chat_id=message.chat.id)
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -46,10 +50,10 @@ class TextHandler(Handler):
             })
 
             # создаем пользователя
-            req_to_api(
+            await req_to_api(
                 method='post',
-                url='user',
-                data=user_data
+                url='bot/user',
+                data=user_data,
             )
 
             await message.answer(
@@ -65,18 +69,23 @@ class TextHandler(Handler):
 
             # получаем активные заявки пользователя
             # если есть, то выводим с такой кнопкой show_btn(order_id)
-            order_id = 1
+            status_code, orders = await req_to_api(
+                method='get',
+                url=f'users/orders/?tg_id={message.from_user.id}',
+            )
+
+            if orders:
+                await show_active_orders(
+                    orders=orders,
+                    self=self,
+                    message=message,
+                    state=state
+                )
+
             await message.answer(
                 MESSAGES['MENU'],
                 reply_markup=self.kb.start_menu_btn()
             )
-            await state.set_state(state=None)
-            msg = await message.answer(
-                'test',
-                reply_markup=self.kb.show_btn(order_id)
-            )
-
-            await state.update_data(msg=msg.message_id)
 
         @self.router.message(RegistrationUser.phone, F.content_type.in_({'contact'}))
         async def catch_user_phone_number(message: Message, state: FSMContext):
@@ -90,20 +99,24 @@ class TextHandler(Handler):
             )
             phone = message.contact.phone_number
 
-            status_code, user = req_to_api(
+            status_code, user = await req_to_api(
                 method='get',
-                url=f'users/phone?phone_number={phone}'
+                url=f'bot/users/phone?phone_number={phone}',
             )
 
             if user and status_code == http.HTTPStatus.OK:
                 await state.set_state(state=None)
                 # логика отправки смс кода
+                await message.answer(
+                    MESSAGES['SEND_SMS']
+                )
 
             else:
                 await message.answer(
                     MESSAGES['PHONE_NOT_FOUND'],
                     reply_markup=self.kb.registration_btn()
                 )
+                await state.set_state(RegistrationUser.phone)
 
         @self.router.message(RegistrationUser.phone)
         async def catch_text_user_phone(message: Message, state: FSMContext):
@@ -114,14 +127,17 @@ class TextHandler(Handler):
             if check_phone and len(message.text) == 11:
                 phone = message.text
 
-                status_code, user = req_to_api(
+                status_code, user = await req_to_api(
                     method='get',
-                    url=f'users/phone?phone_number={phone}'
+                    url=f'bot/users/phone?phone_number={phone}',
                 )
 
-                if user:
+                if user and status_code == http.HTTPStatus.OK:
                     await state.set_state(state=None)
                     # логика отправки смс кода
+                    await message.answer(
+                        MESSAGES['SEND_SMS']
+                    )
 
                 else:
                     await message.answer(
@@ -131,10 +147,12 @@ class TextHandler(Handler):
 
             else:
                 promocode = message.text
-                status_code, user = req_to_api(
+                print(promocode)
+                status_code, user = await req_to_api(
                     method='get',
-                    url=f'users/promocode?promocode={promocode}'
+                    url=f'bot/users/promocode?promocode={promocode}',
                 )
+                print(user)
 
                 if user and status_code == http.HTTPStatus.OK:
                     user_data = json.dumps({
@@ -144,10 +162,10 @@ class TextHandler(Handler):
                     })
 
                     # регаем пользователя
-                    req_to_api(
+                    await req_to_api(
                         method='post',
-                        url='user',
-                        data=user_data
+                        url='bot/user',
+                        data=user_data,
                     )
 
                     await message.answer(
@@ -163,7 +181,7 @@ class TextHandler(Handler):
                     #     video=
                     # )
 
-                elif len(message.text) == 8:
+                else:
                     await message.answer(
                         MESSAGES['PROMOCODE_NOT_FOUND'],
                         reply_markup=self.kb.registration_btn()
@@ -211,6 +229,19 @@ class TextHandler(Handler):
                 data=data,
                 src=message
             )
+
+            status_code, orders = await req_to_api(
+                method='get',
+                url=f'users/orders/?tg_id={message.from_user.id}',
+            )
+
+            if orders:
+                await show_active_orders(
+                    message=message,
+                    orders=orders,
+                    state=state,
+                    self=self
+                )
 
             await state.update_data(chat_id=message.chat.id)
             await state.update_data(selected_day_of_week=[])

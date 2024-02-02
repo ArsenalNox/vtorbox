@@ -5,16 +5,16 @@ import time
 import aiohttp
 import requests
 from aiogram import Bot, Router, F
-from aiogram.filters import Command
+from aiogram.filters import Command, or_f
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from bot.handlers.base_handler import Handler
 from bot.keyboards.base_keyboards import BaseKeyboard
 
-from bot.services.users import UserService
 from bot.settings import settings
 from bot.states.states import RegistrationUser
+from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
 from bot.utils.handle_data import HEADERS
 from bot.utils.messages import MESSAGES
@@ -28,7 +28,7 @@ class CommandHandler(Handler):
         self.kb = BaseKeyboard()
 
     def handle(self):
-        @self.router.message(Command('start'))
+        @self.router.message(or_f(Command('start'), F.text == BUTTONS['START']))
         async def start(message: Message, state: FSMContext):
             """Отлов команды /start"""
 
@@ -38,31 +38,40 @@ class CommandHandler(Handler):
                 data=data,
                 src=message
             )
+            await state.update_data(chat_id=message.chat.id)
 
             # получаем промокод из сообщения пользователя
-            promocode_in_msg = message.text.split()[1:]
+            promocode_in_msg = message.text.split()[-1]
             if not promocode_in_msg:
                 promocode_in_msg = ['']
 
             # ищем пользователя из БД по промокоду и затем добавляем ему данные телеграмма в БД
-            status_code, user = req_to_api(
+            status_code, user = await req_to_api(
                 method='get',
-                url=f'users/promocode?promocode={promocode_in_msg[0]}'
+                url=f'bot/users/promocode?promocode={promocode_in_msg}',
             )
 
-            if user and status_code == http.HTTPStatus.OK:
+            # проверка, что пользователь является курьером
+            flag = False
+            if flag:
+                await message.answer(
+                    MESSAGES['COURIER'],
+                    reply_markup=self.kb.courier_btn()
+                )
+
+            elif user and status_code == http.HTTPStatus.OK:
                 user_data = json.dumps({
                     'tg_id': message.from_user.id,
                     'username': message.from_user.username,
                     'fullname': message.from_user.full_name,
-                    'promocode': promocode_in_msg[0]
+                    'promocode': promocode_in_msg
                 })
 
                 # обновляем данные пользователя данными из телеграма
-                req_to_api(
+                await req_to_api(
                     method='put',
-                    url='users/botclient/link',
-                    data=user_data
+                    url='bot/users/botclient/link',
+                    data=user_data,
                 )
 
                 await message.answer(
@@ -84,10 +93,10 @@ class CommandHandler(Handler):
                 })
 
                 # создаем пользователя
-                req_to_api(
+                await req_to_api(
                     method='post',
-                    url='user',
-                    data=user_data
+                    url='bot/user',
+                    data=user_data,
                 )
 
                 await message.answer(

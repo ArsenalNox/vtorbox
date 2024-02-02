@@ -6,11 +6,10 @@ from bot.keyboards.base_keyboards import BaseKeyboard
 
 class ScheduleKeyboard(BaseKeyboard):
 
-    def change_btn(self) -> InlineKeyboardMarkup:
+    def change_btn(self, address_id: str) -> InlineKeyboardMarkup:
         """Кнопка 'изменить' на расписание адреса"""
 
         builder = InlineKeyboardBuilder()
-        address_id = ''
         builder.row(
             InlineKeyboardButton(text='изменить',
                                  callback_data=f'change_period_{address_id}')
@@ -70,7 +69,6 @@ class ScheduleKeyboard(BaseKeyboard):
             'saturday': 'Суббота',
             'sunday': 'Воскресенье'}
 
-        print(f'{selected_day_of_week=}')
         for day in days:
             if day in selected_day_of_week:
                 builder.row(
