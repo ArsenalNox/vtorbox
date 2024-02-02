@@ -11,8 +11,6 @@ class Settings:
     def __init__(self):
         self.bot_token = os.getenv('BOT_TOKEN')
         self.base_url = os.getenv('BASE_URL')
-        self.local_url = os.getenv('LOCAL_URL')
-        self.geocoder_yandex_api = os.getenv('GEOCODER_YANDEX_API')
 
 
 settings = Settings()

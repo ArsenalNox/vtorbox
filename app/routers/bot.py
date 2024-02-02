@@ -107,7 +107,7 @@ async def create_bot_client_from_link(
 
         return 
 
-
+      
 @router.get("/users/phone", tags=["users", "bot"])
 async def check_user_by_phone(
     phone_number: str,

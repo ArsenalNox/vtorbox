@@ -1,8 +1,9 @@
 BUTTONS = {
     'MENU': '📖 Главное меню',
+    'START': '▶️ Запустить бота',
     'SETTINGS': '⚙️Настройки',
-    'CREATE_APPLICATION': '📝 Создать заявку',
-    'APPLICATIONS_HISTORY': '📚 История заявок',
+    'CREATE_ORDER': '📝 Создать заявку',
+    'ORDER_HISTORY': '📚 История заявок',
     'MY_ADDRESSES': '📍Мои адреса',
     'ADD_ADDRESS': '➕ Добавить адрес',
     'PAYMENTS': '💰 Способы оплаты',
@@ -11,9 +12,17 @@ BUTTONS = {
     'ABOUT': '❓Как работает сервис',
     'DEFAULT': '🖍 Выбрать основной адрес',
     'DELETE_ADDRESS': '❌ Удалить адрес',
-    'EDIT_QUESTIONNAIRE': '✏️ Изменить имя/комментарий',
-    'PHONE_NUMBER': '📱️ Добавить/Изменить номер телефона',
-    'EMAIL': '✉️️ Добавить/Изменить email',
+    'PHONE_NUMBER': '📱️ Номер телефона',
+    'EMAIL': '✉️️ Email',
     'SHARE_PHONE': '📱️ Поделиться номером',
-    'START_BOT': '▶️ Начать пользовать ботом'
+    'START_BOT': '▶️ Начать пользовать ботом',
+    'SHOW': '👀 Посмотреть',
+    'PREVIOUS': '⬅️',
+    'NEXT': '➡️',
+    'SCHEDULE': '📆 Расписание вызова',
+    'FIRST_NAME': '1️⃣ Имя',
+    'LAST_NAME': '2️⃣ Фамилия',
+    'BACK_TO_ORDER': '⬅️ Назад к просмотру заявки',
+    'ROUTE': '🗺️ Маршрут',
+    'BACK_ROUTE': '⬅️ Назад'
 }

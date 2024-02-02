@@ -12,14 +12,15 @@ class QuestionnaireKeyboard(BaseKeyboard):
 
         builder = ReplyKeyboardBuilder()
         builder.row(
-            KeyboardButton(text=BUTTONS['EDIT_QUESTIONNAIRE'])
+            KeyboardButton(text=BUTTONS['FIRST_NAME']),
+            KeyboardButton(text=BUTTONS['LAST_NAME'])
         )
         builder.row(
             KeyboardButton(text=BUTTONS['PHONE_NUMBER']),
             KeyboardButton(text=BUTTONS['EMAIL'])
         )
         builder.row(
-            KeyboardButton(text=BUTTONS['MENU'])
+            KeyboardButton(text=BUTTONS['MENU']),
         )
 
         return builder.as_markup(
@@ -27,15 +28,16 @@ class QuestionnaireKeyboard(BaseKeyboard):
             one_time_keyboard=True
         )
 
-    def empty_comment_btn(self) -> InlineKeyboardMarkup:
-        """Кнопка для пустого комментария в анкете"""
+    def send_phone(self) -> ReplyKeyboardMarkup:
+        """Кпопка для отправки телефона"""
 
-        builder = InlineKeyboardBuilder()
+        builder = ReplyKeyboardBuilder()
         builder.row(
-            InlineKeyboardButton(
-                text='Не добавлять комментарий',
-                callback_data='empty_comment'
-            )
+            KeyboardButton(text='Отправить номер телефона', request_contact=True)
+        )
+
+        builder.row(
+            KeyboardButton(text=BUTTONS['MENU']),
         )
 
         return builder.as_markup(

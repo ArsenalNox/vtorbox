@@ -1,17 +1,21 @@
+import json
+
+import requests
 from aiogram import Bot, Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
 from bot.handlers.base_handler import Handler
 from bot.keyboards.address_kb import AddressKeyboard
-from bot.services.addresses import AddressService
-from bot.services.users import UserService
-from bot.states.states import AddAddressState
-from bot.third_party_api.yandex import get_request_to_yandex_geocoder, get_address_by_coordinates
+from bot.keyboards.order import OrderKeyboard
+
+from bot.settings import settings
+from bot.states.states import AddAddressState, CreateOrder
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn, format_addresses
-from bot.utils.handle_data import get_coordinates, get_found_result_geocoder_data
+from bot.utils.handle_data import HEADERS, show_address_list
 from bot.utils.messages import MESSAGES
+from bot.utils.requests_to_api import req_to_api
 
 
 class AddressHandler(Handler):
@@ -19,6 +23,8 @@ class AddressHandler(Handler):
         super().__init__(bot)
         self.router = Router()
         self.kb = AddressKeyboard()
+        self.order_kb = OrderKeyboard()
+        self.flag_to_return = False
 
     def handle(self):
         @self.router.message(F.text.startswith(BUTTONS['MY_ADDRESSES']))
@@ -32,29 +38,43 @@ class AddressHandler(Handler):
                 src=message
             )
 
-            # получаем все адреса текущего пользователя
-            addresses = UserService.get_users_addresses(message.chat.id)
-            text = format_addresses(addresses)
-            await message.answer(
-                text,
-                reply_markup=self.kb.add_address_btn()
+            self.flag_to_return = False
+            # запрос на получение всех адресов у юзера
+
+            status_code, address_list = await req_to_api(
+                method='get',
+                url=f'bot/user/addresses/all?tg_id={message.from_user.id}',
             )
 
-        @self.router.message(F.text.startswith(BUTTONS['ADD_ADDRESS']))
-        async def get_add_address(message: Message, state: FSMContext):
-            """Получение анкеты пользователя"""
+            await show_address_list(
+                message=message,
+                state=state,
+                address_list=address_list,
+                self=self
+            )
 
+            await message.answer(
+                MESSAGES['MENU'],
+                reply_markup=self.kb.menu_btn()
+            )
+
+        @self.router.callback_query(F.data.startswith('add_address'))
+        async def get_new_address(callback: CallbackQuery, state: FSMContext):
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
                 data=data,
-                src=message
+                src=callback.message
             )
 
-            await message.answer(
-                MESSAGES['ADD_ADDRESS'],
-                reply_markup=self.kb.send_geo()
+            # флаг для возврата к созданию заказа(после того как во время заказа пользователь нажмет 'Добавить адрес')
+            self.flag_to_return = callback.data.split('_')[-1]
+
+            await callback.message.answer(
+                MESSAGES['ADD_NEW_ADDRESS'],
+                reply_markup=self.kb.send_geo_btn()
             )
+
             await state.set_state(AddAddressState.address)
 
         @self.router.message(F.content_type.in_(['location']), AddAddressState.address)
@@ -68,28 +88,95 @@ class AddressHandler(Handler):
                 src=message
             )
 
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=message
+            )
+
             longitude = str(message.location.longitude)
             latitude = str(message.location.latitude)
-            address = await get_address_by_coordinates(longitude, latitude)
+            await state.update_data(longitude=longitude)
+            await state.update_data(latitude=latitude)
 
-            # создание адреса
-            AddressService.create_user_address(
-                address_text=address,
-                latitude=latitude,
-                longitude=longitude,
-                tg_id=message.from_user.id
+            await message.answer(
+                MESSAGES['WRITE_YOUR_DETAIL_ADDRESS']
+            )
+            await state.set_state(AddAddressState.detail)
+
+        @self.router.message(F.text, AddAddressState.detail)
+        async def get_detail_address(message: Message, state: FSMContext):
+            """Получение доп информации об адресе (подъезд, квартира)"""
+
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=message
             )
 
-            # переходим к списку адресов
-            await get_my_addresses(
-                message=message,
-                state=state
+            detail = message.text
+            await state.update_data(detail=detail)
+
+            await message.answer(
+                MESSAGES['WRITE_COMMENT_ADDRESS'],
+                reply_markup=self.kb.empty_comment_btn()
             )
 
-            # обнуляем состояние
+            await state.set_state(state=AddAddressState.comment)
+
+        @self.router.message(F.text, AddAddressState.comment)
+        async def get_comment_address(message: Message, state: FSMContext):
+            """Получение комментария к адресу и создание адреса в БД"""
+
+            data = await state.get_data()
             await state.set_state(state=None)
 
-        @self.router.message(AddAddressState.address)
+            # получаем данные из состояния и отправляем запрос в бек на создание адреса
+            address_data = json.dumps(
+                {
+                    "address": data.get('address'),
+                    "detail": data.get('detail'),
+                    "latitude": data.get("latitude"),
+                    "longitude": data.get("longitude"),
+                }
+            )
+
+            status_code, response = await req_to_api(
+                method='post',
+                url=f'bot/user/addresses?tg_id={message.from_user.id}',
+                data=address_data,
+            )
+            await state.update_data(address=response)
+
+            # если не удалось найти такой адрес, то выводим сообщение
+            if response.get('message'):
+                await message.answer(
+                    MESSAGES['WRONG_ADDRESS'],
+                    reply_markup=self.kb.settings_btn()
+                )
+
+            elif eval(self.flag_to_return):
+                # запрос на получение типов конейнера из БД
+                status_code, containers_types = await req_to_api(
+                    method='get',
+                    url=f'boxes',
+                )
+                await message.answer(
+                    MESSAGES['CHOOSE_CONTAINER'],
+                    reply_markup=self.order_kb.choose_container_btn(containers_types)
+                )
+                await state.set_state(CreateOrder.container)
+                self.flag_to_return = False
+            else:
+                # переход к списку адресов
+                await get_my_addresses(
+                    message=message,
+                    state=state
+                )
+
+        @self.router.message(F.text, AddAddressState.address)
         async def get_new_address_from_text(message: Message, state: FSMContext):
             """Получение и валидация нового адреса по тексту пользователя"""
 
@@ -100,61 +187,16 @@ class AddressHandler(Handler):
                 src=message
             )
 
-            # обнуляем состояние
-            await state.set_state(state=None)
+            await state.update_data(address=message.text)
+            await state.set_state(AddAddressState.comment)
 
-            address = message.text
-
-            data = await get_request_to_yandex_geocoder(address)
-            found_result = get_found_result_geocoder_data(data)
-
-            # если есть найденные адреса
-            if found_result == 0:
-                await message.answer(
-                    MESSAGES['EMPTY_ADDRESS_RESULT'],
-                    reply_markup=self.kb.add_address_btn()
-                )
-            else:
-                latitude, longitude = get_coordinates(data)
-
-                # создание адреса
-                AddressService.create_user_address(
-                    address_text=address,
-                    latitude=latitude,
-                    longitude=longitude,
-                    tg_id=message.from_user.id
-                )
-
-                # переходим к списку адресов
-                await get_my_addresses(
-                    message=message,
-                    state=state
-                )
-
-        @self.router.message(F.text.startswith(BUTTONS['DEFAULT']))
-        async def set_default_address(message: Message, state: FSMContext):
-            """Установка адреса по умолчанию"""
-
-            data = await state.get_data()
-            await delete_messages_with_btn(
-                state=state,
-                data=data,
-                src=message
-            )
-
-            msg = await message.answer(
-                MESSAGES['CHOOSE_DEFAULT_ADDRESS'],
-                reply_markup=self.kb.addresses_list_btn(message.from_user.id)
-            )
-            await state.update_data(msg=msg.message_id)
             await message.answer(
-                MESSAGES['GO_TO_MENU'],
-                reply_markup=self.kb.menu_btn()
+                MESSAGES['WRITE_COMMENT_ADDRESS'],
+                reply_markup=self.kb.empty_comment_btn()
             )
 
-        @self.router.callback_query(F.data.startswith('address'))
-        async def get_address(callback: CallbackQuery, state: FSMContext):
-            """Отлов кнопки с адресом при установке адреса по умолчанию"""
+        @self.router.callback_query(F.data.startswith('delete_address'))
+        async def delete_address(callback: CallbackQuery, state: FSMContext):
 
             data = await state.get_data()
             await delete_messages_with_btn(
@@ -163,50 +205,51 @@ class AddressHandler(Handler):
                 src=callback.message
             )
 
-            address_id = callback.data.split('_')[1]
+            address_id = callback.data.split('_')[-1]
+            print(address_id)
 
-            old_main_address = AddressService.get_main_address(callback.message.chat.id)
-            address = AddressService.get_address_by_id(address_id)
-            AddressService.mark_address_to_main(address, old_main_address)
-
-            await callback.message.answer(
-                MESSAGES['DEFAULT_ADDRESS_IS_SELECTED'].format(
-                    address.address
-                )
+            # запрос в бек на удаление адреса по его id
+            await req_to_api(
+                method='delete',
+                url=f'bot/user/addresses/{address_id}?tg_id={callback.message.chat.id}',
             )
 
-            await get_my_addresses(
-                message=callback.message,
-                state=state
+            # удаляем сообщения с адресом
+            if data.get('msg_ids'):
+                for address_id_temp, msg_id in data.get('msg_ids').items():
+                    await callback.bot.delete_message(
+                        chat_id=data.get('chat_id'),
+                        message_id=msg_id
+                    )
+
+                await state.update_data(msg_ids={})
+
+            status_code, address_list = await req_to_api(
+                method='get',
+                url=f'bot/user/addresses/all?tg_id={callback.message.chat.id}',
             )
 
-        @self.router.message(F.text.startswith(BUTTONS['DELETE_ADDRESS']))
-        async def delete_address(message: Message, state: FSMContext):
-            """Удаление адреса из списка адресов"""
+            msg_ids = {}
+            # отправляем все адреса пользователя с кнопками ('Удалить' и 'По умолчанию')
+            # если адрес установлен по умолчанию, то добавляем текст и 1 кнопка только
+            for address in address_list:
+                if address.get('main'):
+                    msg = await callback.message.answer(
+                        address['address'] + '(по умолчанию)',
+                        reply_markup=self.kb.address_delete_default_btn(address)
+                    )
+                    msg_ids[address['id']] = msg.message_id
+                else:
+                    msg = await callback.message.answer(
+                        address['address'],
+                        reply_markup=self.kb.address_delete_default_btn(address)
+                    )
+                    msg_ids[address['id']] = msg.message_id
 
-            data = await state.get_data()
-            await delete_messages_with_btn(
-                state=state,
-                data=data,
-                src=message
-            )
+            await state.update_data(msg_ids=msg_ids)
 
-            msg = await message.answer(
-                MESSAGES['CHOOSE_DELETE_ADDRESS'],
-                reply_markup=self.kb.addresses_list_btn(
-                    tg_id=message.from_user.id,
-                    tag='delete'
-                )
-            )
-            await state.update_data(msg=msg.message_id)
-            await message.answer(
-                MESSAGES['GO_TO_MENU'],
-                reply_markup=self.kb.menu_btn()
-            )
-
-        @self.router.callback_query(F.data.startswith('delete'))
-        async def delete_address_2(callback: CallbackQuery, state: FSMContext):
-            """Отлов кнопки с адресом для удаления"""
+        @self.router.callback_query(F.data.startswith('default_address'))
+        async def default_address(callback: CallbackQuery, state: FSMContext):
 
             data = await state.get_data()
             await delete_messages_with_btn(
@@ -214,11 +257,45 @@ class AddressHandler(Handler):
                 data=data,
                 src=callback.message
             )
+            address_id = callback.data.split('_')[-1]
 
-            address_id = callback.data.split('_')[1]
-            AddressService.delete_address_by_id(address_id)
+            # удаляем сообщения с адресом
+            if data.get('msg_ids'):
+                for address_id_temp, msg_id in data.get('msg_ids').items():
+                    await callback.bot.delete_message(
+                        chat_id=data.get('chat_id'),
+                        message_id=msg_id
+                    )
 
-            await get_my_addresses(
+                await state.update_data(msg_ids={})
+
+            status_code, address = await req_to_api(
+                method='get',
+                url=f'bot/user/addresses/{address_id}?tg_id={callback.message.chat.id}',
+            )
+
+            # запрос в бек на установку по умолчанию по его id
+            address_data = json.dumps(
+                {
+                    "address": address['address'],
+                    "main": True,
+                }
+            )
+            await req_to_api(
+                method='put',
+                url=f'bot/user/addresses/{address_id}?tg_id={callback.message.chat.id}',
+                data=address_data,
+            )
+
+            # выводим список адресов после изменения адреса по умолчанию
+            status_code, address_list = await req_to_api(
+                method='get',
+                url=f'bot/user/addresses/all?tg_id={callback.message.chat.id}',
+            )
+
+            await show_address_list(
                 message=callback.message,
-                state=state
+                state=state,
+                address_list=address_list,
+                self=self
             )
