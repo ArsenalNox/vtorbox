@@ -1,0 +1,96 @@
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    touch-action: none;
+}
+
+html,
+body {
+    height: 100vh;
+}
+
+
+.login-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 50vw;
+    max-width: fit-content;
+    max-height: fit-content;
+    margin: auto;
+    margin-top: 40vh;
+}
+
+.hidden {
+    display: none;
+}
+
+.user-info label {
+    display: flex;
+}
+
+.main-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background-color: rgb(129, 153, 153);
+}
+
+.main-menu ul {
+    list-style: none;
+    display: flex;
+    gap: 1rem;
+}
+
+
+.main-menu ul li:last-child {
+    margin-left: auto;
+}
+
+
+
+.main-menu ul li {
+    padding: 1rem;
+    transition: 0.3s;
+    background-color: white;
+}
+
+table>tr:nth-child(2n) {
+    background-color: rgb(228, 227, 227);
+}
+
+.main-menu>ul>li:hover {
+    background-color: antiquewhite;
+}
+
+
+.active-page {
+    background-color: rgb(9, 163, 163) !important;
+}
+
+.modal {
+    position: fixed;
+    background-color: bisque;
+    width: 70vh;
+    height: 70vh;
+
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+
+    position: fixed;
+    border: 3px solid #73AD21;
+    overflow-y: auto;
+}
+
+
+.edit-wrapper {
+    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.edit-wrapper>label>input{
+    width: 60%;
+    }
