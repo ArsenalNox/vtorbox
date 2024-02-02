@@ -74,9 +74,8 @@ async def create_user(
             role_id = Roles.customer_role()
         )
 
-        session.add(new_user)
+        session.add(user_role)
         session.commit()
-
 
         return new_user
 
