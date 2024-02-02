@@ -210,6 +210,7 @@ async def create_user(
 
         if new_user_data.send_email_invite:
             pass
+        del new_user_data["send_email_invite"]
 
         new_user = Users(**new_user_data)
 
