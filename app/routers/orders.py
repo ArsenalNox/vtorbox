@@ -122,7 +122,7 @@ async def get_filtered_orders(
 
 
 
-@router.get('/orders', tags=["orders", "admin"], responses={
+@router.get('/orders', tags=[Tags.orders, Tags.admins], responses={
         200: {
             "description": "Получение всех заявок",
             "content": {
@@ -198,7 +198,7 @@ async def get_all_orders(
         return return_data
 
 
-@router.get('/orders/{order_id}', tags=["orders", "bot"], 
+@router.get('/orders/{order_id}', tags=[Tags.orders, Tags.bot], 
     responses={
         200: {
             "description": "Заявка полученная по айди",
@@ -249,7 +249,10 @@ async def get_all_orders(
         }
     }
     )
-async def get_order_by_id(order_id: UUID) -> OrderOut:
+async def get_order_by_id(
+    order_id: UUID
+    
+    ) -> OrderOut:
     """
     Получение конкретной заявки
     """
@@ -406,13 +409,13 @@ async def get_user_orders(
         return return_data
 
 
-@router.post('/orders/create', tags=["orders", "bot"])
+@router.post('/orders/create', tags=[Tags.orders, Tags.bot])
 async def create_order(
     order_data: OrderValidator,
     current_user: Annotated[UserLoginSchema, Security(get_current_user)]
     ):
     """
-    Создание заявки
+    Создание заявки 
     """
     #TODO: Оповещение менеджера при создании заявки
 
@@ -479,7 +482,7 @@ async def create_order(
     }
 
 
-@router.get("/orders/{order_id}/history", tags=['bot', 'orders'])
+@router.get("/orders/{order_id}/history", tags=[Tags.orders, Tags.bot])
 async def get_order_status_history(
     order_id: UUID,
     tg_id: int,
@@ -511,7 +514,7 @@ async def get_order_status_history(
         return return_data
 
 
-@router.delete('/orders/all', tags=['bot', 'admin', 'orders'])
+@router.delete('/orders/all', tags=[Tags.bot, Tags.admins, Tags.orders])
 async def delete_all_orders(
     current_user: Annotated[UserLoginSchema, Security(get_current_user)],
 ):
@@ -526,8 +529,11 @@ async def delete_all_orders(
         return 
 
 
-@router.delete('/orders/{order_id}', tags=["orders"])
-async def delete_order_by_id(order_id:UUID):
+@router.delete('/orders/{order_id}', tags=[Tags.orders])
+async def delete_order_by_id(
+    order_id:UUID,
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+    ):
     """
     Удаление заявки
     """
@@ -615,7 +621,7 @@ async def set_order_status(
         session.commit()
 
 
-@router.put('/orders/{order_id}/courier', tags=["orders"])
+@router.put('/orders/{order_id}/courier', tags=[Tags.orders, Tags.managers])
 async def set_order_courier():
     """
     Установить курьера на заказ
