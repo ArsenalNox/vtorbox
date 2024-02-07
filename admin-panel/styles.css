@@ -85,6 +85,17 @@ table>tr:nth-child(2n) {
 }
 
 
+.small-modal {
+    width: 50vh !important;
+    height: 50vh !important;
+    border: 2px solid #d2ebaf;
+}
+
+.active-page{
+    background-color: #d2ebaf;
+}
+
+
 .edit-wrapper {
     gap: 1rem;
     display: flex;
