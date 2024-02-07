@@ -1,18 +1,19 @@
 """
 Содержит в себе ендпоинты по заявкам
 """
-from typing import Annotated, List
+import re 
 
-from calendar import monthrange
+from app import Tags
+from typing import Annotated, List, Union, Optional
 
 from fastapi import APIRouter, Body, Security, Query
 from fastapi.responses import JSONResponse
 
-from datetime import datetime
-from datetime import timedelta
+from calendar import monthrange
+from datetime import datetime, timedelta
+from uuid import UUID
 
-from sqlalchemy import desc, asc
-from app import Tags
+from sqlalchemy import desc, asc, desc
 
 from ..validators import (
     Order as OrderValidator,
@@ -26,81 +27,70 @@ from ..auth import (
 )
 
 from ..models import (
-    engine, 
-    Orders, 
-    Users, 
-    Session, 
-    Address,
-    UsersAddress,
-    BoxTypes,
-    OrderStatuses,
-    OrderStatusHistory,
-    ORDER_STATUS_DELETED,
-    ORDER_STATUS_AWAITING_CONFIRMATION,
-    IntervalStatuses
+    engine, Orders, Users, Session, 
+    Address, UsersAddress, BoxTypes,
+    OrderStatuses, OrderStatusHistory,
+    ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION,
+    IntervalStatuses, ROLE_ADMIN_NAME
     )
 
-from app import Tags
-from uuid import UUID
-
-import re 
 
 router = APIRouter()
 
 
-@router.get('/orders/filter/', tags=["orders", "admin"])
+@router.get('/orders/filter/', tags=[Tags.orders, Tags.admins])
 async def get_filtered_orders(
         by_date: bool = False, 
-        # datetime_start: Annotated[datetime | None, Body()] = None,
-        # datetime_end: Annotated[datetime | None, Body()] = None,
-
+        datetime_start: datetime = None,
+        datetime_end: datetime = None,
         date_asc: bool = False,
 
-        limit: int | None = None,
         state: str = None,
-        state_id: UUID = None
+        state_id: UUID = None,
+        
+        show_deleted: bool = False,
+
+        filter_status: str = None,
+        filter_date: str = None,
+
+        limit: int = 5,
+        page: int = 0,
         #TODO: Фильтр по району, округу, дистанции, курьеру итд
         ):
     """
     Получение заявок по фильтру
+
     """
+    #TODO: Фильтр по статусу
+    #TODO: Фильтр по дате
+    #TODO: Фильтр по временным рамкам
 
     with Session(engine, expire_on_commit=False) as session:
-        #Получение конкретной заявки
 
-        order = session.query(Orders, Address, BoxTypes, OrderStatuses).\
+        orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
             join(Address, Address.id == Orders.address_id).\
             join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-            join(OrderStatuses, OrderStatuses.id == Orders.status)
+            join(OrderStatuses, OrderStatuses.id == Orders.status).\
+            join(Users, Users.id == Orders.from_user)
         
         if state or state_id:
-            
             status_query = session.query(OrderStatuses).filter_by(status_name=state).first()
-            order = order.filter_by(Orders.status == status_query.id)
+            orders = orders.filter_by(Orders.status == status_query.id)
 
         if date_asc:
-            order = order.order_by(asc(Orders.date_created))
+            orders = orders.order_by(asc(Orders.date_created))
         else:
-            order = order.order_by(asc(Orders.date_created))
+            orders = orders.order_by(desc(Orders.date_created))
 
-        if limit:
-            order = order.limit(limit)
-        
-
-
-        orders = order.all()
-
-        if not orders:
-            return JSONResponse({
-                "message": "not found"
-            },status_code=404)
-
+        global_orders_count = orders.count()
+        orders = orders.offset(page  * limit).limit(limit).all()
+        total = len(orders)
 
         return_data = []
+
         for order in orders:
-            print(order)
             order_data = OrderOut(**order[0].__dict__)
-            order_data.tg_id = session.query(Users).filter_by(id=order[0].from_user).first().telegram_id
+            order_data.tg_id = order[4].telegram_id
 
             try:
                 order_data.address_data = order[1]
@@ -116,86 +106,19 @@ async def get_filtered_orders(
                 order_data.status_data = order[3]
             except IndexError:
                 order_data.status_data = None
-
-        return order_data
-
-
-
-
-@router.get('/orders', tags=[Tags.orders, Tags.admins], responses={
-        200: {
-            "description": "Получение всех заявок",
-            "content": {
-                "application/json": {
-                    "example": [
-                        {
-                        "district": "МО",
-                        "id": 1,
-                        "from_user": 1,
-                        "address": "Ул. Пушкина 8",
-                        "point_on_map": 'null',
-                        "weekday": "6",
-                        "tariff": 'null',
-                        "next_planned_date": 'null',
-                        "times_completed": 'null',
-                        "distance_from_mkad": "12",
-                        "region": "Красногорск",
-                        "full_adress": "8-53. Домофон 53 и кнопка \"вызов\".",
-                        "interval": 'null',
-                        "subscription": 'null',
-                        "last_disposal": 'null',
-                        "legal_entity": 'false',
-                        "payment_day": 'null'
-                        }
-                    ]
-                }
-            }
-        }   
-})
-async def get_all_orders(
-    show_deleted: bool = False,
-    filter_status: str = None,
-    filter_date: str = None,
-): 
-    """
-    Получить все заявки
-    """
-    #TODO: Пагинация заявок
-
-    with Session(engine, expire_on_commit=False) as session:
-        query = session.query(Orders, Address, BoxTypes, OrderStatuses).\
-            join(Address, Address.id == Orders.address_id).\
-            join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-            join(OrderStatuses, OrderStatuses.id == Orders.status)
-                
-        if not show_deleted:
-            query = query.filter(Orders.deleted_at == None)
-
-        orders = query.order_by(asc(Orders.date_created)).all()
-
-        return_data = []
-        for order in orders:
-            order_data = OrderOut(**order[0].__dict__)
-
+            
             try:
-                order[1].interval = str(order[1].interval).split(', ')
-                order_data.address_data = order[1]
-            except IndexError: 
-                order_data.address_data = None
-
-            try:
-                order_data.box_data = order[2]
+                order_data.user_data = order[4]
             except IndexError:
-                order_data.box_data = None
+                order_data.user_data = None
 
-            try:
-                order_data.status_data = order[3]
-            except IndexError:
-                order_data.status_data = None
+            return_data.append(order_data.model_dump())
 
-            return_data.append(order_data)
-
-        return return_data
+        return {
+            "orders": return_data,
+            "global_count": global_orders_count,
+            "count": total
+        }
 
 
 @router.get('/orders/{order_id}', tags=[Tags.orders, Tags.bot], 
@@ -292,9 +215,7 @@ async def get_order_by_id(
         return order_data
 
 
-@router.get('/users/orders/', 
-    tags=[Tags.bot, Tags.orders], 
-    response_description="Список заявок пользователя")
+@router.get('/users/orders/', tags=[Tags.bot, Tags.orders], response_description="Список заявок пользователя")
 async def get_user_orders(
     tg_id: int = None, 
     user_id: UUID = None, 
@@ -484,21 +405,35 @@ async def create_order(
 
 @router.get("/orders/{order_id}/history", tags=[Tags.orders, Tags.bot])
 async def get_order_status_history(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
     order_id: UUID,
-    tg_id: int,
-    current_user: Annotated[UserLoginSchema, Security(get_current_user)]
+    tg_id: Optional[int] = None
     ):
     """
     Получение истории изменения статуса заявки
+    - **tg_id**: int телеграм айди пользователя (при наличии админской роли параметр необязателен)
+    - **user_id**:  UUID пользователя (при наличии админской роли параметр необязателен)
+
+    История возвращается с датой по убыванию (новое сначала)
     """
-    #TODO: Проверка владения заявки пользователя
+
     with Session(engine, expire_on_commit=False) as session:
-        order = session.query(Orders).\
-            join(Users, Users.id == Orders.from_user).\
-            where(Users.telegram_id == tg_id).\
-            where(Orders.id == order_id).\
-            where(Orders.deleted_at == None).\
-            first()
+        if ROLE_ADMIN_NAME in current_user.roles:
+            order = session.query(Orders).\
+                join(Users, Users.id == Orders.from_user).\
+                where(Orders.id == order_id).\
+                where(Orders.deleted_at == None).\
+                first()
+        else:
+            if tg_id == None:
+                print("NONE")
+
+            order = session.query(Orders).\
+                join(Users, Users.id == Orders.from_user).\
+                where(Users.telegram_id == tg_id).\
+                where(Orders.id == order_id).\
+                where(Orders.deleted_at == None).\
+                first()
 
         if not order:
             return JSONResponse({
@@ -531,11 +466,12 @@ async def delete_all_orders(
 
 @router.delete('/orders/{order_id}', tags=[Tags.orders])
 async def delete_order_by_id(
-    order_id:UUID,
+    order_id: UUID,
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
     ):
     """
     Удаление заявки
+    **order_id** - UUID заявки
     """
 
     with Session(engine, expire_on_commit=False) as session:
@@ -581,6 +517,11 @@ async def set_order_status(
 ):
     """
     Обновление/Установка статуса заявки
+    - **order_id**: UUID заявки
+    - **status_text**: status_name статсуа в бд
+    - **status_id**: UUID статуса в бд
+    
+    в запросе обязательно нужно передать либо **status_text** либо **status_id**
     """
     if (not status_text) and (not status_id):
         return JSONResponse({
@@ -633,6 +574,7 @@ async def set_order_courier():
 async def update_order_data(order_id: UUID, new_order_data: OrderUpdate)->OrderOut:
     """
     Обновить данные заявки
+    - **order_id**: uuid заявки
     """
     with Session(engine, expire_on_commit=False) as session:
 
