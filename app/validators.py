@@ -222,31 +222,49 @@ class Status(BaseModel):
     description: str
 
 
+class UserOrderOutData(BaseModel):
+    email: Optional[EmailStr] 
+    telegram_id: Optional[int]
+    telegram_username: Optional[str]
+
+    phone_number: Optional[str]
+
+    firstname: Optional[str]
+    secondname: Optional[str]
+    patronymic: Optional[str]
+
+    deleted_at: Optional[datetime] = None
+    link_code: Optional[str] = None
+
+
 class OrderOut(BaseModel):
-    tg_id: Optional[int] = None
-    day: Optional[datetime] = None
-    last_disposal: Optional[datetime] = None
-    times_completed: int | None = None
-    status: Any
-    date_created: datetime
-    last_updated: datetime
     id: UUID4
-    address_id: UUID4
-    legal_entity: bool
-    box_type_id: Any
-    box_count: Any
-    
-
-    interval_type: Optional[str] = None
-    intreval: Optional[str] = None
-
     order_num: Optional[int] = None
     user_order_num: Optional[int] = None
 
-    #TODO: Убрать annotated 
+    last_disposal: Optional[datetime] = None
+    times_completed: int | None = None
+    day: Optional[datetime] = None
+    date_created: datetime
+    last_updated: datetime
+    legal_entity: bool
+    
+    interval_type: Optional[str] = None
+    intreval: Optional[str] = None
+
+    tg_id: Optional[int] = None
+    user_data: Annotated[Optional[UserOrderOutData], Field(None)]
+
+    address_id: UUID4
     address_data: Annotated[Optional[Address], Field(None)]
+
+    box_type_id: UUID4
+    box_count: int
     box_data: Annotated[Optional[BoxType], Field(None)]
+
+    status: UUID4
     status_data: Annotated[Optional[Status], Field(None)]
+
 
 
 class UserOut(BaseModel):
@@ -269,6 +287,7 @@ class UserOut(BaseModel):
     roles: Optional[list[str]] = None
     deleted_at: Optional[datetime] = None
     link_code: Optional[str] = None
+
 
 
 class StatusOut(BaseModel):
