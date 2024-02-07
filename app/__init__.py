@@ -1,4 +1,16 @@
+import os
+
 from enum import Enum
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')
+
+CODER_KEY = os.getenv("Y_GEOCODER_KEY")
+CODER_SETTINGS = f"&format=json&lang=ru_RU&ll=37.618920,55.756994&spn=4.552069,4.400552&rspn=1"
 
 class Tags(Enum):
     users = "users"

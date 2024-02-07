@@ -1,13 +1,11 @@
 import uuid, os, requests
-from dotenv import load_dotenv
+from app import CODER_KEY, CODER_SETTINGS
 
-load_dotenv()
-
-CODER_KEY = os.getenv("Y_GEOCODER_KEY")
-#TODO: Переместить настройки в другой файл
-CODER_SETTINGS = f"&format=json&lang=ru_RU&ll=37.618920,55.756994&spn=4.552069,4.400552&rspn=1"
 
 def is_valid_uuid(value):
+    """
+    Проверить, является ли строка валидным UUID
+    """
     try:
         uuid.UUID(value)
         return True
