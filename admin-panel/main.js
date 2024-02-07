@@ -1,5 +1,20 @@
+/*
+>.<
+*/
+
 var current_page_user = 0
+var current_page_orders = 0
+
 const MAX_PER_PAGE_USER = 20
+const MAX_PER_PAGE_ORDERS = 20
+
+function create_headers() {
+    var myHeaders = new Headers();
+    myHeaders.append("Authorization", `Bearer ${token}`);
+    myHeaders.append("ngrok-skip-browser-warning", "application");
+
+    return myHeaders
+}
 
 
 function draw_main_window(data) {
@@ -19,15 +34,125 @@ function draw_main_window(data) {
 
 
 function init_users() {
-    create_orders_option_handler()
+    create_users_option_handler()
     load_users()
 }
 
 
 function init_orders() {
-
+    create_orders_option_handler()
+    load_orders()
 }
 
+
+function load_orders() {
+    console.log('Loading orders')
+
+    content_wrapper = document.getElementById('data-wrapper')
+    content_wrapper.innerHTML = ''
+
+    let page_wrapper = document.getElementById('page_num_wrap')
+    page_wrapper.innerHTML = ''
+
+    var myHeaders = create_headers()
+    var requestOptions = {
+        method: 'GET',
+        headers: myHeaders,
+        redirect: 'follow'
+    };
+
+    page = current_page_orders
+
+    var orders_search_options = new URLSearchParams({
+        limit: MAX_PER_PAGE_ORDERS,
+        show_deleted: document.getElementById('show_deleted').value,
+        page: page
+    })
+
+    fetch(`${api_url}/orders/filter/?` + orders_search_options, requestOptions)
+        .then(response => response.json())
+        .then((result) => {
+            console.log(result)
+
+            table = document.createElement('table')
+            table.innerHTML += `<tr> 
+            <th> order_num </th> 
+            <th> day </th> 
+            <th> telegram username </th> 
+            <th> phone_number </th> 
+            <th> name </th> 
+            <th> address_text </th>
+            <th> status </th> 
+            <th> box_type </th> 
+            <th> box_count </th> 
+            <th> price </th> 
+            </tr> `
+
+            result['orders'].forEach(element => {
+                let tr = document.createElement('tr')
+
+                tr.innerHTML = `
+                <th>${element.order_num ? element.order_num : '-' }</th>
+                <th>${element.day ? element.day : '-' }</th>
+                <th>${element.user_data.telegram_username ? `<a target="_blank" href='https://t.me/${element.user_data.telegram_username}'>${element.user_data.telegram_username}</a>` : '-' }</th>
+                <th>${element.user_data.phone_number ? element.user_data.phone_number : '-' }</th>
+                <th>${element.user_data.firstname ? element.user_data.firstname : '-' }</th>
+                <th>${element.address_data.address ? element.address_data.address : '-' }</th>
+                <th>${element.status_data.status_name ? element.status_data.status_name : '-' }</th>
+                <th>${element.box_data.box_name ? element.box_data.box_name : '-' }</th>
+                <th>${element.box_count ? element.box_count : '-' }</th>
+                `
+
+                let edit_button = document.createElement('input')
+                edit_button.type = 'button'
+                edit_button.addEventListener('click', () => {
+                    edit_order_data(element.id)
+                })
+                edit_button.value = 'редактировать'
+
+                let th = document.createElement('th')
+                th.append(edit_button)
+                tr.append(th)
+
+                if (show_deleted) {
+                    if (element.deleted_at) {
+                        let th = document.createElement('th')
+                        th.innerText = `удалён ${element.deleted_at}`
+                        tr.append(th)
+                    } else {
+                        tr.append(document.createElement('th'))
+                    }
+                }
+
+                table.append(tr)
+            });
+
+            content_wrapper.append(table)
+
+            let page_count = Math.ceil(result['global_count'] / MAX_PER_PAGE_USER)
+            console.log(`Page count ${page_count}`)
+
+            for (let i = 0; i < page_count; i++) {
+                let page_num = document.createElement('input')
+                page_num.type = 'button'
+                page_num.value = i
+
+                page_num.addEventListener('click', () => {
+                    current_page_orders = i
+                    load_orders()
+                })
+
+                if (current_page_orders == i){
+                    page_num.classList.add('active-page')
+                }
+
+                page_wrapper.append(page_num)
+            }
+
+
+        })
+        .catch(error => console.log('error', error));
+}
 
 
 function load_users() {
@@ -83,7 +208,6 @@ function load_users() {
 
 
             result['data'].forEach(element => {
-                console.log(element)
                 let tr = document.createElement('tr')
 
                 view_button = document.createElement('input')
@@ -151,11 +275,15 @@ function load_users() {
                 let page_num = document.createElement('input')
                 page_num.type = 'button'
                 page_num.value = i
-
                 page_num.addEventListener('click', () => {
                     current_page_user = i
                     load_users()
                 })
+                
+                if (current_page_user == i){
+                    page_num.classList.add('active-page')
+                }
+
 
                 page_wrapper.append(page_num)
             }
@@ -167,9 +295,8 @@ function load_users() {
 
 function view_user_orders(user_id) {
     console.log(user_id)
-    var myHeaders = new Headers();
-    myHeaders.append("Authorization", `Bearer ${token}`);
-    myHeaders.append("ngrok-skip-browser-warning", "application");
+
+    let myHeaders = create_headers()
 
     var requestOptions = {
         method: 'GET',
@@ -224,7 +351,7 @@ function view_user_orders(user_id) {
 
 function view_order_status_history(order_id) {
 
-    console.log(user_id)
+    console.log(order_id)
     var myHeaders = new Headers();
     myHeaders.append("Authorization", `Bearer ${token}`);
     myHeaders.append("ngrok-skip-browser-warning", "application");
@@ -235,21 +362,58 @@ function view_order_status_history(order_id) {
         redirect: 'follow'
     };
 
-    fetch(`${api_url}/users/orders?user_id=${user_id}`, requestOptions)
+    fetch(`${api_url}/orders/${order_id}/history`, requestOptions)
         .then(response => response.json())
-        .then((result) => {
+        .then((response) => {
+            console.log(response)
+            let status_history_wrap = document.createElement('div')
 
-            forEach(element => {
-
+            response.forEach(element => {
+                let status_row = document.createElement('p')
+                status_row.innerText = `${element[0]} - ${element[1]}`
+                status_history_wrap.append(status_row)
             });
-            show_modal('show_user_orders', orders_data_wrapepr)
+
+            show_modal('show_status_history', status_history_wrap)
         })
         .catch(error => console.log('error', error));
-
 }
 
 
 function create_orders_option_handler() {
+    content_wrapper = document.getElementById('content-wrapper')
+    content_wrapper.innerHTML = ''
+
+    document.getElementById('content-wrapper').innerHTML = `
+                <div>
+                    <label>
+                        Статус: 
+                        <input name="role_name" id="roles_select" list="roles_list_id">
+                    </label>
+
+                    <label>
+                        Показывать удалённые
+                        <select name="show_deleted" id="show_deleted">
+                            <option value="false">Нет</option>
+                            <option value="true">Да</option>
+                        </select>
+                    </label>
+
+                    <button onclick="load_users()">Поиск</button>
+                </div>
+
+            <div id="data-wrapper"></div>
+            <div id='page_num_wrap'></div>
+
+            <div> 
+                <button onclick=show_modal('create_user')> Создать заявку <button>
+            </div>
+    `
+
+}
+
+
+function create_users_option_handler() {
     content_wrapper = document.getElementById('content-wrapper')
     content_wrapper.innerHTML = ''
 
@@ -297,6 +461,7 @@ function create_orders_option_handler() {
 
     `
 }
+
 
 
 function edit_user_data(user_id) {
@@ -353,7 +518,7 @@ function create_edit_fields(element) {
     let confirm_button = document.createElement('input')
     confirm_button.type = 'button'
     confirm_button.value = 'confirm'
-    confirm_button.addEventListener('click', ()=>{
+    confirm_button.addEventListener('click', () => {
         update_user_data(element.id)
     })
 
@@ -362,7 +527,7 @@ function create_edit_fields(element) {
 }
 
 
-function update_user_data(){
+function update_user_data() {
 
 }
 
@@ -441,11 +606,22 @@ function show_modal(type, data) {
             console.log("Showing Creating show_user_orders modal")
             modal_wrapper.append(data)
             document.body.append(modal_wrapper)
+            break
 
         case 'edit_user':
             console.log("Showing edit_user modal")
             modal_wrapper.append(data)
             document.body.append(modal_wrapper)
+            break
+
+
+        case 'show_status_history':
+            console.log("Showing order status history modal")
+            modal_wrapper.append(data)
+            modal_wrapper.classList = 'modal small-modal active'
+            document.body.append(modal_wrapper)
+            break
+
         default:
             return
     }
@@ -466,7 +642,7 @@ function get_roles() {
         redirect: 'follow'
     };
 
-    fetch("http://127.0.0.1:8000/api/roles", requestOptions)
+    fetch(`${api_url}/roles`, requestOptions)
         .then(response => response.json())
         .then((result) => {
             roles = result
