@@ -5,7 +5,7 @@
 from sqlalchemy import (
     create_engine, Column, Integer, String, 
     DateTime, Text, ForeignKey, Float, 
-    Boolean, BigInteger, UUID)
+    Boolean, BigInteger, UUID, Text)
 
 from sqlalchemy.orm import declarative_base, relationship, backref, Session
 from sqlalchemy.engine import URL
@@ -24,6 +24,7 @@ import uuid, re
 
 from app.validators import UserCreationValidator
 from passlib.context import CryptContext
+from shapely.geometry import Point
 
 load_dotenv()
 connection_url = URL.create(
@@ -508,6 +509,24 @@ class NotificationTypes(Base):
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
 
+class Regions(Base):
+    """
+    Регионы, в которых доступен вывоз
+    """
+    __tablename__ = 'regions'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name_short = Column(String(), nullable=True)
+    name_full = Column(String(), nullable=False)
+
+    region_type = Column(String(), nullable=False)
+
+    is_active = Column(Boolean(), default=True)
+    
+    geodata = Column(Text(), nullable=True)
+    def contains(self, point:Point)->bool:
+        pass
+    
 # === персистные данные/конфигурации
 
 
@@ -592,6 +611,12 @@ class IntervalStatuses():
     WEEK_DAY = 'week_day'
     DAY_ONCE = 'day_once'
     ON_REQUEST = 'on_request'
+
+
+#Типы регионов
+class RegionTypes():
+    DISTRICT='district'
+    REGION='region'
 
 
 def init_role_table():
