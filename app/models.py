@@ -1,14 +1,17 @@
 """
-Файл с ORM моделями данных
+Модели + функции инита данных, персистные данные
 """
 
-from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Float, Boolean, BigInteger, UUID
+from sqlalchemy import (
+    create_engine, Column, Integer, String, 
+    DateTime, Text, ForeignKey, Float, 
+    Boolean, BigInteger, UUID)
+
 from sqlalchemy.orm import declarative_base, relationship, backref, Session
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import func
-from datetime import datetime
 
+from datetime import datetime
 from enum import Enum
 
 from dotenv import load_dotenv
@@ -41,6 +44,9 @@ def default_time():
 
 
 def order_order_num():
+    """
+    получить кол-во заявок в таблице (учитывая удалённые)
+    """
     with Session(engine, expire_on_commit=False) as session:
         count = session.query(Orders.id).count()
         return count + 1
@@ -498,7 +504,11 @@ class NotificationTypes(Base):
     __tablename__ = 'notification_types'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    type_name = Column(String(), nullable=False)
     deleted_at = Column(DateTime(), default=None, nullable=True)
+
+
+# === персистные данные/конфигурации
 
 
 Base.metadata.create_all(engine)
