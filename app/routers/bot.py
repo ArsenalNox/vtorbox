@@ -1,46 +1,39 @@
 """
 Руты для бота
 """
-from app.validators import CreateUserData, UpdateUserDataFromTG
-from app.models import Users
+
+import requests
+import os, uuid
 
 
 from typing import Annotated
 from fastapi import APIRouter, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
+from datetime import datetime
 
-from ..models import (
-    Users, Session, engine, UsersAddress, Address, IntervalStatuses, Roles, Permissions
+from app.models import (
+    Users, Session, engine, UsersAddress, 
+    Address, IntervalStatuses, Roles, Permissions
     )
 
-from ..auth import (
+from app import CODER_KEY, CODER_SETTINGS
+
+from app.auth import (
     oauth2_scheme, 
     get_current_user
 )
 
-from ..validators import (
+from app.validators import (
     LinkClientWithPromocodeFromTG as UserLinkData,
     Address as AddressValidator,
     AddressUpdate as AddressUpdateValidator,
     UserLogin as UserLoginSchema,
-    AddressSchedule
+    AddressSchedule, CreateUserData, UpdateUserDataFromTG
 )
 
 
-import requests
-import os, uuid
-
-from datetime import datetime
-from dotenv import load_dotenv
-
-load_dotenv()
-
 router = APIRouter()
-
-CODER_KEY = os.getenv("Y_GEOCODER_KEY")
-
-CODER_SETTINGS = f"&format=json&lang=ru_RU&ll=37.618920,55.756994&spn=4.552069,4.400552&rspn=1"
 
 
 @router.post('/user', tags=["users", "bot"])
@@ -260,8 +253,6 @@ async def add_user_address(
 
             if not address_data.address:
                 #Если не предоставили текстовый адрес получаем через геокодер
-
-                #TODO: Ограничение по долготе/широте
                 url = f"https://geocode-maps.yandex.ru/1.x/?apikey={CODER_KEY}&geocode={address_data.longitude},{address_data.latitude}{CODER_SETTINGS}"
                 
                 data = requests.request("GET", url).json()
@@ -451,7 +442,6 @@ async def update_user_addresses(
                 where(Users.telegram_id == tg_id).\
                 where(Address.deleted_at == None).all()
 
-            #TODO: Update в query
             for address in update_query: 
                 address.main = False
 

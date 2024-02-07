@@ -5,43 +5,35 @@
 CRUD с пользователями
 Управление подпиской
 """
+import uuid, re, json
+import openpyxl as xl 
 
-from typing import Annotated
+
 from fastapi import (
-    APIRouter, 
-    Depends, 
-    HTTPException, 
-    status, 
-    Security, 
-    File, 
-    UploadFile)
-
+    APIRouter, Depends, HTTPException, status, 
+    Security, File, UploadFile
+    )
+from typing import Annotated
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
-
 from datetime import datetime
-
 from sqlalchemy import desc, asc, not_, or_
 from app import Tags
 
-from ..models import (
+from app.models import (
     Users, Orders, Session, engine, Roles, Permissions, 
     Address, UsersAddress, BoxTypes, OrderStatusHistory,
     OrderStatuses, ROLE_CUSTOMER_NAME, ROLE_TELEGRAM_BOT_NAME
     )
 
-from ..auth import (
-    oauth2_scheme, 
-    pwd_context, 
-    get_password_hash, 
-    verify_password, 
-    create_access_token,
-    get_current_active_user,
-    get_current_user,
+from app.auth import (
+    oauth2_scheme, pwd_context, get_password_hash, 
+    verify_password, create_access_token,
+    get_current_active_user, get_current_user,
     ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
 )
 
-from ..validators import (
+from app.validators import (
     UserSignUp as UserSignUpSchema,
     UserLogin as UserLoginSchema,
     UserCreationValidator as UserCreationData,
@@ -53,21 +45,14 @@ from app.utils import is_valid_uuid, get_lang_long_from_text_addres
 
 from passlib.context import CryptContext
 from datetime import timedelta
-
 from jose import jwt
-
 from dotenv import load_dotenv
 
-import os, uuid, re, json
-
-import openpyxl as xl 
-
-load_dotenv()
 router = APIRouter()
 
 #TODO: Отправка сообщения пользователю через бота 
 
-@router.get('/users', tags=["admins", "managers"], responses={
+@router.get('/users', tags=[Tags.admins, Tags.managers], responses={
     200: {
         "description": "Получение всех пользователей",
         "content": {
@@ -92,7 +77,8 @@ async def get_all_users(
         role_name: str = None,
         only_bot_users: bool = False,
         non_deleted: bool = True,
-        #Применимо для клиентов
+
+        #Применимо для клиентов (На самом деле для всех)
         with_orders: bool = False,
         with_active_orders: bool = False,
         with_inactive_orders: bool = False, #все кроме активных
@@ -104,10 +90,14 @@ async def get_all_users(
     ):
     """
     Получение пользователей по фильтру
+    - **role_name**: Фильтр по наличию роли у пользователя 
+    - **only_bot_users**: Возвращать ли только пользователей, привязавших/начавших пользоваться ботом
+    - **with_orders**: Возвращать информацию о пользователях вместе с их заявками
+    - **non_deleted**: Показывать ли только НЕ удалённых пользователей
     """
+    #TODO: Фильтр по роли где возвращается только указанная роль
 
     with Session(engine, expire_on_commit=False) as session:
-        
         query = session.query(Users)
 
         roles_query = session.query(Roles).all()
@@ -129,14 +119,12 @@ async def get_all_users(
 
         global_user_count = query.count()
         users = query.order_by(asc(Users.date_created)).offset(page  * limit).limit(limit).all()
-        # users = session.query(Users, Roles, Permissions).filter_by(*filters).offset(page  * limit).limit(limit).all()
 
         total = len(users)
         data = []
+
         for user in users:
-
             user_data = UserOut(**user.__dict__)
-
 
             scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user.id).join(Roles).all()
 
@@ -184,8 +172,7 @@ async def get_all_users(
     return []
 
 
-
-@router.post('/users', tags=["admins"])
+@router.post('/users', tags=[Tags.managers, Tags.admins])
 async def create_user(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
     new_user_data: UserCreationData,
@@ -193,6 +180,7 @@ async def create_user(
 ):
     """
     Ручное создание нового пользователя
+    - **send_email**: Отправить ли пользвателю письмо с кодом связи
     """
 
     with Session(engine, expire_on_commit=False) as session:
@@ -241,7 +229,7 @@ async def create_user(
         return new_user
 
 
-@router.delete('/users', tags=["admins"])
+@router.delete('/users', tags=[Tags.admins, Tags.managers])
 async def delete_user(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
     tg_id: int | None = None,
@@ -274,13 +262,13 @@ async def delete_user(
         return
 
 
-@router.put('/user', tags=["admin"])
+@router.put('/user', tags=[Tags.managers, Tags.admins])
 async def update_user_data(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
     new_user_data: UserUpdateData
 ):
     """
-    Обновление данных пользователя админом
+    Обновление данных пользователя админом или менеджером
     """
     with Session(engine, expire_on_commit=False) as session:
         user_query = Users.get_user(new_user_data.user_id)
@@ -298,8 +286,11 @@ async def update_user_data(
                 #TODO: Изменение пароля
                 print('Changing user password')
                 continue
+            
+            if attr == 'roles' and value:
+                #TODO: Изменение ролей
+                pass
 
-            #TODO: Изменение ролей
             if value:
                 setattr(user_query, attr, value)
 
@@ -317,7 +308,6 @@ async def update_user_self_data(
     """
     Обновить свои данные пользователем
     """
-
 
 
 @router.get('/users/bot_linked', tags=[Tags.bot, Tags.users])
@@ -370,7 +360,7 @@ async def signup(signup_data: UserSignUpSchema):
         return new_user
 
 
-@router.post('/token', tags=["default"])
+@router.post('/token', tags=[Tags.users])
 async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 
     with Session(engine, expire_on_commit=False) as session:
@@ -409,7 +399,7 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
         })
 
 
-@router.get("/users/me", tags=["users"], responses={
+@router.get("/users/me", tags=[Tags.users], responses={
     200: {
         "description": "Получение информации об авторизованном пользователе (себе)",
         "content": {
@@ -515,7 +505,6 @@ async def check_user_roles(
                 print(f"User {user.id} has no roles")
                 print(scopes)
                 if ROLE_CUSTOMER_NAME not in scopes:
-                    #TODO: Добавить роль
                     user_role = Permissions(
                         user_id = user.id,
                         role_id = Roles.customer_role()
@@ -525,7 +514,7 @@ async def check_user_roles(
         session.commit()
 
 
-@router.post('/users/import/file', tags=["admins"])
+@router.post('/users/import/file', tags=[Tags.admins])
 async def import_clients(file: UploadFile):
     """
     Импорт клиентов и заявки с историей из excel таблицы
@@ -536,11 +525,13 @@ async def import_clients(file: UploadFile):
         sheet_obj = wb_obj.active
 
         users = []
-
         none_count = 0 
+
         #импорт самих клиентов, адресов, тарифов, подписки, интервалов
+
         for row in range(1, sheet_obj.max_row+1):
             print(f"row number {row} ")
+
         # for row in range(1, 10):
             #3840 24
             #print(sheet_obj.max_row, sheet_obj.max_column)
