@@ -1,38 +1,34 @@
+import os
+
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, SecurityScopes
 from fastapi.exceptions import HTTPException
 from fastapi import Depends, Security, status
 
-from typing import Annotated
+from typing import Annotated, List
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 
 from datetime import datetime, timedelta
-
 from pydantic import ValidationError, BaseModel
+
 from .validators import (
     UserLogin as User,
     Token, 
     TokenData
 )
 
-
-import os
 from dotenv import load_dotenv
-
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
+
 from .models import (
-    engine, 
-    Users,
-    Permissions,
-    Roles
+    engine, Users, Permissions, Roles
     )
+
+from app import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -42,6 +38,7 @@ class User(BaseModel):
     username: str | None = None
     disabled: bool = False
     access_token: str | None = None
+    roles: List[str] | None = None
 
 
 class UserInDB(User):
@@ -79,7 +76,6 @@ def get_user(username: str):
 
     with Session(engine, expire_on_commit=False) as session:
         query = session.query(Users).filter_by(email=username).first()
-        print(query)
         if not query:
             return False
 
@@ -104,6 +100,11 @@ def authenticate_user(username: str, password: str):
 async def get_current_user(
     security_scopes: SecurityScopes, token: Annotated[str, Depends(oauth2_scheme)]
 ):
+    """
+    Получение текущего пользователя
+    Проверка скоупов требует полного соответствия скоупов токена и эндпоинта
+    """
+    #TODO: Получение скоупов из бд а не токена
     if security_scopes.scopes:
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
     else:
@@ -117,21 +118,17 @@ async def get_current_user(
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(payload)
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
         token_scopes = payload.get("scopes", [])
         token_data = TokenData(scopes=token_scopes, username=username)
     except (JWTError, ValidationError) as error:
-        print(error)
-        print("Can't get payload")
         raise credentials_exception
 
     user = get_user(username=token_data.username)
 
     if user is None:
-        print("User is none")
         raise credentials_exception
 
     for scope in security_scopes.scopes:
@@ -144,7 +141,16 @@ async def get_current_user(
 
     #TODO: Добавить подобие триггера на last_action 
     user.access_token = token
+    user.roles = token_data.scopes
     return user
+
+
+async def get_current_user_variable_scopes():
+    """
+    Получение текущего пользователя
+    Проверка скоупов требует наличие одно из скоупов, а не полное соответствие :w
+    """
+    pass
 
 
 async def get_current_active_user(
