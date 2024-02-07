@@ -309,3 +309,11 @@ class AddressSchedule(BaseModel):
                     'interval_type': 'month_day'
                 }
             ]}}
+
+
+class RegionOut(BaseModel):
+    id: UUID4
+    name_short: Optional[str]
+    name_full: str
+    region_type: str
+    is_active: bool
