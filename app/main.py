@@ -5,7 +5,7 @@ import sys
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import orders, users, couriers, admins, bot, boxes
+from app.routers import orders, users, couriers, admins, bot, boxes, regions
 
 app = FastAPI()
 
@@ -18,11 +18,16 @@ origins = [
     "*"
 ]
 
-#СЕГОДНЯ
+#ВЕЧНО
 #TODO: подправить под soft delete'ы где не подправил 
 
+#СЕГОДНЯ
 #TODO: История вывоза 
+#TODO: отображение заявок/адресов (пока не везде есть фильтры) + 
+#TODO: редактирование данных пользователя
 
+#Spit in my face, my love, it won't phase me
+#Spit in my face, my love, it won't change me
 
 app.add_middleware(
     CORSMiddleware,
@@ -62,6 +67,14 @@ app.include_router(
     prefix="/api/bot",
     tags=['bot']
 )
+
+app.include_router(
+    regions.router,
+    prefix="/api",
+)
+
+
+#TODO argparse на инит бд  
 
 if __name__ == '__main__':
     uvicorn.run('app.main:app', reload=True)
