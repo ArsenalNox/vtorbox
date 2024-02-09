@@ -34,6 +34,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
 
+
 class User(BaseModel):
     username: str | None = None
     disabled: bool = False
@@ -71,7 +72,8 @@ def get_user(username: str):
     userdict = {
         "username": None,
         "hashed_password": None,
-        "disabled": False
+        "disabled": False,
+        "roles": None
     }
 
     with Session(engine, expire_on_commit=False) as session:
@@ -80,8 +82,13 @@ def get_user(username: str):
             return False
 
         if query:
+            scopes_query = session.query(Permissions, Roles.role_name).\
+                filter_by(user_id=query.id).join(Roles).all()
+            scopes = [role.role_name for role in scopes_query]
+
             userdict["username"] = query.email
             userdict["hashed_password"] = query.password
+            userdict["roles"] = scopes
             if query.deleted_at:
                 userdict["disabled"] = True
 
@@ -145,12 +152,50 @@ async def get_current_user(
     return user
 
 
-async def get_current_user_variable_scopes():
+async def get_current_user_variable_scopes(
+    security_scopes: SecurityScopes, token: Annotated[str, Depends(oauth2_scheme)]
+):
     """
     Получение текущего пользователя
     Проверка скоупов требует наличие одно из скоупов, а не полное соответствие :w
     """
-    pass
+    if security_scopes.scopes:
+        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
+    else:
+        authenticate_value = "Bearer"
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_scopes = payload.get("scopes", [])
+        token_data = TokenData(scopes=token_scopes, username=username)
+    except (JWTError, ValidationError) as error:
+        raise credentials_exception
+
+    user = get_user(username=token_data.username)
+
+    if user is None:
+        raise credentials_exception
+
+    flag_has_scope = False
+    for scope in security_scopes.scopes:
+        if scope in token_data.scopes:
+            flag_has_scope = True
+            break
+
+    if not flag_has_scope:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not enough permissions",
+            headers={"WWW-Authenticate": authenticate_value},
+        )
+
+    #TODO: Добавить подобие триггера на last_action 
+    user.access_token = token
+    user.roles = token_data.scopes
+    return user
 
 
 async def get_current_active_user(

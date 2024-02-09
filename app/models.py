@@ -2,29 +2,27 @@
 Модели + функции инита данных, персистные данные
 """
 
+import uuid, re, json
 from sqlalchemy import (
     create_engine, Column, Integer, String, 
     DateTime, Text, ForeignKey, Float, 
     Boolean, BigInteger, UUID, Text)
 
-from sqlalchemy.orm import declarative_base, relationship, backref, Session
+from sqlalchemy.orm import declarative_base, relationship, backref, Session, Mapped
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import func
 
 from datetime import datetime
-from enum import Enum
-
 from dotenv import load_dotenv
 from os import getenv
+from typing import Union, Tuple, Optional
 
-from .exceptions import UserNoIdProvided
+from app.exceptions import UserNoIdProvided
 from app.utils import is_valid_uuid
-
-import uuid, re
-
 from app.validators import UserCreationValidator
+
 from passlib.context import CryptContext
-from shapely.geometry import Point
+from shapely.geometry import Point, shape
 
 load_dotenv()
 connection_url = URL.create(
@@ -187,7 +185,7 @@ class Users(Base):
                 )
 
                 user_role = Permissions(
-                    user_id = new_user.id,
+                    user_id = user.id,
                     role_id = Roles.get_role(ROLE_CUSTOMER_NAME).id
                 )
 
@@ -270,8 +268,8 @@ class Address(Base):
     longitude = Column(String(), nullable=False)
     main = Column(Boolean(), default=False)
 
-    district = Column(String())
-    region = Column(String())
+    region = Column(UUID(as_uuid=True), ForeignKey('regions.id'), nullable=False)
+
     distance_from_mkad = Column(String())
     point_on_map = Column(String())
 
@@ -287,7 +285,6 @@ class Address(Base):
     next_planned_date = Column(DateTime(), default=None, nullable=True)
     #Кол-во вывозов с даты оплаты
     times_completed = Column(Integer())
-
 
     comment = Column(String(), nullable=True)
 
@@ -470,8 +467,12 @@ class WeekDaysWork(Base):
     __tablename__ = 'week_days_work'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    day_num = Column(Integer(), nullable=False)
+    day_status = Column(Boolean(), default=False)
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
+
+    region_id = Column(UUID(as_uuid=True), ForeignKey('regions.id'))
 
 
 class DaysWork(Base):
@@ -524,9 +525,60 @@ class Regions(Base):
     is_active = Column(Boolean(), default=True)
     
     geodata = Column(Text(), nullable=True)
+
+    # work_days = relationship(
+    #         'Regions',
+    #         backref=backref('WeekDaysWork', lazy='joined'), 
+    #         lazy='dynamic'
+        # )
+
+    work_days = Column(String(), nullable=True)
+
     def contains(self, point:Point)->bool:
-        pass
+        """
+        Проверить, содержит ли регион указанную точку
+        """
+        #TODO: Узнать, насколько это затратно
+        data_points = str(self.geodata).replace('\'','\"')
+        data_points = json.loads(data_points)
+        feature = shape(data_points)
+
+        return feature.contains(point)
     
+
+    @staticmethod
+    def get_by_coords(lat: float, long: float)-> Optional['Regions']:
+        """
+        Получить регион по координатам
+        """
+        point = Point(lat, long)
+        region = None
+
+        with Session(engine, expire_on_commit=False) as session:
+            regions_query = session.query(Regions).all()
+            for region_query in regions_query:
+
+                data_points = str(region_query.geodata).replace('\'','\"')
+                data_points = json.loads(data_points)
+                feature = shape(data_points)
+
+                if not region_query.contains(point):
+                    continue
+                else:
+                    region = region_query
+                    break
+
+        return region
+
+    
+    @staticmethod
+    def get_by_name(name: str) -> Optional['Regions']:
+        with Session(engine, expire_on_commit=False) as session:
+            query = session.query(Regions).\
+                filter(Regions.name_full.ilike(f"%{name}%")).first()
+            return query
+
+
 # === персистные данные/конфигурации
 
 
@@ -618,6 +670,15 @@ class RegionTypes():
     DISTRICT='district'
     REGION='region'
 
+WEEK_DAYS_WORK_STR_LIST = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "sunday",
+    "saturday",
+]
 
 def init_role_table():
     """
