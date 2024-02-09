@@ -8,7 +8,7 @@
 import uuid
 
 from pydantic import BaseModel, EmailStr, UUID4, Field
-from typing import Optional, Annotated, Any, List
+from typing import Optional, Annotated, Any, List, Union, Tuple
 from typing_extensions import TypedDict
 from datetime import datetime
 class Order(BaseModel):
@@ -86,7 +86,6 @@ class UserCreationValidator(BaseModel):
     secondname: str | None = None
 
     role: str = "customer"
-    send_email_invite: bool = False #Отправить ли письмо с приглашением
 
 
 class UserUpdateValidator(BaseModel):
@@ -147,8 +146,7 @@ class Address(BaseModel):
     detail: Optional[str] = None 
     comment: Optional[str] = None
 
-    district: str | None = None
-    region: str | None = None 
+    region: Optional[str]
     distance_from_mkad: int | None = None
     point_on_map: str | None = None
 
@@ -156,11 +154,6 @@ class Address(BaseModel):
     selected_day_of_month: Optional[List[str]] = None
     interval_type: Optional[str] = None
     interval: Optional[List[str]] = None
-
-    #TODO типы интервалов
-    #month_day
-    #week_day
-    #day_once
 
     model_config = {
         "json_schema_extra": {
@@ -317,3 +310,12 @@ class RegionOut(BaseModel):
     name_full: str
     region_type: str
     is_active: bool
+    work_days: Optional[List[str]]
+
+
+class RegionUpdate(BaseModel):
+    name_short: Optional[str] = None
+    name_full: Optional[str] = None
+    region_type: Optional[str] = None
+    is_active: Optional[bool] = None
+    work_days: Optional[List[str]]

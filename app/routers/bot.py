@@ -14,7 +14,7 @@ from datetime import datetime
 
 from app.models import (
     Users, Session, engine, UsersAddress, 
-    Address, IntervalStatuses, Roles, Permissions
+    Address, IntervalStatuses, Roles, Permissions, Regions
     )
 
 from app import CODER_KEY, CODER_SETTINGS
@@ -29,7 +29,8 @@ from app.validators import (
     Address as AddressValidator,
     AddressUpdate as AddressUpdateValidator,
     UserLogin as UserLoginSchema,
-    AddressSchedule, CreateUserData, UpdateUserDataFromTG
+    AddressSchedule, CreateUserData, UpdateUserDataFromTG,
+    RegionOut
 )
 
 
@@ -336,6 +337,25 @@ async def add_user_address(
         address_data_dump = address_data.model_dump()
         del address_data_dump["selected_day_of_month"]
         del address_data_dump["selected_day_of_week"]
+
+        region = Regions.get_by_coords(
+            float(address_data.latitude),
+            float(address_data.longitude)
+        )
+
+        print(address_data.longitude, address_data.latitude)
+        print(region)
+        
+        if not region == None:
+            address_data_dump['region'] = region.id
+        else:
+            region = Regions.get_by_name(address_data.region)
+
+            print(f"region: '{region.name_full}' - {region.work_days}")
+
+            return JSONResponse({
+                "message": "Данный адрес находится во вне рабочих регионах"
+            }, status_code=422)
 
         address_data_dump['interval'] = interval
         address = Address(**address_data_dump)
