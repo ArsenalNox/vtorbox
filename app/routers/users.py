@@ -95,7 +95,6 @@ async def get_all_users(
     - **with_orders**: Возвращать информацию о пользователях вместе с их заявками
     - **non_deleted**: Показывать ли только НЕ удалённых пользователей
     """
-    #TODO: Фильтр по роли где возвращается только указанная роль
 
     with Session(engine, expire_on_commit=False) as session:
         query = session.query(Users)
@@ -196,9 +195,8 @@ async def create_user(
         user_role = new_user_data["role"]
         del new_user_data["role"]
 
-        if new_user_data.send_email_invite:
+        if send_email:
             pass
-        del new_user_data["send_email_invite"]
 
         new_user = Users(**new_user_data)
 
@@ -281,10 +279,10 @@ async def update_user_data(
         for attr, value in new_user_data.model_dump().items():
 
             print(attr)
-
             if attr == 'password' and value:
                 #TODO: Изменение пароля
                 print('Changing user password')
+                setattr(user_query, attr, get_password_hash(value))
                 continue
             
             if attr == 'roles' and value:
