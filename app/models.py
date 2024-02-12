@@ -268,7 +268,7 @@ class Address(Base):
     longitude = Column(String(), nullable=False)
     main = Column(Boolean(), default=False)
 
-    region = Column(UUID(as_uuid=True), ForeignKey('regions.id'), nullable=False)
+    region_id = Column(UUID(as_uuid=True), ForeignKey('regions.id'), nullable=False)
 
     distance_from_mkad = Column(String())
     point_on_map = Column(String())
@@ -533,6 +533,8 @@ class Regions(Base):
         # )
 
     work_days = Column(String(), nullable=True)
+    addresses = relationship('Address', backref='region', lazy='joined')
+    
 
     def contains(self, point:Point)->bool:
         """
