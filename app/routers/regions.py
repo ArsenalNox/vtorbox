@@ -166,7 +166,6 @@ async def update_region_data(
                 "message": "Not found"
             }, status_code=404)
 
-
         for attr, value in new_data.model_dump().items():
             if value == None:
                 continue
@@ -174,12 +173,14 @@ async def update_region_data(
             if attr == 'work_days' and not (value == None):
                 print(value)
                 for day in value:
+                    day = str(day).lower()
                     if day not in WEEK_DAYS_WORK_STR_LIST:
                         return JSONResponse({
-                            "message": "invalid weekday"
+                            "message": f"invalid weekday {day}"
                         }, status_code=422)
 
                 print('updating work days')
+                
                 query.work_days = ' '.join(value)
 
         session.commit()
