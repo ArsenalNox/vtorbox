@@ -13,7 +13,7 @@ from fastapi import (
     APIRouter, Depends, HTTPException, status, 
     Security, File, UploadFile
     )
-from typing import Annotated
+from typing import Annotated, Dict
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 from datetime import datetime
@@ -76,7 +76,6 @@ async def get_all_users(
         current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
         role_name: str = None,
         only_bot_users: bool = False,
-        non_deleted: bool = True,
 
         #Применимо для клиентов (На самом деле для всех)
         with_orders: bool = False,
@@ -89,11 +88,15 @@ async def get_all_users(
         show_deleted: bool = True
     ):
     """
-    Получение пользователей по фильтру
+    Получение пользователей по фильтрам:
+
     - **role_name**: Фильтр по наличию роли у пользователя 
     - **only_bot_users**: Возвращать ли только пользователей, привязавших/начавших пользоваться ботом
     - **with_orders**: Возвращать информацию о пользователях вместе с их заявками
-    - **non_deleted**: Показывать ли только НЕ удалённых пользователей
+    - **with_active_orders**: bool - возвращать пользователей только с заявками со статусом "в работе" и выше 
+    - **limit**: кол-во пользователей на запрос
+    - **page**: номер страницы
+    - **show_deleted**: показывать удалённых пользвателей
     """
 
     with Session(engine, expire_on_commit=False) as session:
