@@ -6,7 +6,7 @@ import requests
 import os, uuid
 
 
-from typing import Annotated
+from typing import Annotated, List
 from fastapi import APIRouter, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
@@ -29,7 +29,7 @@ from app.validators import (
     Address as AddressValidator,
     AddressUpdate as AddressUpdateValidator,
     UserLogin as UserLoginSchema,
-    AddressSchedule, CreateUserData, UpdateUserDataFromTG,
+    AddressSchedule, CreateUserData, UpdateUserDataFromTG, AddressOut,
     RegionOut
 )
 
@@ -187,7 +187,7 @@ async def get_user_by_tg_id(
 async def get_addresses(
     tg_id: int,
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
-    ):
+    ) -> List[AddressOut]:
     """
     Получение всех адресов пользователя
     """
@@ -198,10 +198,19 @@ async def get_addresses(
             where(Users.telegram_id == tg_id).\
             where(Address.deleted_at == None).all()
 
+        return_data = []
+
         for address in addresses:
             address.interval = str(address.interval).split(', ')
 
-        return addresses
+            address.region.work_days = str(address.region.work_days).split(' ')
+            # tmp = AddressOut(**address.__dict__)
+            # tmp.region = RegionOut(**address.region.__dict__)
+
+            # return_data.append(tmp)
+            return_data.append(address)
+
+        return return_data
 
 
 @router.get('/user/addresses/main', tags=["addresses", "bot"])
@@ -218,10 +227,19 @@ async def get_main_address(
             join(Users, UsersAddress.user_id == Users.id). \
             where(Users.telegram_id == tg_id, Address.main == True).\
             where(Address.deleted_at == None).first()
-        
+
+        if not address:
+            return JSONResponse({
+                "message": "Not found"
+            }, status_code=404)        
+
         address.interval = str(address.interval).split(', ')
 
-        return address
+        return_data = AddressOut(**address.__dict__)
+        address.region.work_days = str(address.region.work_days).split(' ')
+        return_data.region = RegionOut(**address.region.__dict__)
+
+        return return_data
 
 
 @router.post('/user/addresses', tags=["addresses", "bot"])
@@ -229,7 +247,7 @@ async def add_user_address(
     address_data: AddressValidator, 
     tg_id: int,
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
-    ):
+    ) -> AddressOut:
     """
     Создание адреса пользователя
     """
@@ -337,6 +355,7 @@ async def add_user_address(
         address_data_dump = address_data.model_dump()
         del address_data_dump["selected_day_of_month"]
         del address_data_dump["selected_day_of_week"]
+        del address_data_dump["region"]
 
         region = Regions.get_by_coords(
             float(address_data.latitude),
@@ -347,11 +366,11 @@ async def add_user_address(
         print(region)
         
         if not region == None:
-            address_data_dump['region'] = region.id
+            address_data_dump['region_id'] = region.id
         else:
             region = Regions.get_by_name(address_data.region)
-
-            print(f"region: '{region.name_full}' - {region.work_days}")
+            if not region:
+                print("region still not found")
 
             return JSONResponse({
                 "message": "Данный адрес находится во вне рабочих регионах"
@@ -435,7 +454,13 @@ async def get_address_information_by_id(
 
         if addresses:
             addresses.interval = str(addresses.interval).split(', ')
-            return addresses
+
+            addresses.region.work_days = str(addresses.region.work_days).split(' ')
+            return_data = AddressOut(**addresses.__dict__)
+            return_data.region = RegionOut(**addresses.region.__dict__)
+
+            return return_data
+
         else:
             return JSONResponse({
                 "message": "Not found"
