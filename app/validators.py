@@ -135,6 +135,24 @@ class LinkClientWithPromocodeFromTG(CreateUserData):
     promocode: str
 
 
+class RegionOut(BaseModel):
+    id: UUID4
+    name_short: Optional[str]
+    name_full: str
+    region_type: str
+    is_active: bool
+    # work_days: Optional[List[str]]
+    work_days: Optional[Any]
+
+
+class RegionUpdate(BaseModel):
+    name_short: Optional[str] = None
+    name_full: Optional[str] = None
+    region_type: Optional[str] = None
+    is_active: Optional[bool] = None
+    work_days: Optional[List[str]]
+
+
 class Address(BaseModel):
     """
     Модель на создание/обновление адреса
@@ -146,7 +164,6 @@ class Address(BaseModel):
     detail: Optional[str] = None 
     comment: Optional[str] = None
 
-    region: Optional[str]
     distance_from_mkad: int | None = None
     point_on_map: str | None = None
 
@@ -154,6 +171,9 @@ class Address(BaseModel):
     selected_day_of_month: Optional[List[str]] = None
     interval_type: Optional[str] = None
     interval: Optional[List[str]] = None
+    region_id: Optional[UUID4] = None
+    region: Annotated[Optional[RegionOut], Field(None)]
+
 
     model_config = {
         "json_schema_extra": {
@@ -172,6 +192,26 @@ class Address(BaseModel):
             ]
         }
     }
+
+
+class AddressOut(BaseModel):
+    id: UUID4
+    main: bool
+    address:   Optional[str] = None 
+    latitude:  Optional[float] = None
+    longitude: Optional[float] = None
+    detail: Optional[str] = None 
+    comment: Optional[str] = None
+
+    distance_from_mkad: int | None = None
+    point_on_map: str | None = None
+
+    selected_day_of_week:  Optional[List[str]] = None
+    selected_day_of_month: Optional[List[str]] = None
+    interval_type: Optional[str] = None
+    interval: Optional[List[str]] = None
+    region_id: Optional[UUID4] = None
+    region: Optional[RegionOut] = None
 
 
 class AddressUpdate(Address):
@@ -304,18 +344,3 @@ class AddressSchedule(BaseModel):
             ]}}
 
 
-class RegionOut(BaseModel):
-    id: UUID4
-    name_short: Optional[str]
-    name_full: str
-    region_type: str
-    is_active: bool
-    work_days: Optional[List[str]]
-
-
-class RegionUpdate(BaseModel):
-    name_short: Optional[str] = None
-    name_full: Optional[str] = None
-    region_type: Optional[str] = None
-    is_active: Optional[bool] = None
-    work_days: Optional[List[str]]
