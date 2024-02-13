@@ -7,7 +7,7 @@
 """
 import uuid
 
-from pydantic import BaseModel, EmailStr, UUID4, Field
+from pydantic import BaseModel, EmailStr, UUID4, Field, ValidatorFunctionWrapHandler, validator
 from typing import Optional, Annotated, Any, List, Union, Tuple
 from typing_extensions import TypedDict
 from datetime import datetime
@@ -141,8 +141,12 @@ class RegionOut(BaseModel):
     name_full: str
     region_type: str
     is_active: bool
-    # work_days: Optional[List[str]]
+    #work_days: Optional[List[str]]
     work_days: Optional[Any]
+    
+    #@validator('work_days')
+    #def replace_as_list(cls, v):
+    #    return v.split(' ')
 
 
 class RegionUpdate(BaseModel):

@@ -202,11 +202,16 @@ async def get_addresses(
         for address in addresses:
             address.interval = str(address.interval).split(', ')
 
-            address.region.work_days = str(address.region.work_days).split(' ')
-            # tmp = AddressOut(**address.__dict__)
-            # tmp.region = RegionOut(**address.region.__dict__)
+            print(address.region.work_days)
+            #address.region.work_days = str(address.region.work_days).split(' ')
 
-            # return_data.append(tmp)
+            
+            #tmp = AddressOut(**address.__dict__)
+            #tmp.region = RegionOut(**address.region.__dict__)
+            #tmp.region.work_days = str(tmp.region.work_days).split(' ')
+
+            #return_data.append(tmp)
+
             return_data.append(address)
 
         return return_data
@@ -246,7 +251,7 @@ async def add_user_address(
     address_data: AddressValidator, 
     tg_id: int,
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
-    ) -> AddressOut:
+    ):
     """
     Создание адреса пользователя
     """
@@ -357,12 +362,12 @@ async def add_user_address(
         del address_data_dump["region"]
 
         region = Regions.get_by_coords(
-            float(address_data.latitude),
-            float(address_data.longitude)
+            float(address_data.longitude),
+            float(address_data.latitude)
         )
 
         print(address_data.longitude, address_data.latitude)
-        print(region)
+        print(region.name_full)
         
         if not region == None:
             address_data_dump['region_id'] = region.id
@@ -381,15 +386,19 @@ async def add_user_address(
         
         session.add(address)
         session.commit()
+
         user_address = UsersAddress(
             user_id=user.id,
             address_id=address.id,
         )
-
         session.add(user_address)
         session.commit()
+        
+        return_data = AddressOut(**address.__dict__)
+        return_data.region = RegionOut(**region.__dict__)
+        return_data.region.work_days = str(return_data.region.work_days).split(' ')
 
-        return address
+        return return_data
 
 
 @router.put('/user/addresses/{address_id}/schedule')
@@ -440,7 +449,7 @@ async def get_address_information_by_id(
     address_id: uuid.UUID, 
     tg_id: int,
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
-    ):
+    ) -> AddressOut:
     """
     Получение информации об адресе пользователя по айди
     """
@@ -455,10 +464,11 @@ async def get_address_information_by_id(
             addresses.interval = str(addresses.interval).split(', ')
 
             addresses.region.work_days = str(addresses.region.work_days).split(' ')
-            return_data = AddressOut(**addresses.__dict__)
-            return_data.region = RegionOut(**addresses.region.__dict__)
 
-            return return_data
+            #return_data = AddressOut(**addresses.__dict__)
+            #return_data.region = RegionOut(**addresses.region.__dict__)
+
+            return addresses
 
         else:
             return JSONResponse({
