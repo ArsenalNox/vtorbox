@@ -12,15 +12,16 @@ from sqlalchemy.orm import declarative_base, relationship, backref, Session, Map
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import func
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from os import getenv
-from typing import Union, Tuple, Optional
+from typing import Union, Tuple, Optional, Dict, List
 
 from app.exceptions import UserNoIdProvided
 from app.utils import is_valid_uuid
 from app.validators import UserCreationValidator
 
+from calendar import monthrange
 from passlib.context import CryptContext
 from shapely.geometry import Point, shape
 
@@ -67,13 +68,15 @@ class Orders(Base):
     #От юр. лица или нет
     legal_entity = Column(Boolean(), default=False)
     
-    box_type_id = Column(UUID(as_uuid=True), ForeignKey('boxtypes.id'))
-    box_count = Column(Integer())
+    box_type_id = Column(UUID(as_uuid=True), ForeignKey('boxtypes.id'), nullable=True)
+    box_count = Column(Integer(), nullable=True)
 
     order_num = Column(Integer(), default=order_order_num)
     user_order_num = Column(Integer())
 
     status = Column(UUID(as_uuid=True), ForeignKey('order_statuses.id'))
+
+    comment = Column(Text(), nullable=True)
 
     date_created = Column(DateTime(), default=default_time)
     last_updated = Column(DateTime(), default=default_time)
@@ -290,8 +293,48 @@ class Address(Base):
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
+
     def __repr__(self):
         return f'{self.id}'
+
+    
+    def get_avaliable_days(self, days_list_len)->List[Dict]:
+        """
+        Сгенерировать список дат, по которым будет прободиться проверка
+        """
+        address_work_days = str(self.region.work_days).split(' ')
+        dates_list_passed = []
+        date_today = datetime.now()
+
+        for i in range(100):
+            if self.region.work_days == None:
+                break
+
+            day_number_now = datetime.strftime(date_today, "%d")
+            month_now_str = datetime.strftime(date_today, "%m")
+            year_now_str = datetime.strftime(date_today, "%Y")
+
+            days_max = monthrange(int(year_now_str), int(month_now_str))[1]
+
+            day_number_next = int(day_number_now)+1
+            if (day_number_next>days_max):
+                #если след день приходит на начало след месяца берём первое число как след день
+                day_number_next = 1
+
+            date_tommorrow = date_today + timedelta(days=i)
+            weekday_tomorrow = str(date_tommorrow.strftime('%A')).lower()
+
+            for day_allowed in address_work_days:
+                if day_allowed == weekday_tomorrow:
+                    dates_list_passed.append({
+                        "date": date_tommorrow.strftime('%Y-%m-%dT%H:%M:%S'),
+                        "weekday": weekday_tomorrow
+                    })
+
+            if len(dates_list_passed)>days_list_len-1:
+                break
+
+        return dates_list_passed
 
 
 class UsersAddress(Base):
@@ -540,7 +583,6 @@ class Regions(Base):
         """
         Проверить, содержит ли регион указанную точку
         """
-        #TODO: Узнать, насколько это затратно
         data_points = str(self.geodata).replace('\'','\"')
         data_points = json.loads(data_points)
         feature = shape(data_points)
