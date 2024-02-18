@@ -406,28 +406,30 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
         "content": {
             "application/json": {
                 "example": {
-                    "user_data": {
-                        "telegram_username": 'null',
-                        "email": "test@mail.ru",
-                        "password": "$2b$12$g9.50JMY2pLysGFeq15enuDxUKFz7LlXIgNO4mzgVW7ZgtruT2/YS",
-                        "full_name": 'null',
-                        "last_action": "2023-12-01T18:30:08.740109",
-                        "link_code": "f191e981",
-                        "telegram_id": 'null',
-                        "id": "dec36dc4-109c-43d5-99b4-b801502606a7",
-                        "phone_number": 'null',
-                        "date_created": "2023-12-01T18:30:08.740109",
-                        "allow_messages_from_bot": 'true'
-                    },
-                    "token_data": {
-                        "sub": "test@mail.ru",
-                        "internal_id": "dec36dc4-109c-43d5-99b4-b801502606a7",
-                        "scopes": [
-                        "users",
-                        "me"
-                        ],
-                        "exp": 1701652303
-                    }
+  "user_data": {
+    "email": "user3@example.com",
+    "id": "43f96b7c-c417-4be1-9be8-857bf9df8acb",
+    "telegram_id": 55455,
+    "telegram_username": 'null',
+    "phone_number": 'null',
+    "firstname": 'null',
+    "secondname": 'null',
+    "orders": 'null',
+    "roles": 'null',
+    "deleted_at": 'null',
+    "link_code": "e08d1fb4-6"
+  },
+  "token_data": {
+    "sub": "user3@example.com",
+    "internal_id": "43f96b7c-c417-4be1-9be8-857bf9df8acb",
+    "scopes": [
+      "customer",
+      "admin",
+      "manager",
+      "courier",
+      "bot"
+    ]
+  }
                 }
             }
         }
@@ -444,13 +446,16 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 async def get_current_user_info(
     current_user: Annotated[UserLoginSchema, Security(get_current_user)]
 ):
+    """
+    Получить информацию о текущем пользователе по токену
+    """
     token_data = jwt.decode(token=current_user.access_token, key=SECRET_KEY, algorithms=ALGORITHM)
 
     with Session(engine, expire_on_commit=False) as session:
         query = session.query(Users).filter_by(email=current_user.username).first()
 
         return {
-            "user_data": query,
+            "user_data": UserOut(**query.__dict__),
             "token_data": token_data
             }
 
