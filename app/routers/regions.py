@@ -7,7 +7,7 @@
 import os, re
 import json
 
-from typing import Annotated
+from typing import Annotated, List
 from fastapi import APIRouter, Security, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
@@ -31,13 +31,13 @@ from app import Tags
 
 from app.validators import (
     UserLogin as UserLoginSchema,
-    RegionOut, RegionUpdate
+    RegionOut, RegionUpdate, RegionOutWithGeoData
 )
 
 
 router = APIRouter()
 
-#TODO: Добавить привязку к рабочим дням недели
+
 @router.get('/regions', tags=[Tags.regions])
 async def get_all_regions(
     current_user: Annotated[UserLoginSchema, Security(get_current_user)],
@@ -45,7 +45,7 @@ async def get_all_regions(
     with_work_days: bool = False,
 
     search_query: str = None
-):
+)->List[RegionOutWithGeoData]:
     """
     Получить список доступных регионов для сбора
     - **only_active**: вернуть только регионы, в которых проводится вывоз
@@ -72,13 +72,17 @@ async def get_all_regions(
 
         if search_type == 1:
             region = Regions.get_by_coords(float(search_query.split(',')[0]), float(search_query.split(',')[1]))
-            region.work_days = str(region.work_days).split(' ')
-            return RegionOut(**region.__dict__)
+            region.work_days = str(region.work_days)
+            return [region]
 
         return_data = []
         for region in query:
-            region.work_days = str(region.work_days).split(' ')
-            return_data.append(RegionOut(**region.__dict__))
+            if with_work_days:
+                if region.work_days == None:
+                    continue
+
+            region.work_days = str(region.work_days)
+            return_data.append(region)
 
         return return_data
 
@@ -157,7 +161,6 @@ async def update_region_data(
     """
     Обновить данные региона 
     """
-    print(new_data)
 
     with Session(engine, expire_on_commit=False) as session:
         query = session.query(Regions).filter_by(id=region_id).first()
@@ -171,7 +174,6 @@ async def update_region_data(
                 continue
 
             if attr == 'work_days' and not (value == None):
-                print(value)
                 for day in value:
                     day = str(day).lower()
                     if day not in WEEK_DAYS_WORK_STR_LIST:
@@ -179,12 +181,8 @@ async def update_region_data(
                             "message": f"invalid weekday {day}"
                         }, status_code=422)
 
-                print('updating work days')
-                
                 query.work_days = ' '.join(value)
 
         session.commit()
 
-        return_data = query.__dict__
-        return_data['work_days'] = str(return_data['work_days']).split(' ')
         return return_data
