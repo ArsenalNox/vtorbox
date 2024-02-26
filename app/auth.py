@@ -111,7 +111,7 @@ async def get_current_user(
     Получение текущего пользователя
     Проверка скоупов требует полного соответствия скоупов токена и эндпоинта
     """
-    #TODO: Получение скоупов из бд а не токена
+    #DONE: Получение скоупов из бд а не токена
     if security_scopes.scopes:
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
     else:
