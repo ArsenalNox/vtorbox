@@ -15,9 +15,10 @@ class Order(BaseModel):
     from_user: str
     address_id: UUID4
     day: str 
+    comment: Optional[str] = None
     # box_type_id: UUID4
-    box_name: str
-    box_count: int
+    # box_name: str
+    # box_count: int
 
     model_config = {
         "json_schema_extra": {
@@ -102,7 +103,18 @@ class UserUpdateValidator(BaseModel):
     phone_number: Optional[int] = None
     firstname: Optional[str] = None
     secondname: Optional[str] = None
+    patronymic: Optional[str] = None
     email: Optional[EmailStr] = None
+
+
+    allow_messages_from_bot: Optional[bool] = None
+
+    roles: Optional[list[str]] = None
+    link_code: Optional[str] = None
+    
+    disabled: Optional[bool] = False
+    additional_info: Optional[str] = None
+
 
 
 class AuthToken(BaseModel):
@@ -142,11 +154,17 @@ class RegionOut(BaseModel):
     region_type: str
     is_active: bool
     #work_days: Optional[List[str]]
-    work_days: Optional[Any]
+    work_days: Optional[Any] = None
     
-    #@validator('work_days')
-    #def replace_as_list(cls, v):
-    #    return v.split(' ')
+    @validator('work_days', pre=True, always=True)
+    def replace_as_list(cls, v):
+        if v != None:
+            return v.split(' ')
+        else:
+            return None
+
+class RegionOutWithGeoData(RegionOut):
+    geodata: str
 
 
 class RegionUpdate(BaseModel):
@@ -183,19 +201,21 @@ class Address(BaseModel):
         "json_schema_extra": {
             "examples": [
                 {
-                    'main': 'false',
+                    'main': 'true',
                     'district': 'МО',
-                    'longitude': '55.158193',
-                    'latitude': '51.837447',
-                    'region': 'Красногорск',
                     'distance_from_mkad': 12,
-                    'address': 'Оренбург Просторная 19/1',
+                    'address': 'Ул. Тверская 4',
                     'detail': '8-53. Домофон 53 и кнопка "вызов".',
-                    'comment': "Злая собака",
+                    'comment': "Злая собака, много тараканов",
                 }
             ]
         }
     }
+
+
+class AddressDaysWork(BaseModel):
+    date: str
+    weekday: str
 
 
 class AddressOut(BaseModel):
@@ -216,6 +236,7 @@ class AddressOut(BaseModel):
     interval: Optional[List[str]] = None
     region_id: Optional[UUID4] = None
     region: Optional[RegionOut] = None
+    work_dates: Optional[List[AddressDaysWork]] = None
 
 
 class AddressUpdate(Address):
@@ -286,22 +307,26 @@ class OrderOut(BaseModel):
     last_updated: datetime
     legal_entity: bool
     
+    courier_id: Optional[UUID4] = None
+    comment_manager: Optional[str] = None
+    comment_courier: Optional[str] = None
+
+
     interval_type: Optional[str] = None
-    intreval: Optional[str] = None
+    interval: Optional[str] = None
 
     tg_id: Optional[int] = None
     user_data: Annotated[Optional[UserOrderOutData], Field(None)]
 
     address_id: UUID4
-    address_data: Annotated[Optional[Address], Field(None)]
+    address_data: Annotated[Optional[AddressOut], Field(None)]
 
-    box_type_id: UUID4
-    box_count: int
+    box_type_id: Optional[UUID4] = None
+    box_count: Optional[int] = None
     box_data: Annotated[Optional[BoxType], Field(None)]
 
     status: UUID4
     status_data: Annotated[Optional[Status], Field(None)]
-
 
 
 class UserOut(BaseModel):
@@ -318,13 +343,20 @@ class UserOut(BaseModel):
 
     firstname: Optional[str]
     secondname: Optional[str]
+    patronymic: Optional[str] = None
+    allow_messages_from_bot: bool
 
     # orders: Optional[list[Annotated[Optional[OrderOut], Field(None)]]]
     orders: Optional[list[OrderOut]] = None
     roles: Optional[list[str]] = None
     deleted_at: Optional[datetime] = None
-    link_code: Optional[str] = None
+    last_action: Optional[datetime] = None
 
+    link_code: Optional[str] = None
+    
+    disabled: bool = False
+    additional_info: Optional[str] = None
+    date_created: datetime
 
 
 class StatusOut(BaseModel):
@@ -336,6 +368,8 @@ class StatusOut(BaseModel):
 class AddressSchedule(BaseModel):
     selected_day_of_week:  Optional[List[str]] = None
     selected_day_of_month: Optional[List[str]] = None
+    selected_dates: Optional[List[datetime]] = None
+
     interval_type: Optional[str] = None
 
     model_config = {
