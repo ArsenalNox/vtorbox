@@ -38,7 +38,75 @@ from ..models import (
 router = APIRouter()
 
 
-@router.get('/orders/filter/', tags=[Tags.orders, Tags.admins])
+@router.get('/orders/filter/', tags=[Tags.orders, Tags.admins],
+responses={
+    200: {
+        "description": "Заявка полученная по айди",
+        "content": {
+        "application/json": {
+            "example": {
+                "orders": [
+                    {
+      "id": "ead4e4e4-5735-46aa-bf34-bddeffbb27af",
+      "order_num": 1,
+      "user_order_num": 1,
+      "last_disposal": 'null',
+      "times_completed": 'null',
+      "day": "2024-02-23T00:00:00",
+      "date_created": "2024-02-16T13:39:16.346967",
+      "last_updated": "2024-02-16T13:39:16.347969",
+      "legal_entity": 'false',
+      "comment": "Без комментария",
+      "interval_type": 'null',
+      "interval": 'null',
+      "tg_id": 851230989,
+      "user_data": {
+        "telegram_id": 851230989,
+        "telegram_username": "romaha_57",
+        "firstname": "Тест",
+        "patronymic": 'null',
+        "link_code": 'null',
+        "email": "Test@test.com.ks",
+        "phone_number": "88888888888",
+        "secondname": "Тестов",
+        "deleted_at": 'null'
+      },
+      "address_id": "c2f2260e-156d-471f-ac82-ab04f55680a4",
+      "address_data": {
+        "detail": 'null',
+        "longitude": "37.549588",
+        "latitude": "55.756675",
+        "main": 'true',
+        "distance_from_mkad": 'null',
+        "interval": "friday",
+        "comment": 'null',
+        "address": "Сергеея Макеева 1",
+        "id": "c2f2260e-156d-471f-ac82-ab04f55680a4",
+        "region_id": "98f38e9f-8eca-43f7-b5c5-195333cfaaf4",
+        "point_on_map": 'null',
+        "interval_type": "week_day",
+        "region": {
+          "region_type": "district",
+          "id": "98f38e9f-8eca-43f7-b5c5-195333cfaaf4",
+          "is_active": 'true',
+          "name_short": 'null',
+          "name_full": "Пресненский район",
+          "work_days": "monday friday"
+        }
+      },
+      "box_type_id": 'null',
+      "box_count": 'null',
+      "box_data": 'null',
+      "status": "375432b2-0356-42aa-b4e7-8019a4a11338",
+      "status_data": {
+        "status_name": "ожидается подтверждение",
+        "description": "ожидается подтверждение от клиента"
+      }
+    }],
+    "global_count": 1,
+    "count": 1
+    }}}}}
+)
 async def get_filtered_orders(
         by_date: bool = False, 
         datetime_start: datetime = None,
@@ -69,13 +137,17 @@ async def get_filtered_orders(
 
         orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
             join(Address, Address.id == Orders.address_id).\
-            join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
             join(OrderStatuses, OrderStatuses.id == Orders.status).\
             join(Users, Users.id == Orders.from_user)
         
-        if state or state_id:
+
+        if state:
             status_query = session.query(OrderStatuses).filter_by(status_name=state).first()
-            orders = orders.filter_by(Orders.status == status_query.id)
+            orders = orders.filter(Orders.status == status_query.id)
+
+        if state_id:
+            orders = orders.filter(Orders.status == state_id)
 
         if date_asc:
             orders = orders.order_by(asc(Orders.date_created))
@@ -83,7 +155,11 @@ async def get_filtered_orders(
             orders = orders.order_by(desc(Orders.date_created))
 
         global_orders_count = orders.count()
-        orders = orders.offset(page  * limit).limit(limit).all()
+        if limit == 0:
+            orders = orders.all()
+        else:
+            orders = orders.offset(page  * limit).limit(limit).all()
+
         total = len(orders)
 
         return_data = []
@@ -91,26 +167,29 @@ async def get_filtered_orders(
         for order in orders:
             order_data = OrderOut(**order[0].__dict__)
             order_data.tg_id = order[4].telegram_id
+            order_data.interval = str(order[1].interval).split(', ')
 
             try:
                 order_data.address_data = order[1]
-            except IndexError: 
-                order_data.address_data = None
+                order_data.address_data.region = order[1].region
+                order_data.address_data.region.work_days = str(order[1].region.work_days).split(' ')
+            except indexerror: 
+                order_data.address_data = none
 
             try:
                 order_data.box_data = order[2]
-            except IndexError:
-                order_data.box_data = None
+            except indexerror:
+                order_data.box_data = none
 
             try:
                 order_data.status_data = order[3]
-            except IndexError:
-                order_data.status_data = None
+            except indexerror:
+                order_data.status_data = none
             
             try:
                 order_data.user_data = order[4]
-            except IndexError:
-                order_data.user_data = None
+            except indexerror:
+                order_data.user_data = none
 
             return_data.append(order_data.model_dump())
 
@@ -173,18 +252,19 @@ async def get_filtered_orders(
     }
     )
 async def get_order_by_id(
-    order_id: UUID
-    
+        order_id: UUID
     ) -> OrderOut:
     """
     Получение конкретной заявки
     """
     with Session(engine, expire_on_commit=False) as session:
         #Получение конкретной заявки
-        order = session.query(Orders, Address, BoxTypes, OrderStatuses).\
+
+        order = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
             join(Address, Address.id == Orders.address_id).\
-            join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
             join(OrderStatuses, OrderStatuses.id == Orders.status).\
+            join(Users, Users.id == Orders.from_user).\
             where(Orders.id == order_id).\
             order_by(asc(Orders.date_created)).first()
 
@@ -195,22 +275,29 @@ async def get_order_by_id(
 
 
         order_data = OrderOut(**order[0].__dict__)
-        order_data.tg_id = session.query(Users).filter_by(id=order[0].from_user).first().telegram_id
+        order_data.interval = str(order[1].interval).split(', ')
 
         try:
             order_data.address_data = order[1]
-        except IndexError: 
-            order_data.address_data = None
+            order_data.address_data.region = order[1].region
+            order_data.address_data.region.work_days = str(order[1].region.work_days).split(' ')
+        except indexerror: 
+            order_data.address_data = none
 
         try:
             order_data.box_data = order[2]
-        except IndexError:
-            order_data.box_data = None
+        except indexerror:
+            order_data.box_data = none
 
         try:
             order_data.status_data = order[3]
-        except IndexError:
-            order_data.status_data = None
+        except indexerror:
+            order_data.status_data = none
+        
+        try:
+            order_data.user_data = order[4]
+        except indexerror:
+            order_data.user_data = none
 
         return order_data
 
@@ -258,7 +345,7 @@ async def get_user_orders(
             #Получение конкретной заявки
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
-                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.id == order_id).\
                 where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
@@ -266,7 +353,7 @@ async def get_user_orders(
         elif orders_id:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
-                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 filter(Orders.id.in_(orders_id)).\
                 where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
@@ -274,21 +361,21 @@ async def get_user_orders(
         elif order_num:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
-                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.order_num == order_num).order_by(asc(Orders.date_created)).all()
         
         elif user_order_num:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
-                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.user_order_num == user_order_num).order_by(asc(Orders.date_created)).all()
         
         elif order_nums:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
-                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 filter(Orders.order_num.in_(order_nums)).\
                 where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
@@ -296,24 +383,25 @@ async def get_user_orders(
         else:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
-                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
 
         return_data = []
-
         for order in orders:
             order_data = OrderOut(**order[0].__dict__)
             order_data.tg_id = user.telegram_id
 
             try:
-                order[1].interval = str(order[1].interval).split(', ')
                 order_data.address_data = order[1]
+                order_data.interval = str(order[1].interval).split(', ')
             except IndexError: 
                 order_data.address_data = None
 
             try:
-                order_data.box_data = order[2]
+                print(order[2])
+                if not order[2] == None:
+                    order_data.box_data = order[2]
             except IndexError:
                 order_data.box_data = None
 
@@ -365,11 +453,11 @@ async def create_order(
                 "message": f"No user address with id '{order_data.from_user}' found"
             }, status_code=422)
 
-        container = session.query(BoxTypes).filter_by(box_name = order_data.box_name).first()
-        if not container:
-            return JSONResponse({
-                "message": f"no {order_data.box_name} container found"
-            }, status_code=422)
+        # container = session.query(BoxTypes).filter_by(box_name = order_data.box_name).first()
+        # if not container:
+            # return JSONResponse({
+                # "message": f"no {order_data.box_name} container found"
+            # }, status_code=422)
 
         order_data.day = datetime.strptime(order_data.day, "%d-%m-%Y").date()
 
@@ -379,8 +467,9 @@ async def create_order(
             from_user   = user.id,
             address_id  = order_data.address_id,
             day         = order_data.day,
-            box_type_id = container.id,
-            box_count   = order_data.box_count,
+            comment     = order_data.comment,
+            # box_type_id = container.id,
+            # box_count   = order_data.box_count,
             status      = OrderStatuses.status_default().id,
             date_created = datetime.now(),
             user_order_num = count + 1
@@ -394,6 +483,7 @@ async def create_order(
             status_id = new_order.status
         )
         session.add(status_update)
+
         session.commit()
 
     return {
@@ -676,13 +766,13 @@ async def process_current_orders():
     """
     Обработка всех доступных заявок, высчитывание следующего дня забора заявки без смены статуса
     """
-
+        
     #TODO: Добавить в routed_orders 
     with Session(engine, expire_on_commit=False) as session:
-        #TODO: Фильтр по статусу
+        #TODO: Фильтр по статусу (в работе и создана) (?)
         orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
             join(Address, Address.id == Orders.address_id).\
-            join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
             join(OrderStatuses, OrderStatuses.id == Orders.status).\
             join(Users, Users.id == Orders.from_user).\
             filter(Orders.deleted_at == None).\
@@ -690,9 +780,7 @@ async def process_current_orders():
             order_by(asc(Orders.date_created)).all()
 
         date_today = datetime.now()
-
         day_number_now = datetime.strftime(date_today, "%d")
-
         month_now_str = datetime.strftime(date_today, "%m")
         year_now_str = datetime.strftime(date_today, "%Y")
 
@@ -706,7 +794,6 @@ async def process_current_orders():
         order_list = []
 
         date_tommorrow = date_today + timedelta(days=1)
-        #TODO: Заменить формат
         # date_tommorrow = datetime.datetime.strptime(date_tommorrow, '%Y-%m-%dT%H:%M:%S')
         weekday_tomorrow = str(date_tommorrow.strftime('%A')).lower()
 
@@ -715,8 +802,10 @@ async def process_current_orders():
         print(f"next day num {day_number_next}")
 
         for order in orders:
-            #Преобразовать интервал в форму списка
             flag_day_set = False
+
+            days_allowed = str(order[1].region.work_days).split(' ')
+            print(days_allowed)
 
             match order[1].interval_type:
                 case IntervalStatuses.MONTH_DAY:
@@ -728,19 +817,26 @@ async def process_current_orders():
 
                 case IntervalStatuses.WEEK_DAY:
                     interval = [str(order[1].interval).split(', ')]
-                    if weekday_tomorrow in interval:
-                        print(f"Order {order[0].order_num} by weekday in interval")
-                        flag_day_set = True
-                        order[0].day = date_tommorrow
+
+                    if not(weekday_tomorrow in days_allowed):
+                        continue
+
+                    if not(weekday_tomorrow in interval):
+                        continue
+                    
+                    print(f"Order {order[0].order_num} by weekday in interval")
+                    flag_day_set = True
+                    order[0].day = date_tommorrow
 
                 case _:
                     #TODO: Проверка остальных интервалов
                     pass
                 
             if flag_day_set:
-                order[0].update_status(OrderStatuses.status_awating_confirmation().id)
                 #TODO: Отправить уведомление пользователю
-                session.commit()
+
+                # order[0].update_status(OrderStatuses.status_awating_confirmation().id)
+                # session.commit()
                 order_list.append(order[0])
 
         return order_list
