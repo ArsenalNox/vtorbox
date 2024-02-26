@@ -120,7 +120,10 @@ async def get_all_users(
             query = query.filter(Users.id.in_(roles_user_query))
 
         global_user_count = query.count()
-        users = query.order_by(asc(Users.date_created)).offset(page  * limit).limit(limit).all()
+        if limit == 0:
+            users = query.order_by(asc(Users.date_created)).all()
+        else:
+            users = query.order_by(asc(Users.date_created)).offset(page  * limit).limit(limit).all()
 
         total = len(users)
         data = []
@@ -136,7 +139,7 @@ async def get_all_users(
             if with_orders:
                 orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                     join(Address, Address.id == Orders.address_id).\
-                    join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                    outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                     join(OrderStatuses, OrderStatuses.id == Orders.status).\
                     where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
                 
@@ -267,7 +270,7 @@ async def delete_user(
 async def update_user_data(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
     new_user_data: UserUpdateData
-):
+)->UserOut:
     """
     Обновление данных пользователя админом или менеджером
     """
@@ -290,7 +293,7 @@ async def update_user_data(
             
             if attr == 'roles' and value:
                 #TODO: Изменение ролей
-                pass
+                continue
 
             if value:
                 setattr(user_query, attr, value)
@@ -298,7 +301,7 @@ async def update_user_data(
         session.add(user_query)
         session.commit()
 
-    return 
+        return user_query
 
 
 @router.put('/users', tags=[Tags.users])
@@ -454,17 +457,23 @@ async def get_current_user_info(
     with Session(engine, expire_on_commit=False) as session:
         query = session.query(Users).filter_by(email=current_user.username).first()
 
+        scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
+        scopes = [role.role_name for role in scopes_query]
+
+        user_data = UserOut(**query.__dict__)
+        user_data.roles = scopes
         return {
-            "user_data": UserOut(**query.__dict__),
+            "user_data": user_data,
             "token_data": token_data
             }
 
 
-@router.get('/user/{user_id}', tags=[Tags.users, Tags.admins])
+@router.get('/user/{user_id}/info', tags=[Tags.users, Tags.admins])
 async def get_user_data(
     user_id: uuid.UUID,
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
-):
+    with_orders: bool = False
+)->UserOut:
     """
     Получить данные пользователя админом
     """
@@ -474,25 +483,69 @@ async def get_user_data(
             return JSONResponse({
                 "message": "Not found"
             }, status_code=404)
-        return user_query
+
+        scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user_query.id).join(Roles).all()
+        scopes = [role.role_name for role in scopes_query]
+
+        return_data = UserOut(**user_query.__dict__)
+        return_data.roles = scopes
+
+        if with_orders:
+            orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
+                    join(Address, Address.id == Orders.address_id).\
+                    outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                    join(OrderStatuses, OrderStatuses.id == Orders.status).\
+                    where(Orders.from_user == user_query.id).order_by(asc(Orders.date_created)).all()
+            orders_out = []
+            for order in orders:
+                order_data = OrderOut(**order[0].__dict__)
+                order_data.tg_id = user_query.telegram_id
+
+                try:
+                    order_data.address_data = order[1]
+                    order_data.interval = str(order[1].interval).split(', ')
+                except IndexError: 
+                    order_data.address_data = None
+
+                try:
+                    if not order[2] == None:
+                        order_data.box_data = order[2]
+                except IndexError:
+                    order_data.box_data = None
+
+                try:
+                    order_data.status_data = order[3]
+                except IndexError:
+                    order_data.status_data = None
+
+                orders_out.append(order_data)
+
+            return_data.orders = orders_out
+
+        return return_data
 
 
 @router.get('/user/me', tags=[Tags.bot, Tags.users])
 async def get_user_info(
     tg_id: int,
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
-):
+)->UserOut:
 
     with Session(engine, expire_on_commit=False) as session:
-        query = session.query(Users).filter_by(email=current_user.username).first()
+        query = session.query(Users).filter_by(telegram_id=tg_id).first()
+        if not query:
+            return JSONResponse({
+                "message": "Not found"
+            }, status_code=404)
 
         scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
         scopes = [role.role_name for role in scopes_query]
-        return JSONResponse({
-            "user_data": query,
-            "scopes": scopes
-        })
-    pass
+
+
+        return_data = UserOut(**query.__dict__)
+        return_data.roles = scopes
+
+        return return_data
 
 
 @router.get('/users/check', tags=[Tags.admins, Tags.users])
