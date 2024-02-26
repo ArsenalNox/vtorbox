@@ -26,8 +26,6 @@ origins = [
 #TODO: отображение заявок/адресов (пока не везде есть фильтры) + 
 #TODO: редактирование данных пользователя
 
-#Spit in my face, my love, it won't phase me
-#Spit in my face, my love, it won't change me
 
 app.add_middleware(
     CORSMiddleware,
