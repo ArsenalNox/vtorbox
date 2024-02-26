@@ -83,12 +83,29 @@ class Orders(Base):
     
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
+    #айди курьера, если заявка принята курьером
+    courier_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+
+    #Комментарий к выполнению от менеджера
+    #SUGGESTION: Перенести коммента в отдельную таблицу? 
+    comment_manager = Column(Text(), nullable=True)
+    #Комментарий к выполнению от курьера
+    comment_courier = Column(Text(), nullable=True)
+
     @staticmethod
     def get_all_orders():
         with Session(engine, expire_on_commit=False) as session: 
             return session.query(Orders).all()
     
-    
+
+    @staticmethod
+    def process_order_array(orders: List[any]):
+        """
+        Обрабатывает лист заявок с query и формирует массив на выход
+        """
+        pass    
+
+
     def update_status(__self__, status_id) -> None:
         """
         Указать новый статус зявки с записью изменения в историю заявки
@@ -104,33 +121,6 @@ class Orders(Base):
             session.commit()
 
             return 
-
-class RoutedOrders(Base):
-    """
-    Принятые заказы на выполнении у курьера
-    """
-
-    __tablename__ = 'routed_orders'
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
-    order_id = Column(UUID(as_uuid=True), ForeignKey('orders.id'))
-    courier_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
-
-    #Дата сбора
-    date = Column(DateTime(), nullable=True)
-
-    #Статус заявки
-    status = Column(String(), nullable=True)
-
-    #Комментарий к выполнению от менеджера
-    #SUGGESTION: Перенести коммента в отдельную таблицу? 
-    comment_manager = Column(String(), nullable=True)
-    #Комментарий к выполнению от курьера
-    comment_courier = Column(String(), nullable=True)
-
-    # created_at = Column(datetime(), default=default_time)
-    deleted_at = Column(DateTime(), default=None, nullable=True)
 
 
 class Users(Base):
@@ -207,10 +197,11 @@ class Users(Base):
             user_query = None
             if t_id:
                 user_query = session.query(Users).filter_by(telegram_id = t_id).\
-                    where(User.deleted_at == None).first()
+                    where(Users.deleted_at == None).first()
+
             elif internal_id:
                 user_query = session.query(Users).filter_by(id = internal_id).\
-                    where(User.deleted_at == None).first()
+                    where(Users.deleted_at == None).first()
             
             return user_query
 
@@ -380,22 +371,22 @@ class Roles(Base):
             query = session.query(Roles).filter_by(role_name=ROLE_CUSTOMER_NAME).first()
             return query.id
 
-    @property
-    def courier_role(self):
+    @staticmethod
+    def courier_role():
         with Session(engine, expire_on_commit=False) as session:
-            query = session.query(Roles).filter_by(role_name='courier').first()
+            query = session.query(Roles).filter_by(role_name=ROLE_COURIER_NAME).first()
             return query.id
 
     @property
     def manager_role(self):
         with Session(engine, expire_on_commit=False) as session:
-            query = session.query(Roles).filter_by(role_name='manager').first()
+            query = session.query(Roles).filter_by(role_name=ROLE_MANAGER_NAME).first()
             return query.id
 
     @property
     def admin_role(self):
         with Session(engine, expire_on_commit=False) as session:
-            query = session.query(Roles).filter_by(role_name='admin').first()
+            query = session.query(Roles).filter_by(role_name=ROLE_MANAGER_NAME).first()
             return query.id
 
 
