@@ -313,7 +313,7 @@ class OrderOut(BaseModel):
 
 
     interval_type: Optional[str] = None
-    interval: Optional[str] = None
+    interval: Optional[Any] = None
 
     tg_id: Optional[int] = None
     user_data: Annotated[Optional[UserOrderOutData], Field(None)]
