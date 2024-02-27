@@ -2,7 +2,7 @@
 Модели + функции инита данных, персистные данные
 """
 
-import uuid, re, json
+import uuid, re, json, copy
 from sqlalchemy import (
     create_engine, Column, Integer, String, 
     DateTime, Text, ForeignKey, Float, 
@@ -24,6 +24,8 @@ from app.validators import UserCreationValidator
 from calendar import monthrange
 from passlib.context import CryptContext
 from shapely.geometry import Point, shape
+
+from app.validators import OrderOut, RegionOut
 
 load_dotenv()
 connection_url = URL.create(
@@ -50,6 +52,16 @@ def order_order_num():
     with Session(engine, expire_on_commit=False) as session:
         count = session.query(Orders.id).count()
         return count + 1
+
+
+def generate_route_short_name()->str:
+    """
+    сгенерировать короткий код-название для машрута
+
+    """
+    short_code = str(uuid.uuid4())[:10] 
+    
+    return short_code
 
 
 class Orders(Base):
@@ -96,14 +108,64 @@ class Orders(Base):
     def get_all_orders():
         with Session(engine, expire_on_commit=False) as session: 
             return session.query(Orders).all()
-    
+
+    @staticmethod
+    def query_by_id(id: UUID) -> Optional['Orders']:
+        pass
+
 
     @staticmethod
     def process_order_array(orders: List[any]):
         """
         Обрабатывает лист заявок с query и формирует массив на выход
         """
-        pass    
+        return_data = []
+        for order in orders:
+            order_data = OrderOut(**order[0].__dict__)
+            order_data.tg_id = order[4].telegram_id
+            order_data.interval = str(order[1].interval).split(', ')
+
+            try:
+                order_data.address_data = order[1]
+
+                order_data.address_data.interval = str(order[1].interval).split(', ')
+
+            except IndexError: 
+                order_data.address_data = None
+
+            try:
+                order_data.address_data.region = order[5]
+                if order[5].work_days != None:
+                    print(order[5].work_days)
+                    work_days_str = copy.deepcopy(order[5].work_days)
+                    if not (type(work_days_str) == list):
+                        work_days_str = str(work_days_str).split(' ')
+
+                    order_data.address_data.region.work_days = work_days_str
+
+                else:
+                    order_data.address_data.region.work_days = None
+            except IndexError:
+                order_data.address_data.region = None
+
+            try:
+                order_data.box_data = order[2]
+            except IndexError:
+                order_data.box_data = None
+
+            try:
+                order_data.status_data = order[3]
+            except IndexError:
+                order_data.status_data = None
+            
+            try:
+                order_data.user_data = order[4]
+            except IndexError:
+                order_data.user_data = None
+
+            return_data.append(order_data.model_dump())
+
+        return return_data
 
 
     def update_status(__self__, status_id) -> None:
@@ -443,6 +505,13 @@ class OrderStatuses(Base):
             return query
         
 
+    @staticmethod
+    def status_confirmed():
+        with Session(engine,expire_on_commit=False) as session:
+            query = session.query(OrderStatuses).\
+                filter_by(status_name=ORDER_STATUS_CONFIRMED["status_name"]).first()
+            return query
+
 
 class OrderStatusHistory(Base):
     """
@@ -613,6 +682,31 @@ class Regions(Base):
                 filter(Regions.name_full.ilike(f"%{name}%")).first()
             return query
 
+
+class Routes(Base):
+    """
+    Модель маршрутов 
+    """
+
+    __tablename__ = "routes"
+
+    id = Column(UUID(as_uuid=True), unique=True, primary_key=True)
+    courier_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    short_name = Column(String(), default=generate_route_short_name)
+
+    orders = relationship('RoutesOrders', backref='routes', lazy='joined')
+
+
+class RoutesOrders(Base):
+    """
+    Связь маршрута с заявками 
+    """ 
+
+    __tablename__ ="routed_orders"
+
+    id = Column(UUID(as_uuid=True), unique=True, primary_key=True)
+    order_id = Column(UUID(as_uuid=True), ForeignKey('orders.id'))
+    route_id = Column(UUID(as_uuid=True), ForeignKey('routes.id'))
 
 # === персистные данные/конфигурации
 
