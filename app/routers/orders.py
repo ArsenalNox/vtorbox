@@ -31,7 +31,7 @@ from ..models import (
     Address, UsersAddress, BoxTypes,
     OrderStatuses, OrderStatusHistory,
     ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION,
-    IntervalStatuses, ROLE_ADMIN_NAME
+    IntervalStatuses, ROLE_ADMIN_NAME, Regions
     )
 
 
@@ -123,6 +123,7 @@ async def get_filtered_orders(
 
         limit: int = 5,
         page: int = 0,
+        region_id: UUID = None
         #TODO: Фильтр по району, округу, дистанции, курьеру итд
         ):
     """
@@ -135,11 +136,12 @@ async def get_filtered_orders(
 
     with Session(engine, expire_on_commit=False) as session:
 
-        orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
+        orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users, Regions).\
             join(Address, Address.id == Orders.address_id).\
             outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
             join(OrderStatuses, OrderStatuses.id == Orders.status).\
-            join(Users, Users.id == Orders.from_user)
+            join(Users, Users.id == Orders.from_user).\
+            join(Regions, Regions.id == Address.region_id)
         
 
         if state:
@@ -154,7 +156,12 @@ async def get_filtered_orders(
         else:
             orders = orders.order_by(desc(Orders.date_created))
 
+        
+        if region_id:
+            orders = orders.filter(Regions.id == region_id)
+
         global_orders_count = orders.count()
+
         if limit == 0:
             orders = orders.all()
         else:
@@ -162,36 +169,7 @@ async def get_filtered_orders(
 
         total = len(orders)
 
-        return_data = []
-
-        for order in orders:
-            order_data = OrderOut(**order[0].__dict__)
-            order_data.tg_id = order[4].telegram_id
-            order_data.interval = str(order[1].interval).split(', ')
-
-            try:
-                order_data.address_data = order[1]
-                order_data.address_data.region = order[1].region
-                order_data.address_data.region.work_days = str(order[1].region.work_days).split(' ')
-            except indexerror: 
-                order_data.address_data = none
-
-            try:
-                order_data.box_data = order[2]
-            except indexerror:
-                order_data.box_data = none
-
-            try:
-                order_data.status_data = order[3]
-            except indexerror:
-                order_data.status_data = none
-            
-            try:
-                order_data.user_data = order[4]
-            except indexerror:
-                order_data.user_data = none
-
-            return_data.append(order_data.model_dump())
+        return_data = Orders.process_order_array(orders)
 
         return {
             "orders": return_data,
@@ -281,22 +259,22 @@ async def get_order_by_id(
             order_data.address_data = order[1]
             order_data.address_data.region = order[1].region
             order_data.address_data.region.work_days = str(order[1].region.work_days).split(' ')
-        except indexerror: 
+        except IndexError: 
             order_data.address_data = none
 
         try:
             order_data.box_data = order[2]
-        except indexerror:
+        except IndexError:
             order_data.box_data = none
 
         try:
             order_data.status_data = order[3]
-        except indexerror:
+        except IndexError:
             order_data.status_data = none
         
         try:
             order_data.user_data = order[4]
-        except indexerror:
+        except IndexError:
             order_data.user_data = none
 
         return order_data
@@ -670,6 +648,8 @@ async def update_order_data(order_id: UUID, new_order_data: OrderUpdate)->OrderO
 
         order_query = session.query(Orders).filter_by(id=order_id)\
             .where(Orders.deleted_at == None).first()
+
+
         if not order_query:
             return JSONResponse({
                 "message": "Order not found"
@@ -710,7 +690,16 @@ async def update_order_data(order_id: UUID, new_order_data: OrderUpdate)->OrderO
 
         session.commit()
 
-        return OrderOut(**order_query.__dict__)
+        order_query = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
+            join(Address, Address.id == Orders.address_id).\
+            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+            join(OrderStatuses, OrderStatuses.id == Orders.status).\
+            join(Users, Users.id == Orders.from_user).\
+            where(Orders.id == order_id).\
+            order_by(asc(Orders.date_created)).first()
+        return_data = Orders.process_order_array([order_query])
+
+        return return_data[0]
 
 
 @router.post("/orders/{order_id}/accept", tags=[Tags.orders, Tags.bot])
@@ -762,7 +751,9 @@ async def accept_order_by_user(
 
 
 @router.get("/process_orders", tags=[Tags.managers, Tags.admins])
-async def process_current_orders():
+async def process_current_orders(
+
+):
     """
     Обработка всех доступных заявок, высчитывание следующего дня забора заявки без смены статуса
     """
@@ -796,6 +787,7 @@ async def process_current_orders():
         date_tommorrow = date_today + timedelta(days=1)
         # date_tommorrow = datetime.datetime.strptime(date_tommorrow, '%Y-%m-%dT%H:%M:%S')
         weekday_tomorrow = str(date_tommorrow.strftime('%A')).lower()
+        date_num_tommorrow = datetime.strftime(date_tommorrow, "%d-%m-%Y")
 
         print(f"date today: {date_today}\ndate tommorrow: {date_tommorrow}")
         print(f"weekday tomorrow: {weekday_tomorrow}")
@@ -804,39 +796,58 @@ async def process_current_orders():
         for order in orders:
             flag_day_set = False
 
+            if order[1].region.work_days == None:
+                continue
+
             days_allowed = str(order[1].region.work_days).split(' ')
             print(days_allowed)
 
-            match order[1].interval_type:
-                case IntervalStatuses.MONTH_DAY:
-                    interval = [int(x) for x in str(order[1].interval).split(', ') ]
-                    if day_number_next in interval:
-                        print(f"Order {order[0].order_num} by month in interval")
+            if order[0].day > date_today:
+                print("DAY LARGER")
+                order_day_num = datetime.strftime(order[0].day, "%d-%m-%Y")
+                date_num_tommorrow = datetime.strftime(date_tommorrow, "%d-%m-%Y")
+                print(order_day_num, date_num_tommorrow)
+                if order_day_num == date_num_tommorrow:
+                    print("ORDER DATE ALREADY SET TO TOMMORROW")
+                    order_list.append(order[0])
+                    flag_day_set = True
+            else:
+                match order[1].interval_type:
+                    case IntervalStatuses.MONTH_DAY:
+                        interval = [int(x) for x in str(order[1].interval).split(', ') ]
+                        if day_number_next in interval:
+                            print(f"Order {order[0].order_num} by month in interval")
+                            flag_day_set = True
+                            order[0].day = date_tommorrow
+
+                    case IntervalStatuses.WEEK_DAY:
+                        interval = [str(order[1].interval).split(', ')]
+
+                        if not(weekday_tomorrow in days_allowed):
+                            continue
+
+                        if not(weekday_tomorrow in interval):
+                            continue
+                        
+                        print(f"Order {order[0].order_num} by weekday in interval")
                         flag_day_set = True
                         order[0].day = date_tommorrow
 
-                case IntervalStatuses.WEEK_DAY:
-                    interval = [str(order[1].interval).split(', ')]
+                    case _:
+                        if order[0].day == None:
+                            continue
+                        order_day_num = datetime.strftime(order[0].day, "%d-%m-%Y")
+                        if order_day_num == date_num_tommorrow:
+                            print("ORDER DATE ALREADY SET TO TOMMORROW")
+                            order_list.append(order[0])
+                            flag_day_set = True
+            
 
-                    if not(weekday_tomorrow in days_allowed):
-                        continue
-
-                    if not(weekday_tomorrow in interval):
-                        continue
-                    
-                    print(f"Order {order[0].order_num} by weekday in interval")
-                    flag_day_set = True
-                    order[0].day = date_tommorrow
-
-                case _:
-                    #TODO: Проверка остальных интервалов
-                    pass
-                
             if flag_day_set:
                 #TODO: Отправить уведомление пользователю
-
-                # order[0].update_status(OrderStatuses.status_awating_confirmation().id)
-                # session.commit()
+                print("Updating order status")
+                order[0].update_status(OrderStatuses.status_awating_confirmation().id)
+                session.commit()
                 order_list.append(order[0])
 
         return order_list
