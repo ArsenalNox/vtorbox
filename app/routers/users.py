@@ -23,7 +23,8 @@ from app import Tags
 from app.models import (
     Users, Orders, Session, engine, Roles, Permissions, 
     Address, UsersAddress, BoxTypes, OrderStatusHistory,
-    OrderStatuses, ROLE_CUSTOMER_NAME, ROLE_TELEGRAM_BOT_NAME
+    OrderStatuses, ROLE_CUSTOMER_NAME, ROLE_TELEGRAM_BOT_NAME,
+    Regions
     )
 
 from app.auth import (
@@ -588,10 +589,13 @@ async def import_clients(file: UploadFile):
 
         #импорт самих клиентов, адресов, тарифов, подписки, интервалов
 
-        for row in range(1, sheet_obj.max_row+1):
-            print(f"row number {row} ")
+        # for row in range(1, sheet_obj.max_row+1):
+            # print(f"row number {row} ")
 
-        # for row in range(1, 10):
+        added_count = 0
+        error_data = []
+
+        for row in range(1, 100):
             #3840 24
             #print(sheet_obj.max_row, sheet_obj.max_column)
             cell_obj = sheet_obj.cell(row, 1)
@@ -610,6 +614,12 @@ async def import_clients(file: UploadFile):
             try:
                 phone_number = int(sheet_obj.cell(row, 11).value)
             except Exception as err:
+
+                error_data.append({
+                    "message": "Not phone number detected",
+                    "row": row
+                })
+
                 continue
 
             #TODO: useraddress
@@ -629,12 +639,24 @@ async def import_clients(file: UploadFile):
             if not new_address:
                 latitude, longitude = get_lang_long_from_text_addres(sheet_obj.cell(row,7).value)
                 if (latitude == None) or (longitude == None):
-                    print(f"No data found for address {sheet_obj.cell(row, 7).value}")
+                    error_data.append({
+                        "message": f"No data found for address {sheet_obj.cell(row, 7).value}",
+                        "row": row
+                    })
                     continue
+                
+                region = Regions.get_by_coords(latitude, longitude)
+                if not region:
+                    region = Regions.get_by_name(sheet_obj.cell(row, 4).value)
+                    if not region:
+                        error_data.append({
+                            "message": f"No region found for {sheet_obj.cell(row, 4).value}",
+                            "row": row
+                        })
+                        continue
 
                 new_address = Address(
-                    region = sheet_obj.cell(row, 4).value,
-                    district = sheet_obj.cell(row, 5).value,
+                    region_id = region.id,
                     distance_from_mkad = sheet_obj.cell(row, 6).value,
                     point_on_map = sheet_obj.cell(row, 8).value,
                     address = sheet_obj.cell(row, 7).value,
@@ -684,5 +706,11 @@ async def import_clients(file: UploadFile):
             session.add(new_order)
 
             session.commit()
+            added_count+=1
 
-    return {"filename": file.filename}
+    return JSONResponse({
+        "added_count": added_count,
+        "error_count": len(error_data),
+        "errors_detail": error_data
+    })
+        
