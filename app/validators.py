@@ -44,6 +44,10 @@ class OrderUpdate(BaseModel):
     # box_type_id: UUID4
     box_name: Optional[str] = None
     box_count: Optional[int] = None
+    box_type_id: Optional[UUID] = None
+    comment_courier: Optional[str] = None
+    comment_manager: Optional[str] = None
+    day: Optional[datetime] = None
 
 
 class CourierCreationValidator(BaseModel):
@@ -281,6 +285,7 @@ class Status(BaseModel):
 
 
 class UserOrderOutData(BaseModel):
+    id: UUID4
     email: Optional[EmailStr] 
     telegram_id: Optional[int]
     telegram_username: Optional[str]
