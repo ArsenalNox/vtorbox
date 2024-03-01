@@ -82,6 +82,8 @@ async def get_all_users(
         with_orders: bool = False,
         with_active_orders: bool = False,
         with_inactive_orders: bool = False, #все кроме активных
+        has_orders: bool = False,
+
 
         #Применимо для всех
         limit: int = 5,
@@ -98,6 +100,7 @@ async def get_all_users(
     - **limit**: кол-во пользователей на запрос
     - **page**: номер страницы
     - **show_deleted**: показывать удалённых пользвателей
+    - **has_orders**: показывать только пользователей, у которых есть хотя бы одна заявка
     """
 
     with Session(engine, expire_on_commit=False) as session:
@@ -120,6 +123,11 @@ async def get_all_users(
 
             query = query.filter(Users.id.in_(roles_user_query))
 
+        if has_orders:
+            only_users_with_orders_query = session.query(Users.id).\
+                join(Orders, Orders.from_user == Users.id).subquery()
+            query = query.filter(Users.id.in_(only_users_with_orders_query))
+
         global_user_count = query.count()
         if limit == 0:
             users = query.order_by(asc(Users.date_created)).all()
@@ -130,11 +138,14 @@ async def get_all_users(
         data = []
 
         for user in users:
+            
             user_data = UserOut(**user.__dict__)
 
             scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user.id).join(Roles).all()
 
             user_data.roles = [role.role_name for role in scopes_query]
+
+         
 
             #TODO: Фильтр по статусу заявки
             if with_orders:
@@ -165,6 +176,7 @@ async def get_all_users(
                         order_data.status_data = None
 
                     user_data.orders.append(order_data)
+
 
             data.append(user_data)
 
