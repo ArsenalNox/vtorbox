@@ -118,17 +118,27 @@ async def get_filtered_orders(
         
         show_deleted: bool = False,
 
-        filter_status: str = None,
         filter_date: str = None,
 
         limit: int = 5,
         page: int = 0,
         region_id: UUID = None
+
         #TODO: Фильтр по району, округу, дистанции, курьеру итд
         ):
     """
     Получение заявок по фильтру
-
+    - **by_date**: показывать заявки на промежуток дат
+    - **datetime_start**: дата начала фильтра
+    - **datetime_end**: дата конца фильтра
+    
+    - **date_asc**: [bool] возсходящий сорт по дате создание или нисходящий
+    - **state**: фильтр статуса по названию статуса
+    - **state_id**: фильтр статуса по id статуса
+    
+    - **show_deleted**: показывать удалённые заявки
+    - **filter_date**: показывать заявки только на одну конкретную дату
+    - **region_id**: айди региона заявки 
     """
     #TODO: Фильтр по статусу
     #TODO: Фильтр по дате
@@ -157,6 +167,11 @@ async def get_filtered_orders(
             orders = orders.order_by(desc(Orders.date_created))
 
         
+        if by_date:
+            orders = orders.filter(Orders.day > datetime_start)
+            orders = orders.filter(Orders.day < datetime_end)
+
+
         if region_id:
             orders = orders.filter(Regions.id == region_id)
 
