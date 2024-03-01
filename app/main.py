@@ -5,7 +5,7 @@ import sys
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import orders, users, couriers, admins, bot, boxes, regions
+from app.routers import orders, users, couriers, admins, bot, boxes, regions, routes
 
 app = FastAPI()
 
@@ -69,6 +69,12 @@ app.include_router(
 app.include_router(
     regions.router,
     prefix="/api",
+)
+
+
+app.include_router(
+    routes.router,
+    prefix='/api'
 )
 
 
