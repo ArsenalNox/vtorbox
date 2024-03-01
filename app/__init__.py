@@ -23,6 +23,7 @@ class Tags(Enum):
     boxes = "boxes"
     roles = "roles"
     regions = "regions"
+    routes = "routes"
 
 
 class Scopes(Enum):
