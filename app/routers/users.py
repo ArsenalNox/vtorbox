@@ -314,6 +314,42 @@ async def update_user_data(
         session.add(user_query)
         session.commit()
 
+        user_data = UserOut(**user_query.dict)
+        scopes_query = session.query(Permissions, Roles.role_name).\
+                filter_by(user_id=user_query.id).join(Roles).all()
+        user_data.roles = [role.role_name for role in scopes_query]
+        
+        orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
+                join(Address, Address.id == Orders.address_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                join(OrderStatuses, OrderStatuses.id == Orders.status).\
+                where(Orders.from_user == user_query.id).order_by(asc(Orders.date_created)).all()
+        orders_out = []
+        for order in orders:
+            order_data = OrderOut(**order[0].dict)
+            order_data.tg_id = user_query.telegram_id
+
+            try:
+                order_data.address_data = order[1]
+                order_data.interval = str(order[1].interval).split(', ')
+            except IndexError: 
+                order_data.address_data = None
+
+            try:
+                if not order[2] == None:
+                    order_data.box_data = order[2]
+            except IndexError:
+                order_data.box_data = None
+
+            try:
+                order_data.status_data = order[3]
+            except IndexError:
+                order_data.status_data = None
+
+            orders_out.append(order_data)
+
+        user_data.orders = orders_out
+
         return user_query
 
 
