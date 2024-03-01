@@ -110,25 +110,40 @@ class Orders(Base):
             return session.query(Orders).all()
 
     @staticmethod
-    def query_by_id(id: UUID) -> Optional['Orders']:
-        pass
+    def query_by_id(order_id: UUID) -> Optional['Orders']:
+        #TODO: реализовать запрос по айди внутри метода
+        with Session(engine, expire_on_commit=False) as session:
+            order = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
+                join(Address, Address.id == Orders.address_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                join(OrderStatuses, OrderStatuses.id == Orders.status).\
+                join(Users, Users.id == Orders.from_user).\
+                where(Orders.id == order_id).first()
+
+            return order
 
 
     @staticmethod
     def process_order_array(orders: List[any]):
         """
-        Обрабатывает лист заявок с query и формирует массив на выход
+        Обрабатывает лист заявок с query и формирует массив на выход по схеме OrderOut
         """
         return_data = []
         for order in orders:
             order_data = OrderOut(**order[0].__dict__)
             order_data.tg_id = order[4].telegram_id
-            order_data.interval = str(order[1].interval).split(', ')
+            
+            if not(type(order[1].interval) == list):
+                order_data.interval = str(order[1].interval).split(', ')
+            else:
+                order_data.interval = order[1].interval
 
             try:
                 order_data.address_data = order[1]
-
-                order_data.address_data.interval = str(order[1].interval).split(', ')
+                if not(type(order[1].interval) == list):
+                    order_data.address_data.interval = str(order[1].interval).split(', ')
+                else:
+                    order_data.address_data.interval = order[1].interval
 
             except IndexError: 
                 order_data.address_data = None
@@ -142,7 +157,6 @@ class Orders(Base):
                         work_days_str = str(work_days_str).split(' ')
 
                     order_data.address_data.region.work_days = work_days_str
-
                 else:
                     order_data.address_data.region.work_days = None
             except IndexError:
@@ -513,6 +527,14 @@ class OrderStatuses(Base):
             return query
 
 
+    @staticmethod
+    def status_accepted_by_courier():
+        with Session(engine,expire_on_commit=False) as session:
+            query = session.query(OrderStatuses).\
+                filter_by(status_name=ORDER_STATUS_COURIER_PROGRESS['status_name']).first()
+            return query
+
+
 class OrderStatusHistory(Base):
     """
     История статуса заявки
@@ -690,13 +712,19 @@ class Routes(Base):
 
     __tablename__ = "routes"
 
-    id = Column(UUID(as_uuid=True), unique=True, primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     courier_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
     short_name = Column(String(), default=generate_route_short_name)
 
+    #На какой день предназначен маршрут 
+    date_created = Column(DateTime(), default=default_time)
     orders = relationship('RoutesOrders', backref='routes', lazy='joined')
+    
+    @staticmethod
+    def get_all_routes(today_only: bool = True):
+        pass
 
-
+    
 class RoutesOrders(Base):
     """
     Связь маршрута с заявками 
@@ -704,13 +732,14 @@ class RoutesOrders(Base):
 
     __tablename__ ="routed_orders"
 
-    id = Column(UUID(as_uuid=True), unique=True, primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id = Column(UUID(as_uuid=True), ForeignKey('orders.id'))
     route_id = Column(UUID(as_uuid=True), ForeignKey('routes.id'))
 
+    order = relationship('Orders', backref='routedorders', lazy='joined')
+
+
 # === персистные данные/конфигурации
-
-
 Base.metadata.create_all(engine)
 
 #Роли пользователей в системе
