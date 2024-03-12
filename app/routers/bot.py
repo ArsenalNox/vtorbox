@@ -11,6 +11,9 @@ from fastapi import APIRouter, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 from datetime import datetime, timedelta
+from uuid import UUID
+
+from sqlalchemy import JSON
 
 from app.models import (
     Users, Session, engine, UsersAddress, 
@@ -193,20 +196,34 @@ async def get_user_by_tg_id(
 
 @router.get('/user/addresses/all', tags=['addresses', "bot"])
 async def get_addresses(
-    tg_id: int,
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
-    days_list_len: int = 10
+    days_list_len: int = 10,
+    tg_id: int = None,
+    user_id: UUID = None,
     ) -> List[AddressOut]:
     """
     Получение всех адресов пользователя
     - **tg_id**: тг айди пользователя
     - **days_list_len**: 
     """
+
     with Session(engine, expire_on_commit=False) as session:
+        
+        user = None
+        if not(tg_id == None):
+            user = Users.get_or_404(t_id=tg_id)
+        elif not(user_id == None): 
+            user = Users.get_or_404(internal_id=user_id)
+        
+        if not user:
+            return JSONResponse({
+                "message": "User not found"
+                }, status_code=404)
+
         addresses = session.query(Address).\
             join(UsersAddress, UsersAddress.address_id == Address.id).\
             join(Users, UsersAddress.user_id == Users.id).\
-            where(Users.telegram_id == tg_id).\
+            where(Users.id == user.id).\
             where(Address.deleted_at == None).all()
 
         return_data = []
@@ -273,7 +290,11 @@ async def add_user_address(
             address = session.query(Address).filter_by(
                 latitude=str(address_data.latitude),
                 longitude=str(address_data.longitude)
-            ).where(Address.deleted_at == None).first()
+            ).\
+            where(Address.deleted_at == None).\
+            join(UsersAddress, UsersAddress.address_id == Address.id).\
+            where(UsersAddress.user_id == user.id).\
+            first()
         
             if address:
                 return JSONResponse({
