@@ -25,14 +25,15 @@ from app.models import (
     Users, Orders, Session, engine, Roles, Permissions, 
     Address, UsersAddress, BoxTypes, OrderStatusHistory,
     OrderStatuses, ROLE_CUSTOMER_NAME, ROLE_TELEGRAM_BOT_NAME,
-    Regions
+    Regions, UserRefreshTokens
     )
 
 from app.auth import (
     oauth2_scheme, pwd_context, get_password_hash, 
     verify_password, create_access_token,
     get_current_active_user, get_current_user,
-    ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
+    ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM,
+    create_refresh_token, get_current_user_refresh
 )
 
 from app.validators import (
@@ -97,7 +98,7 @@ async def get_all_users(
     - **role_name**: Фильтр по наличию роли у пользователя 
     - **only_bot_users**: Возвращать ли только пользователей, привязавших/начавших пользоваться ботом
     - **with_orders**: Возвращать информацию о пользователях вместе с их заявками
-    - **with_active_orders**: bool - возвращать пользователей только с заявками со статусом "в работе" и выше 
+    - **with_active_orders**: bool - возвращать пользователей только с активными заявками
     - **limit**: кол-во пользователей на запрос
     - **page**: номер страницы
     - **show_deleted**: показывать удалённых пользвателей
@@ -148,14 +149,26 @@ async def get_all_users(
 
          
 
-            #TODO: Фильтр по статусу заявки
             if with_orders:
                 orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                     join(Address, Address.id == Orders.address_id).\
                     outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                     join(OrderStatuses, OrderStatuses.id == Orders.status).\
-                    where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
-                
+                    where(Orders.from_user == user.id).order_by(asc(Orders.date_created))
+
+                if with_active_orders:
+                    orders = orders.filter(or_(
+                        Orders.status == OrderStatuses.status_accepted_by_courier().id,
+                        Orders.status == OrderStatuses.status_default().id,
+                        Orders.status == OrderStatuses.status_processing().id,
+                        Orders.status == OrderStatuses.status_awating_confirmation().id,
+                        Orders.status == OrderStatuses.status_confirmed().id,
+                        Orders.status == OrderStatuses.status_awaiting_payment().id,
+                        Orders.status == OrderStatuses.status_payed().id
+                    ))
+
+                orders = orders.all()                    
+
                 user_data.orders = []
                 for order in orders:
 
@@ -322,8 +335,6 @@ async def update_user_data(
 
             print(attr)
             if attr == 'password' and value:
-                #TODO: Изменение пароля
-                print('Changing user password')
                 setattr(user_query, attr, get_password_hash(value))
                 continue
             
@@ -458,6 +469,7 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
         scopes = [role.role_name for role in scopes_query]
 
         expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
+        refresh_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)*2)
         if ROLE_TELEGRAM_BOT_NAME in scopes:
             expires = None
 
@@ -469,15 +481,29 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
             }, 
             expires_delta=expires)
 
+        refresh_token = create_refresh_token(
+            data={
+                "internal_id": str(query.id),
+                "scopes": scopes
+            }, expires_delta=refresh_expires
+        )
+        new_refresh_token = UserRefreshTokens(
+            user_id=query.id,
+            token=refresh_token
+        )
+        session.add(new_refresh_token)
+        session.commit()
+
         return JSONResponse({
             "access_token": token,
+            "refresh_token": refresh_token,
             "token_type": "bearer"
         })
 
 
 @router.post('/token/refresh', tags=[Tags.users])
 async def refresh_access_token(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user)]
+    current_user: Annotated[UserLoginSchema, Security(get_current_user_refresh)]
 ):
     """
     получить новый токен доступа, если текущий не истёк
@@ -492,6 +518,18 @@ async def refresh_access_token(
         expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
         if ROLE_TELEGRAM_BOT_NAME in scopes:
             expires = None
+        
+        found = False
+        for token in current_user.refresh_tokens:
+            if current_user.refresh_token == token:
+                found = True
+                delete_query = session.query(UserRefreshTokens).filter_by(token=token).delete()
+                session.commit()
+
+        if not found:
+            return JSONResponse({
+                "message": "not authenticated"
+            }, status_code=401)
 
         token = create_access_token(
             data={
@@ -501,8 +539,23 @@ async def refresh_access_token(
             }, 
             expires_delta=expires)
 
+        refresh_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)*2)
+        refresh_token = create_refresh_token(
+            data={
+                "internal_id": str(query.id),
+                "scopes": scopes
+            }, expires_delta=refresh_expires
+        )
+        new_refresh_token = UserRefreshTokens(
+            user_id=query.id,
+            token=refresh_token
+        )
+        session.add(new_refresh_token)
+        session.commit()
+
         return JSONResponse({
             "access_token": token,
+            "refresh_token": refresh_token,
             "token_type": "bearer"
         })
 
@@ -725,7 +778,6 @@ async def import_clients(file: UploadFile):
 
                 continue
 
-            #TODO: useraddress
             new_user = session.query(Users).filter_by(phone_number = str(phone_number)).first()
             if not new_user:
                 new_user = Users(
