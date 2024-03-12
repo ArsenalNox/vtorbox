@@ -1,6 +1,7 @@
 """
 Содержит в себе ендпоинты по заявкам
 """
+from operator import contains
 import re 
 
 from app import Tags
@@ -445,14 +446,19 @@ async def create_order(
             return JSONResponse({
                 "message": f"No user address with id '{order_data.from_user}' found"
             }, status_code=422)
+            
+        warnings = []
+        container = None
+        if order_data.box_name:
+            container = session.query(BoxTypes).filter_by(box_name = order_data.box_name).first()
+            if not container:
+                warnings.append(f"no {order_data.box_name} container found")
+        if order_data.box_type_id:
+            container = session.query(BoxTypes).filter_by(id = order_data.box_type_id).first()
+            if not container:
+                warnings.append(f"no {order_data.box_type_id} container found")
 
-        # container = session.query(BoxTypes).filter_by(box_name = order_data.box_name).first()
-        # if not container:
-            # return JSONResponse({
-                # "message": f"no {order_data.box_name} container found"
-            # }, status_code=422)
-
-        order_data.day = datetime.strptime(order_data.day, "%d-%m-%Y").date()
+        order_data.day = datetime.strptime(order_data.day, "%Y-%m-%d").date()
 
         count = session.query(Orders.id).where(Orders.from_user == user.id).count()
 
@@ -467,6 +473,16 @@ async def create_order(
             date_created = datetime.now(),
             user_order_num = count + 1
         )
+        print("adding container")
+        print(container)
+        if container:
+            new_order.box_type_id = container.id
+            if order_data.box_count:
+                print(f'box count {order_data.box_count}')
+                new_order.box_count = order_data.box_count
+            else:
+                print("default box count")
+                new_order.box_count = 1
 
         session.add(new_order)
         session.commit()
@@ -478,11 +494,12 @@ async def create_order(
         session.add(status_update)
 
         session.commit()
-
+    
     return {
         "status": 'created',
         "content": new_order,
-        "data_given": order_data
+        "data_given": order_data,
+        "warnings": warnings
     }
 
 
