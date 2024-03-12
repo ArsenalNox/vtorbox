@@ -231,6 +231,7 @@ class Users(Base):
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
+
     def get_or_create(
             t_id: int = None,
             internal_id: int = None, 
@@ -533,6 +534,23 @@ class OrderStatuses(Base):
             query = session.query(OrderStatuses).\
                 filter_by(status_name=ORDER_STATUS_COURIER_PROGRESS['status_name']).first()
             return query
+
+
+    @staticmethod
+    def status_awaiting_payment():
+        with Session(engine,expire_on_commit=False) as session:
+            query = session.query(OrderStatuses).\
+                filter_by(status_name=ORDER_STATUS_AWAITING_PAYMENT['status_name']).first()
+            return query
+
+ 
+    @staticmethod
+    def status_payed():
+        with Session(engine,expire_on_commit=False) as session:
+            query = session.query(OrderStatuses).\
+                filter_by(status_name=ORDER_STATUS_PAYED['status_name']).first()
+            return query
+
 
 
 class OrderStatusHistory(Base):
@@ -915,7 +933,7 @@ def create_admin_user():
     new_user_data = UserCreationValidator(
         email="user3@example.com",
         password="string",
-        role= "customer user admin bot manager courier"
+        role= ['customer', 'user', 'admin', 'bot', 'manager', 'courier']
     )
 
     with Session(engine, expire_on_commit=False) as session:
@@ -940,7 +958,7 @@ def create_admin_user():
 
         #Если админ - добавить все роли?
 
-        for role in str(user_role).split(' '):
+        for role in user_role:
             role_query = Roles.get_role(role)
             if role_query:
                 user_role = Permissions(
