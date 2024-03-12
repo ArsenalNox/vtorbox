@@ -16,9 +16,9 @@ class Order(BaseModel):
     address_id: UUID4
     day: str 
     comment: Optional[str] = None
-    # box_type_id: UUID4
-    # box_name: str
-    # box_count: int
+    box_type_id: Optional[UUID4] = None
+    box_name: Optional[str] = None
+    box_count: Optional[int] = None
 
     model_config = {
         "json_schema_extra": {
@@ -86,9 +86,11 @@ class UserCreationValidator(BaseModel):
 
     telegram_id: int | None = None
     telegram_username: str | None = None
-    phone_number: str | None = None
+    phone_number: int | None = None
+
     firstname: str | None = None
     secondname: str | None = None
+    patronymic: Optional[str] = None
 
     role: str = "customer"
 
@@ -103,7 +105,7 @@ class UserUpdateValidator(BaseModel):
 
     password: Optional[str] = None
     telegram_id: Optional[int] = None
-    telegram_username: Optional[int] = None
+    telegram_username: Optional[str] = None
     phone_number: Optional[int] = None
     firstname: Optional[str] = None
     secondname: Optional[str] = None
@@ -183,7 +185,7 @@ class Address(BaseModel):
     """
     Модель на создание/обновление адреса
     """
-    main: bool = True
+    main: bool = False
     address:   Optional[str] = None #Текст адреса
     latitude:  Optional[float] = None
     longitude: Optional[float] = None
@@ -290,7 +292,7 @@ class UserOrderOutData(BaseModel):
     telegram_id: Optional[int]
     telegram_username: Optional[str]
 
-    phone_number: Optional[str]
+    phone_number: Optional[int]
 
     firstname: Optional[str]
     secondname: Optional[str]
@@ -344,7 +346,8 @@ class UserOut(BaseModel):
     telegram_id: Optional[int]
     telegram_username: Optional[str]
 
-    phone_number: Optional[str]
+    phone_number: Optional[int]
+    password_plain: Optional[str] = None
 
     firstname: Optional[str]
     secondname: Optional[str]
