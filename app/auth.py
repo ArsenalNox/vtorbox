@@ -9,7 +9,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 
 from datetime import datetime, timedelta
-from pydantic import ValidationError, BaseModel
+from pydantic import ValidationError, BaseModel, UUID4
 
 from .validators import (
     UserLogin as User,
@@ -36,6 +36,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
 
 
 class User(BaseModel):
+    id: UUID4 | None = None
     username: str | None = None
     disabled: bool = False
     access_token: str | None = None
@@ -86,6 +87,7 @@ def get_user(username: str):
                 filter_by(user_id=query.id).join(Roles).all()
             scopes = [role.role_name for role in scopes_query]
 
+            userdict["id"] = query.id
             userdict["username"] = query.email
             userdict["hashed_password"] = query.password
             userdict["roles"] = scopes
