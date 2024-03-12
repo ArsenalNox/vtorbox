@@ -20,7 +20,8 @@ from sqlalchemy import desc, asc, desc
 from app.validators import (
     Order as OrderValidator,
     UserLogin as UserLoginSchema,
-    OrderOut, OrderUpdate, CourierCreationValidator
+    OrderOut, OrderUpdate, CourierCreationValidator,
+    UserOut, CourierOut
 )
 
 from app.auth import (
@@ -34,16 +35,49 @@ from app.models import (
     ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION, 
     ORDER_STATUS_CONFIRMED, IntervalStatuses, 
     ROLE_ADMIN_NAME, ORDER_STATUS_COURIER_PROGRESS, 
-    ROLE_COURIER_NAME, Permissions, Roles
+    ROLE_COURIER_NAME, Permissions, Roles,
+    Routes
 )
 
 
 router = APIRouter()
 
+@router.get('/couriers', tags=[Tags.couriers, Tags.admins])
+async def get_list_of_couriers(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin", "manager"])],
+)->List[CourierOut]:
+    """
+    Получить список курьеров
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        query = session.query(Users)
+
+        roles_user_query = session.query(Users.id).\
+            join(Permissions, Permissions.user_id == Users.id).\
+            join(Roles, Roles.id == Permissions.role_id).\
+            where(Roles.role_name == ROLE_COURIER_NAME).subquery()
+
+        query = query.filter(Users.id.in_(roles_user_query))
+
+        query = query.all()
+        return_data = []
+        for user in query:
+            
+            user_data = CourierOut(**user.__dict__)
+            scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user.id).join(Roles).all()
+            user_data.roles = [role.role_name for role in scopes_query]
+            return_data.append(user_data)
+
+            routes_query = session.query(Routes).filter_by(courier_id = user.id).all()
+            user_data.assigned_routes = routes_query
+
+
+        return return_data
+
 
 @router.post('/courier', tags=[Tags.couriers])
 async def create_new_courier(
-        current_user: Annotated[UserLoginSchema, Security(get_current_user)],
+        current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
         tg_id: int
     ):
     """
@@ -68,6 +102,10 @@ async def create_new_courier(
 
             session.add(user_role)
             session.commit()
+        else:
+            return JSONResponse({
+                "message": f"User already has role {ROLE_COURIER_NAME}"
+            }, 204)
 
     return JSONResponse({
         "message": "role added"
@@ -92,6 +130,7 @@ async def get_list_of_avaliable_orders(
     statuses: List[str] = Query([ORDER_STATUS_CONFIRMED['status_name']])
 ):
     """
+    ## УСТАРЕЛО
     Получить доступные для вывоза заявки курьером
 
     Опции фильтра:
