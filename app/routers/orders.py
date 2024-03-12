@@ -14,7 +14,7 @@ from calendar import monthrange
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import desc, asc, desc
+from sqlalchemy import desc, asc, desc, or_
 
 from ..validators import (
     Order as OrderValidator,
@@ -123,8 +123,9 @@ async def get_filtered_orders(
 
         limit: int = 5,
         page: int = 0,
-        region_id: UUID = None
-
+        region_id: UUID = None,
+        
+        show_only_active: bool = False
         #TODO: Фильтр по району, округу, дистанции, курьеру итд
         ):
     """
@@ -133,13 +134,15 @@ async def get_filtered_orders(
     - **datetime_start**: дата начала фильтра
     - **datetime_end**: дата конца фильтра
     
-    - **date_asc**: [bool] возсходящий сорт по дате создание или нисходящий
+    - **date_asc**: [bool] восходящий сорт по дате создание или нисходящий
     - **state**: фильтр статуса по названию статуса
     - **state_id**: фильтр статуса по id статуса
     
     - **show_deleted**: показывать удалённые заявки
     - **filter_date**: показывать заявки только на одну конкретную дату
     - **region_id**: айди региона заявки 
+
+    - **show_only_active**: [bool] показывать только заявки категории активные
     """
     #TODO: Фильтр по статусу
     #TODO: Фильтр по дате
@@ -169,12 +172,23 @@ async def get_filtered_orders(
 
         
         if by_date:
-            orders = orders.filter(Orders.day > datetime_start)
-            orders = orders.filter(Orders.day < datetime_end)
+            orders = orders.filter(Orders.day >= datetime_start)
+            orders = orders.filter(Orders.day <= datetime_end)
 
 
         if region_id:
             orders = orders.filter(Regions.id == region_id)
+
+        if show_only_active: 
+            orders = orders.filter(or_(
+                Orders.status == OrderStatuses.status_accepted_by_courier().id,
+                Orders.status == OrderStatuses.status_default().id,
+                Orders.status == OrderStatuses.status_processing().id,
+                Orders.status == OrderStatuses.status_awating_confirmation().id,
+                Orders.status == OrderStatuses.status_confirmed().id,
+                Orders.status == OrderStatuses.status_awaiting_payment().id,
+                Orders.status == OrderStatuses.status_payed().id
+            ))
 
         global_orders_count = orders.count()
 
@@ -334,6 +348,7 @@ async def get_user_orders(
                 "message": "No user found"
             }, status_code=422)
 
+        #TODO: сократить то что идёт ниже, желательно на хотя бы 70%
         orders = None
         if not (order_id == None):
             #Получение конкретной заявки
@@ -648,6 +663,11 @@ async def set_order_status(
             return JSONResponse({
                 "message": "order not found"
             },status_code=404)
+
+        if order_query.status == status_query.id:
+            return JSONResponse({
+                "message": "Status is identical, change not saved"
+            }, 204)
 
         order_query.status = status_query.id
 
