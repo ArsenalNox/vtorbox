@@ -26,7 +26,7 @@ class Order(BaseModel):
                 {
                     'from_user': '851230989',
                     'address_id': "1cac46a0-7635-4e01-aea4-e3b9f657ca79",
-                    'day': 'завтра',
+                    'day': '07-04-2024',
                     'box_name': "Пакет",
                     'box_count': 5
                 }
@@ -92,7 +92,7 @@ class UserCreationValidator(BaseModel):
     secondname: str | None = None
     patronymic: Optional[str] = None
 
-    role: str = "customer"
+    role: List[str] = ["customer"]
 
 
 class UserUpdateValidator(BaseModel):
@@ -111,7 +111,6 @@ class UserUpdateValidator(BaseModel):
     secondname: Optional[str] = None
     patronymic: Optional[str] = None
     email: Optional[EmailStr] = None
-
 
     allow_messages_from_bot: Optional[bool] = None
 
@@ -318,7 +317,6 @@ class OrderOut(BaseModel):
     comment_manager: Optional[str] = None
     comment_courier: Optional[str] = None
 
-
     interval_type: Optional[str] = None
     interval: Optional[Any] = None
 
@@ -334,6 +332,8 @@ class OrderOut(BaseModel):
 
     status: UUID4
     status_data: Annotated[Optional[Status], Field(None)]
+    deleted_at: Optional[datetime] = None
+
 
 
 class UserOut(BaseModel):
@@ -390,3 +390,23 @@ class AddressSchedule(BaseModel):
             ]}}
 
 
+class OrderRouteOut(BaseModel):
+    order_id: UUID4
+    route_id: UUID4
+    order: OrderOut
+
+
+class RouteOut(BaseModel):
+    id: UUID4
+    courier_id: UUID4
+    short_name: str
+    route_link: Optional[str] = None
+
+    #На какой день предназначен маршрут 
+    date_created: datetime
+    orders: Optional[List[OrderRouteOut]] = None
+    
+
+class CourierOut(UserOut):
+    assigned_orders: Optional[List[OrderOut]] = None
+    assigned_routes: Optional[List[RouteOut]] = None
