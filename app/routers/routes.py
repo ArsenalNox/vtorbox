@@ -28,7 +28,7 @@ from app.validators import (
     AddressUpdate as AddressUpdateValidator,
     UserLogin as UserLoginSchema,
     AddressSchedule, CreateUserData, UpdateUserDataFromTG, AddressOut,
-    RegionOut, AddressDaysWork, UserOut
+    RegionOut, AddressDaysWork, UserOut, RouteOut
 )
 
 from app import Tags
@@ -105,7 +105,7 @@ async def write_routes_to_db(routes):
 
 @router.post('/routes/generate', tags=[Tags.routes, Tags.admins, Tags.managers])
 async def generate_routes_today(
-    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     group_by: str = 'regions',
     statuses_list = List[UUID],
     couriers_id = List[UUID],
@@ -200,7 +200,7 @@ async def generate_routes_today(
 
 @router.get("/routes", tags=[Tags.routes, Tags.admins, Tags.managers])
 async def get_routes(
-    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     date: Optional[datetime] = None,
     courier_id: Optional[UUID] = None
 ):
@@ -226,10 +226,10 @@ async def get_routes(
 @router.patch("/routes/{route_id}", tags=[Tags.routes, Tags.admins, Tags.managers])
 async def update_route_orders(
     route_id: UUID,
-    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     orders_to_delete: List[UUID] = Query(None),
     orders_to_add: List[UUID] = Query(None),
-):
+)->RouteOut:
     """
     Обновить заявки в маршруте
     - **orders_to_delete**: [List[UUID]] - Лист заявок, которые перенесутся в отменённые и удалятся из маршрута
