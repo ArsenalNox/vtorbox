@@ -231,6 +231,7 @@ class Users(Base):
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
+    refresh_token = relationship('UserRefreshTokens', backref='users', lazy='joined')
 
     def get_or_create(
             t_id: int = None,
@@ -326,6 +327,18 @@ class Users(Base):
 
         pass
 
+
+class UserRefreshTokens(Base):
+    """
+    рефреш токены пользователей
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    token = Column(String(), nullable=False)
+    date_created = Column(DateTime(), default=default_time)
 
 class Address(Base):
     """Модель для адреса"""

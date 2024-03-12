@@ -137,6 +137,10 @@ class TokenData(BaseModel):
     scopes: list[str] = []
 
 
+class RefreshTokenData(BaseModel):
+    user_id: UUID4
+
+
 class CreateUserData(BaseModel):
     tg_id: int
     username: str | None = None #Опциональные т.к пользователь может скрыть или не иметь
