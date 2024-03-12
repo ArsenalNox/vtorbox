@@ -243,7 +243,7 @@ async def create_user(
 
         #Если админ - добавить все роли?
 
-        for role in str(user_role).split(' '):
+        for role in user_role:
             role_query = Roles.get_role(role)
             if role_query:
 
@@ -464,6 +464,38 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
         token = create_access_token(
             data={
                 "sub": login_data.username,
+                "internal_id": str(query.id),
+                "scopes": scopes
+            }, 
+            expires_delta=expires)
+
+        return JSONResponse({
+            "access_token": token,
+            "token_type": "bearer"
+        })
+
+
+@router.post('/token/refresh', tags=[Tags.users])
+async def refresh_access_token(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)]
+):
+    """
+    получить новый токен доступа, если текущий не истёк
+    """
+    with Session(engine, expire_on_commit=False) as session:
+
+        query = session.query(Users).filter_by(id=current_user.id).first()
+        scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
+
+        scopes = [role.role_name for role in scopes_query]
+
+        expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
+        if ROLE_TELEGRAM_BOT_NAME in scopes:
+            expires = None
+
+        token = create_access_token(
+            data={
+                "sub": query.email,
                 "internal_id": str(query.id),
                 "scopes": scopes
             }, 
