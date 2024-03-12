@@ -5,6 +5,7 @@
 CRUD с пользователями
 Управление подпиской
 """
+from operator import ne
 import uuid, re, json
 import openpyxl as xl 
 
@@ -138,7 +139,7 @@ async def get_all_users(
         data = []
 
         for user in users:
-            
+            user.phone_number = int(user.phone_number)
             user_data = UserOut(**user.__dict__)
 
             scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user.id).join(Roles).all()
@@ -187,8 +188,6 @@ async def get_all_users(
             "data": data
         }
 
-    return []
-
 
 @router.post('/users', tags=[Tags.managers, Tags.admins])
 async def create_user(
@@ -208,7 +207,23 @@ async def create_user(
                 "message": "Email already taken",
             }, status_code=400)
 
-        new_user_data.password = get_password_hash(new_user_data.password)
+        if not (new_user_data.telegram_id == None):
+            query_user = session.query(Users).\
+                    filter_by(telegram_id=new_user_data.telegram_id).first()
+            if query_user:
+                return JSONResponse({
+                    "message": "Email already taken",
+                }, status_code=400)
+
+        password_plain = ''
+        print(new_user_data.password)
+        if new_user_data.password == None:
+            password_plain = str(uuid.uuid4())[:10] 
+        else:
+            password_plain = str(new_user_data.password)
+
+        print(password_plain)
+        new_user_data.password = get_password_hash(password_plain)
         
         new_user_data = new_user_data.model_dump()
         user_role = new_user_data["role"]
@@ -241,9 +256,17 @@ async def create_user(
 
         session.commit()
 
-        #TODO: Отправка приглашения на почту
+        scopes_query = session.query(Permissions, Roles.role_name).\
+                filter_by(user_id=new_user.id).join(Roles).all()
 
-        return new_user
+        scopes = [role.role_name for role in scopes_query]
+
+        #TODO: Отправка приглашения на почту
+        user_out_data = UserOut(**new_user.__dict__)
+        user_out_data.roles = scopes
+        user_out_data.password_plain = password_plain
+
+        return user_out_data
 
 
 @router.delete('/users', tags=[Tags.admins, Tags.managers])
