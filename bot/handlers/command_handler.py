@@ -40,10 +40,10 @@ class CommandHandler(Handler):
             )
             await state.update_data(chat_id=message.chat.id)
 
-            # получаем промокод из сообщения пользователя
             promocode_in_msg = message.text.split()[-1]
+
             if not promocode_in_msg:
-                promocode_in_msg = ['']
+                promocode_in_msg = ''
 
             # ищем пользователя из БД по промокоду и затем добавляем ему данные телеграмма в БД
             status_code, user = await req_to_api(
@@ -51,15 +51,7 @@ class CommandHandler(Handler):
                 url=f'bot/users/promocode?promocode={promocode_in_msg}',
             )
 
-            # проверка, что пользователь является курьером
-            flag = False
-            if flag:
-                await message.answer(
-                    MESSAGES['COURIER'],
-                    reply_markup=self.kb.courier_btn()
-                )
-
-            elif user and status_code == http.HTTPStatus.OK:
+            if user and status_code == http.HTTPStatus.OK:
                 user_data = json.dumps({
                     'tg_id': message.from_user.id,
                     'username': message.from_user.username,
@@ -86,24 +78,42 @@ class CommandHandler(Handler):
                 )
 
             else:
-                user_data = json.dumps({
-                    'tg_id': message.from_user.id,
-                    'username': message.from_user.username,
-                    'fullname': message.from_user.full_name
-                })
-
-                # создаем пользователя
-                await req_to_api(
-                    method='post',
-                    url='bot/user',
-                    data=user_data,
+                status_code, user = await req_to_api(
+                    method='get',
+                    url=f'user/me?tg_id={message.from_user.id}'
                 )
 
-                await message.answer(
-                    MESSAGES['REGISTRATION_MENU'],
-                    reply_markup=self.kb.registration_btn()
-                )
-                await state.set_state(RegistrationUser.phone)
+                if not user:
+                    user_data = json.dumps({
+                        'tg_id': message.from_user.id,
+                        'username': message.from_user.username,
+                        'fullname': message.from_user.full_name
+                    })
+
+                    # создаем пользователя
+                    await req_to_api(
+                        method='post',
+                        url='bot/user',
+                        data=user_data,
+                    )
+
+                    status_code, user = await req_to_api(
+                        method='get',
+                        url=f'user/me?tg_id={message.from_user.id}'
+                    )
+
+                if 'courier' in user.get('roles'):
+                    await message.answer(
+                        MESSAGES['COURIER'],
+                        reply_markup=self.kb.courier_btn()
+                    )
+
+                else:
+                    await message.answer(
+                        MESSAGES['REGISTRATION_MENU'],
+                        reply_markup=self.kb.registration_btn()
+                    )
+                    await state.set_state(RegistrationUser.phone)
 
                 # сохраняем в состояние chat_id
-                await state.update_data(chat_id=message.from_user.id)
+                await state.update_data(chat_id=message.chat.id)

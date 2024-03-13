@@ -8,32 +8,30 @@ from datetime import datetime
 
 from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.utils.buttons import BUTTONS
-from bot.utils.handle_data import convert_date
+from bot.utils.handle_data import convert_date, translate_day
 from bot.utils.messages import MESSAGES
 
 
 class OrderKeyboard(BaseKeyboard):
 
-    def choose_date_btn(self, current_time: datetime, is_show_today_button: bool) -> ReplyKeyboardMarkup:
+    def choose_date_btn(self, work_days: list[dict]) -> ReplyKeyboardMarkup:
         """Кнопки с выбором дня при создании заявки"""
 
-        choose = ['Сегодня', 'Завтра', 'Послезавтра']
-
         builder = ReplyKeyboardBuilder()
-
-        # если время больше 13:00, то кнопку 'сегодня не показывать'
-        if not is_show_today_button:
-            choose = choose[1:]
-
-        for day in choose:
-            builder.button(
-                text=day
+        for day in work_days:
+            date = convert_date(day.get('date'))
+            ru_day = translate_day(day.get('weekday'))
+            builder.add(
+                KeyboardButton(
+                    text=f'{date}({ru_day})'
+                )
             )
 
         builder.row(
             KeyboardButton(text=BUTTONS['MENU'])
 
         )
+        builder.adjust(2)
         return builder.as_markup(
             resize_keyboard=True,
             one_time_keyboard=True
@@ -103,14 +101,6 @@ class OrderKeyboard(BaseKeyboard):
                     text='Изменить адрес',
                     callback_data=f'changeaddress_{order_id}'
                 )
-            )
-
-        if order.get('status_data', {}).get('status_name') in ('ожидается подтверждение', 'подтверждена', 'передана курьеру'):
-            builder.add(
-                InlineKeyboardButton(
-                    text='Изменить тип/кол-во контейнеров',
-                    callback_data=f'changecontainer_{order_id}'
-                ),
             )
 
         if order.get('status_data', {}).get('status_name') in ('создана', 'в работе', 'ожидается подтверждение', 'подтверждена', 'передана курьеру', 'ожидается оплата', 'оплаченна'):
@@ -307,6 +297,19 @@ class OrderKeyboard(BaseKeyboard):
                 text=BUTTONS['BACK_TO_ORDER'],
                 callback_data=f'backtoorder_{order_id}'
             )
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
+    def empty_comment_btn(self) -> ReplyKeyboardMarkup:
+        """Кнопка для пустого комментария"""
+
+        builder = ReplyKeyboardBuilder()
+        builder.button(
+            text='Без комментария'
         )
 
         return builder.as_markup(

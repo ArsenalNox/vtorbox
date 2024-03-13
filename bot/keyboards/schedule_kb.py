@@ -26,7 +26,7 @@ class ScheduleKeyboard(BaseKeyboard):
         builder = ReplyKeyboardBuilder()
         builder.row(
             KeyboardButton(text='По запросу'),
-            KeyboardButton(text='По расписанию')
+            KeyboardButton(text='По дням')
         )
 
         builder.row(
@@ -56,7 +56,7 @@ class ScheduleKeyboard(BaseKeyboard):
             one_time_keyboard=True
         )
 
-    def day_of_week_btn(self, selected_day_of_week: list[str]) -> InlineKeyboardMarkup:
+    def day_of_week_btn(self, work_days: list[dict], selected_day_of_week: list[str]) -> InlineKeyboardMarkup:
         """Кнопки для отображения дней недели"""
 
         builder = InlineKeyboardBuilder()
@@ -68,22 +68,32 @@ class ScheduleKeyboard(BaseKeyboard):
             'friday': 'Пятница',
             'saturday': 'Суббота',
             'sunday': 'Воскресенье'}
+        unique_work_days = set([day.get('weekday') for day in work_days])
 
         for day in days:
             if day in selected_day_of_week:
                 builder.row(
                     InlineKeyboardButton(
-                        text=f'✔️ {days[day]}',
+                        text=f'✅  {days[day]}',
                         callback_data=f'day_of_week_{day}'
                     )
                 )
+
             else:
-                builder.row(
-                    InlineKeyboardButton(
-                        text=days[day],
-                        callback_data=f'day_of_week_{day}'
+                if day in unique_work_days:
+                    builder.row(
+                        InlineKeyboardButton(
+                            text=f'🟢  {days[day]}',
+                            callback_data=f'day_of_week_{day}'
+                        )
                     )
-                )
+                else:
+                    builder.row(
+                        InlineKeyboardButton(
+                            text=f'🔴 {days[day]}',
+                            callback_data=f'error_day_of_week'
+                        )
+                    )
 
         builder.row(
             InlineKeyboardButton(

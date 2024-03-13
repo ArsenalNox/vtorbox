@@ -25,7 +25,7 @@ class CourierHandler(Handler):
             """Получение маршрута для курьера"""
 
             # получаем маршрут для данного пользователя по tg_id
-
+            await state.update_data(chat_id=message.chat.id)
             status_code, routes = await req_to_api(
                 method='get',
                 url=f'',
@@ -48,6 +48,7 @@ class CourierHandler(Handler):
         @self.router.callback_query(F.data.startswith('points_route'))
         async def get_points_route(callback: CallbackQuery, state: FSMContext):
 
+            await state.update_data(chat_id=callback.message.chat.id)
             data = await state.get_data()
 
             # получаем маршрут для данного пользователя по tg_id
@@ -72,6 +73,7 @@ class CourierHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('point'))
         async def get_point_info(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
             point_id = callback.data.split('_')[-1]
             await state.update_data(point_id=point_id)
 
@@ -87,6 +89,7 @@ class CourierHandler(Handler):
         async def mark_point_like_finished(callback: CallbackQuery, state: FSMContext):
             """Отмечаем точку маршрута как обработанную"""
 
+            await state.update_data(chat_id=callback.message.chat.id)
             data = await state.get_data()
             point_id = data.get('point_id')
 
@@ -105,6 +108,7 @@ class CourierHandler(Handler):
         async def get_comment_to_not_finished_point(callback: CallbackQuery, state: FSMContext):
             """Запрашиваем комментарий к необработанной точке маршрута"""
 
+            await state.update_data(chat_id=callback.message.chat.id)
             await callback.message.answer(
                 MESSAGES['COMMENT_TO_POINT']
             )
@@ -115,6 +119,7 @@ class CourierHandler(Handler):
         async def get_comment_to_not_finished_point(message: Message, state: FSMContext):
             """Получаем текст комментария к необработанной заявки"""
 
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             point_id = data.get('point_id')
             comment = message.text

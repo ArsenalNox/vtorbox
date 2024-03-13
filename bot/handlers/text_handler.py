@@ -13,7 +13,7 @@ from bot.handlers.base_handler import Handler
 from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.keyboards.order import OrderKeyboard
 from bot.settings import settings
-from bot.states.states import RegistrationUser
+from bot.states.states import RegistrationUser, SMSEmail
 
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
@@ -43,18 +43,6 @@ class TextHandler(Handler):
                 data=data,
                 src=message
             )
-            user_data = json.dumps({
-                'tg_id': message.from_user.id,
-                'username': message.from_user.username,
-                'fullname': message.from_user.full_name
-            })
-
-            # создаем пользователя
-            await req_to_api(
-                method='post',
-                url='bot/user',
-                data=user_data,
-            )
 
             await message.answer(
                 MESSAGES['START']
@@ -74,7 +62,7 @@ class TextHandler(Handler):
                 url=f'users/orders/?tg_id={message.from_user.id}',
             )
 
-            if orders:
+            if orders and status_code == 200:
                 await show_active_orders(
                     orders=orders,
                     self=self,
@@ -91,6 +79,7 @@ class TextHandler(Handler):
         async def catch_user_phone_number(message: Message, state: FSMContext):
             """Отлавливаем номер телефона юзера"""
 
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -110,6 +99,7 @@ class TextHandler(Handler):
                 await message.answer(
                     MESSAGES['SEND_SMS']
                 )
+                await state.set_state(SMSEmail.code)
 
             else:
                 await message.answer(
@@ -118,10 +108,47 @@ class TextHandler(Handler):
                 )
                 await state.set_state(RegistrationUser.phone)
 
+        @self.router.message(SMSEmail.code)
+        async def get_sms_code(message: Message, state: FSMContext):
+
+            await state.update_data(chat_id=message.chat.id)
+            await state.set_state(state=None)
+
+            code = message.text
+
+            if code == '123':
+                await message.answer(
+                    'Отлично! Код верный',
+                    reply_markup=self.kb.start_menu_btn()
+                )
+
+                await state.set_state(state=None)
+
+                status_code, orders = await req_to_api(
+                    method='get',
+                    url=f'users/orders/?tg_id={message.from_user.id}',
+                )
+
+                if orders:
+                    await show_active_orders(
+                        message=message,
+                        orders=orders,
+                        state=state,
+                        self=self
+                    )
+            else:
+                await message.answer(
+                    'Код неверный!',
+                    reply_markup=self.kb.registration_btn()
+                )
+                await state.set_state(RegistrationUser.phone)
+
         @self.router.message(RegistrationUser.phone)
         async def catch_text_user_phone(message: Message, state: FSMContext):
 
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
+
             check_phone = re.search(phone_pattern, message.text)
 
             if check_phone and len(message.text) == 11:
@@ -138,6 +165,7 @@ class TextHandler(Handler):
                     await message.answer(
                         MESSAGES['SEND_SMS']
                     )
+                    await state.set_state(SMSEmail.code)
 
                 else:
                     await message.answer(
@@ -147,12 +175,10 @@ class TextHandler(Handler):
 
             else:
                 promocode = message.text
-                print(promocode)
                 status_code, user = await req_to_api(
                     method='get',
                     url=f'bot/users/promocode?promocode={promocode}',
                 )
-                print(user)
 
                 if user and status_code == http.HTTPStatus.OK:
                     user_data = json.dumps({
@@ -191,6 +217,7 @@ class TextHandler(Handler):
         async def get_settings(message: Message, state: FSMContext):
             """Получение настроек бота"""
 
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -207,6 +234,7 @@ class TextHandler(Handler):
         async def get_about_info(message: Message, state: FSMContext):
             """Получение анкеты пользователя"""
 
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -223,6 +251,7 @@ class TextHandler(Handler):
         async def get_menu(message: Message, state: FSMContext):
             """Переход в главное меню"""
 
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
