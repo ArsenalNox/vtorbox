@@ -31,8 +31,7 @@ class CreateOrder(StatesGroup):
 
     date = State()
     address = State()
-    container = State()
-    count_container = State()
+    comment = State()
 
 
 class YesOrNo(StatesGroup):
@@ -52,3 +51,9 @@ class Courier(StatesGroup):
     """Отлов комментария к необработанной точке маршрута"""
 
     point = State()
+
+
+class SMSEmail(StatesGroup):
+    """Отлов кода из смс/email"""
+
+    code = State()

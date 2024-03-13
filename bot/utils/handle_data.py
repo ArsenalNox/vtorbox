@@ -1,17 +1,19 @@
 import datetime
 import pprint
 import uuid
+from typing import Union
 
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
+from bot.states.states import CreateOrder
 from bot.utils.messages import MESSAGES
 
 fullname_pattern = r"^[а-яА-ЯёЁ\s]+$"
 phone_pattern = r'^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$'
 email_pattern = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
 HEADERS = {
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyM0BleGFtcGxlLmNvbSIsImludGVybmFsX2lkIjoiNDNmOTZiN2MtYzQxNy00YmUxLTliZTgtODU3YmY5ZGY4YWNiIiwic2NvcGVzIjpbImN1c3RvbWVyIiwiYWRtaW4iLCJtYW5hZ2VyIiwiY291cmllciIsImJvdCJdfQ.aKUiidy6ZQ18QdLeEs8cvHkFjft9wV7eCnzMVObMXqQ'
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyM0BleGFtcGxlLmNvbSIsImludGVybmFsX2lkIjoiODA0ODFlNTctYjk1Zi00MmM3LWExYWYtNjM3NDAxYjkxNTJiIiwic2NvcGVzIjpbImN1c3RvbWVyIiwiYWRtaW4iLCJib3QiLCJtYW5hZ2VyIiwiY291cmllciJdfQ._PUj3bg34h-TJQ6oa5sKI7XRrtON0gKqgPd5y_rrbuE'
 }
 
 
@@ -62,6 +64,13 @@ async def show_order_info(self: 'OrderHandler', message: Message, order: dict, s
 
     data = await state.get_data()
 
+    if data.get('order_msg'):
+        await message.bot.delete_message(
+            chat_id=data.get('chat_id'),
+            message_id=data.get('order_msg')
+        )
+        await state.update_data(order_msg=None)
+
     # удаляем клавиатуру у сообщений с историями заявок
     if data.get('msg_order_history'):
         await message.bot.edit_message_reply_markup(
@@ -73,15 +82,25 @@ async def show_order_info(self: 'OrderHandler', message: Message, order: dict, s
         await state.update_data(msg_order_history=None)
 
     date = convert_date(order.get('day'))
+    created_at = convert_date(order.get('date_created'))
+    if order.get('box_data') and order.get('box_name') and order.get('box_count'):
+        box_count = order.get('box_count', 'Не задано')
+        box_name = order.get('box_data', {}).get('box_name', 'Не задано')
+    else:
+        box_count = 'Не задано'
+        box_name = 'Не задано'
+
     order_msg = await message.answer(
         MESSAGES['ORDER_INFO'].format(
             order.get('order_num'),
             order.get('address_data', {}).get('address'),
             date,
-            order.get('status_data', {}).get('status_name') + f'({order.get("status_data", {}).get("description")})',
-            order.get('box_data', {}).get('box_name'),
-            order.get('box_count'),
-            '100'
+            order.get('comment', '-'),
+            order.get('status_data', {}).get('status_name') + f'({order.get("status_data", {}).get("description", "")})',
+            box_name,
+            box_count,
+            'Тут сумма заказа',
+            created_at
 
         ),
         reply_markup=self.kb.order_menu_btn(order, self.orders_list, self.index)
@@ -113,8 +132,9 @@ def translate_month(eng_month: str) -> str:
 
 
 def translate_day(eng_day: str) -> str:
-    """Перевод названий дней"""
+    """Перевод названий дней с англ на русском"""
 
+    eng_day = eng_day.lower()
     days = {
         'monday': 'Понедельник',
         'tuesday': 'Вторник',
@@ -127,6 +147,35 @@ def translate_day(eng_day: str) -> str:
 
     return days[eng_day]
 
+
+def translate_day_reverse(ru_day: str) -> str:
+    """Перевод названий дней с русского на англ"""
+
+    ru_day = ru_day.lower()
+    days = {
+        'понедельник': 'monday',
+        'вторник ': 'tuesday',
+        'среда': 'wednesday',
+        'четверг': 'thursday',
+        'пятница': 'friday',
+        'суббота': 'saturday',
+        'воскресенье': 'sunday',
+    }
+
+    return days[ru_day]
+
+
+def convert_date(date: str, format: str = '%d-%m-%Y') -> str:
+    """Преобразовываем дату в формат дд-мм-год """
+    try:
+        date_time_obj = datetime.datetime.strptime(date, '%Y-%m-%dT%H:%M:%S')
+    except Exception:
+        date_time_obj = datetime.datetime.strptime(date, '%Y-%m-%dT%H:%M:%S.%f')
+    date = date_time_obj.strftime(format)
+
+    return date
+
+
 async def group_orders_by_month(orders_list: list[dict]):
     """Группируем заявки по месяцу"""
 
@@ -137,6 +186,7 @@ async def group_orders_by_month(orders_list: list[dict]):
             datetime_obj = datetime.datetime.strptime(order.get('day'), '%Y-%m-%dT%H:%M:%S')
         except Exception:
             datetime_obj = datetime.datetime.strptime(order.get('day'), '%Y-%m-%dT%H:%M:%S.%f')
+
         ru_month = translate_month(datetime_obj.strftime('%B')).lower()
 
         group = f'{ru_month} {datetime_obj.year}'
@@ -148,15 +198,8 @@ async def group_orders_by_month(orders_list: list[dict]):
     return result
 
 
-def convert_date(date: str) -> str:
-    """Преобразовываем дату в формат дд-мм-год """
-    try:
-        date_time_obj = datetime.datetime.strptime(date, '%Y-%m-%dT%H:%M:%S')
-    except Exception:
-        date_time_obj = datetime.datetime.strptime(date, '%Y-%m-%dT%H:%M:%S.%f')
-    date = date_time_obj.strftime('%d-%m-%Y')
 
-    return date
+
 
 
 async def show_address_list(self: 'AddressHandler', message: Message, state: FSMContext, address_list: list[dict]):
@@ -166,6 +209,7 @@ async def show_address_list(self: 'AddressHandler', message: Message, state: FSM
         MESSAGES['ADD_ADDRESS'],
         reply_markup=self.kb.add_address_btn(self.flag_to_return)
     )
+
     await state.update_data(msg=msg.message_id)
     msg_ids = {}
     count = 1  # счетчик для порядкового номера адресов
@@ -194,3 +238,20 @@ async def show_address_list(self: 'AddressHandler', message: Message, state: FSM
         msg_ids[address['id']] = msg.message_id
 
     await state.update_data(msg_ids=msg_ids)
+
+
+async def show_address_date(message: Message, address: 'Address', kb: 'OrderKeyboard', state: FSMContext):
+    work_dates = address.get('work_dates')
+    if work_dates:
+        await message.answer(
+            MESSAGES['CHOOSE_DATE_ORDER'],
+            reply_markup=kb(work_dates)
+        )
+
+    else:
+        await message.answer(
+            MESSAGES['NO_WORK_DAYS_FOR_ADDRESS'],
+            reply_markup=kb(work_dates)
+        )
+
+    await state.set_state(CreateOrder.date)
