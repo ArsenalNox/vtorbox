@@ -52,6 +52,7 @@ class MainBot:
                 logger.warning(e)
                 logger.warning(traceback.format_exc())
 
+
     async def start(self):
         """Подключение всех роутеров/старт отлова сообщений/логгирование"""
 

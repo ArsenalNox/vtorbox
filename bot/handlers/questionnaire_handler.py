@@ -31,7 +31,7 @@ class QuestionnaireHandler(Handler):
             """Получение анкеты пользователя"""
 
             # получаем анкету по tg_id
-
+            await state.update_data(chat_id=message.chat.id)
             status_code, user_data = await req_to_api(
                 method='get',
                 url=f'bot/users/telegram?tg_id={message.from_user.id}',
@@ -51,6 +51,7 @@ class QuestionnaireHandler(Handler):
         async def get_firstname(message: Message, state: FSMContext):
             """Запрашиваем имя у пользователя"""
 
+            await state.update_data(chat_id=message.chat.id)
             await state.set_state(EditQuestionnaireState.first_name)
             await message.answer(
                 MESSAGES['WRITE_YOUR_FIRSTNAME'],
@@ -61,6 +62,7 @@ class QuestionnaireHandler(Handler):
         async def set_firstname(message: Message, state: FSMContext):
             """Отлавливаем изменение имени"""
 
+            await state.update_data(chat_id=message.chat.id)
             status_code, user_data = await req_to_api(
                 method='get',
                 url=f'bot/users/telegram?tg_id={message.from_user.id}',
@@ -96,6 +98,7 @@ class QuestionnaireHandler(Handler):
         async def get_lastname(message: Message, state: FSMContext):
             """Запрашиваем фамилии у пользователя"""
 
+            await state.update_data(chat_id=message.chat.id)
             await state.set_state(EditQuestionnaireState.last_name)
             await message.answer(
                 MESSAGES['WRITE_YOUR_LASTNAME'],
@@ -106,6 +109,7 @@ class QuestionnaireHandler(Handler):
         async def set_lastname(message: Message, state: FSMContext):
             """Отлавливаем изменение фамилии"""
 
+            await state.update_data(chat_id=message.chat.id)
             status_code, user_data = await req_to_api(
                 method='get',
                 url=f'bot/users/telegram?tg_id={message.from_user.id}',
@@ -141,6 +145,7 @@ class QuestionnaireHandler(Handler):
         async def get_phone_number(message: Message, state: FSMContext):
             """Запрашиваем номер телефона у пользователя"""
 
+            await state.update_data(chat_id=message.chat.id)
             await state.set_state(EditQuestionnaireState.phone_number)
             await message.answer(
                 MESSAGES['WRITE_YOUR_PHONE_NUMBER'],
@@ -151,6 +156,7 @@ class QuestionnaireHandler(Handler):
         async def set_phone_number(message: Message, state: FSMContext):
             """Отлавливаем изменение номера телефона"""
 
+            await state.update_data(chat_id=message.chat.id)
             phone = ''
             check_phone = ''
             if message.contact:
@@ -180,6 +186,8 @@ class QuestionnaireHandler(Handler):
         @self.router.message(EditQuestionnaireState.approve_phone)
         async def approve_phone_number(message: Message, state: FSMContext):
             """Подтверждение номера телефона"""
+
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
 
             if message.text == '123':
@@ -212,6 +220,11 @@ class QuestionnaireHandler(Handler):
                 await message.answer(
                     MESSAGES['WRONG_CODE']
                 )
+                await get_questionnaire(
+                    message=message,
+                    state=state
+                )
+
             await message.answer(
                 MESSAGES['MENU'],
                 reply_markup=self.kb.questionnaire_btn()
@@ -221,6 +234,7 @@ class QuestionnaireHandler(Handler):
         async def get_email(message: Message, state: FSMContext):
             """Запрашиваем email у пользователя"""
 
+            await state.update_data(chat_id=message.chat.id)
             await state.set_state(EditQuestionnaireState.email)
             await message.answer(
                 MESSAGES['WRITE_YOUR_EMAIL'],
@@ -231,6 +245,7 @@ class QuestionnaireHandler(Handler):
         async def set_email(message: Message, state: FSMContext):
             """Отлавливаем изменение email"""
 
+            await state.update_data(chat_id=message.chat.id)
             check_email = re.search(email_pattern, message.text)
             if check_email:
                 await message.answer(
@@ -247,6 +262,8 @@ class QuestionnaireHandler(Handler):
         @self.router.message(EditQuestionnaireState.approve_email)
         async def approve_phone_number(message: Message, state: FSMContext):
             """Подтверждение email"""
+
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
 
             if message.text == '123':

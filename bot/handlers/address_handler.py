@@ -13,7 +13,7 @@ from bot.settings import settings
 from bot.states.states import AddAddressState, CreateOrder
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn, format_addresses
-from bot.utils.handle_data import HEADERS, show_address_list
+from bot.utils.handle_data import HEADERS, show_address_list, show_address_date
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
@@ -31,6 +31,7 @@ class AddressHandler(Handler):
         async def get_my_addresses(message: Message, state: FSMContext):
             """Получение всех адресов пользователя"""
 
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -60,6 +61,7 @@ class AddressHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('add_address'))
         async def get_new_address(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -81,6 +83,7 @@ class AddressHandler(Handler):
         async def get_new_address_from_geo(message: Message, state: FSMContext):
             """Получение и валидация нового адреса отправлено по геолокации"""
 
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -109,6 +112,7 @@ class AddressHandler(Handler):
         async def get_detail_address(message: Message, state: FSMContext):
             """Получение доп информации об адресе (подъезд, квартира)"""
 
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -130,6 +134,7 @@ class AddressHandler(Handler):
         async def get_comment_address(message: Message, state: FSMContext):
             """Получение комментария к адресу и создание адреса в БД"""
 
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             await state.set_state(state=None)
 
@@ -142,6 +147,7 @@ class AddressHandler(Handler):
                     "longitude": data.get("longitude"),
                 }
             )
+            print(address_data)
 
             status_code, response = await req_to_api(
                 method='post',
@@ -158,16 +164,14 @@ class AddressHandler(Handler):
                 )
 
             elif eval(self.flag_to_return):
-                # запрос на получение типов конейнера из БД
-                status_code, containers_types = await req_to_api(
-                    method='get',
-                    url=f'boxes',
+                address = response
+                await show_address_date(
+                    address=address,
+                    message=message,
+                    kb=self.order_kb.choose_date_btn,
+                    state=state
                 )
-                await message.answer(
-                    MESSAGES['CHOOSE_CONTAINER'],
-                    reply_markup=self.order_kb.choose_container_btn(containers_types)
-                )
-                await state.set_state(CreateOrder.container)
+
                 self.flag_to_return = False
             else:
                 # переход к списку адресов
@@ -180,6 +184,7 @@ class AddressHandler(Handler):
         async def get_new_address_from_text(message: Message, state: FSMContext):
             """Получение и валидация нового адреса по тексту пользователя"""
 
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -198,6 +203,7 @@ class AddressHandler(Handler):
         @self.router.callback_query(F.data.startswith('delete_address'))
         async def delete_address(callback: CallbackQuery, state: FSMContext):
 
+            await state.update_data(chat_id=callback.message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -206,7 +212,6 @@ class AddressHandler(Handler):
             )
 
             address_id = callback.data.split('_')[-1]
-            print(address_id)
 
             # запрос в бек на удаление адреса по его id
             await req_to_api(
@@ -228,6 +233,12 @@ class AddressHandler(Handler):
                 method='get',
                 url=f'bot/user/addresses/all?tg_id={callback.message.chat.id}',
             )
+
+            msg = await callback.message.answer(
+                MESSAGES['ADD_ADDRESS'],
+                reply_markup=self.kb.add_address_btn(self.flag_to_return)
+            )
+            await state.update_data(msg=msg.message_id)
 
             msg_ids = {}
             # отправляем все адреса пользователя с кнопками ('Удалить' и 'По умолчанию')
@@ -251,6 +262,7 @@ class AddressHandler(Handler):
         @self.router.callback_query(F.data.startswith('default_address'))
         async def default_address(callback: CallbackQuery, state: FSMContext):
 
+            await state.update_data(chat_id=callback.message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,

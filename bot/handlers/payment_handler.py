@@ -20,6 +20,8 @@ class PaymentHandler(Handler):
         async def get_payments(message: Message, state: FSMContext):
             """Получение способов оплаты пользователя"""
 
+            await state.update_data(chat_id=message.chat.id)
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,

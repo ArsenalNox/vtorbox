@@ -6,11 +6,10 @@ from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, User
 
-from app.models import Address, Users
 from bot.utils.handle_data import translate_month, translate_day
 
 
-def format_addresses(addresses: list[Address]) -> str:
+def format_addresses(addresses: list['Address']) -> str:
     """Формируем текст с адресами пользователя"""
 
     result = 'Ваши адреса:\n'
@@ -25,7 +24,7 @@ def format_addresses(addresses: list[Address]) -> str:
     return result
 
 
-def format_questionnaire(user: Users):
+def format_questionnaire(user: 'Users'):
     """Формируем анкету пользователя"""
 
     result = '<b>Ваша анкета</b>: \n\n'
