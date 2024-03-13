@@ -17,7 +17,18 @@ from fastapi import APIRouter, Depends, HTTPException, status, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 
-from ..models import Users, Orders, Session, engine, Roles, Permissions
+from ..models import (
+    engine, 
+    Session, 
+    OrderStatuses,
+    Roles, Permissions
+)
+
+from ..validators import (
+    UserLogin as UserLoginSchema,
+    StatusOut
+)
+
 from ..auth import (
     oauth2_scheme, 
     pwd_context, 
@@ -29,23 +40,54 @@ from ..auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
 )
 
-from ..validators import (
-    UserSignUp as UserSignUpSchema,
-    UserLogin as UserLoginSchema,
-    UserCreationValidator as UserCreationData,
-    UserUpdateValidator as UserUpdateData
-
-)
-
-from passlib.context import CryptContext
-from datetime import timedelta
-
-from jose import jwt
-
 import os, uuid
 from dotenv import load_dotenv
-
+from app import Tags
 
 load_dotenv()
 router = APIRouter()
 
+
+@router.get('/statuses', tags=['statuses'])
+async def get_all_statueses(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)]
+) -> list[StatusOut]:
+    """
+    Получение списка всех статусов
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        statuses = session.query(OrderStatuses).all()
+        statuses_list = [StatusOut(**status.__dict__) for status in statuses]
+        return statuses_list
+
+
+@router.get('/statuses/name', tags=['statuses'])
+async def get_status_info_by_name(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
+    status_name: str
+) -> StatusOut:
+    """
+    Получение статуса по его названию
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        status_name = f"%{status_name}%"
+        status = session.query(OrderStatuses).filter(OrderStatuses.status_name.like(status_name)).first()
+        return status
+
+
+@router.put('/statuses/{status_id}', tags=['admins'])
+async def change_status():
+    pass
+
+
+@router.get('/roles', tags=[Tags.roles])
+async def get_avaliable_roles(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])]
+):
+    """
+    Получение списка ролей
+    """
+
+    with Session(engine, expire_on_commit=False) as session:
+        roles_query = session.query(Roles).all()
+        return roles_query

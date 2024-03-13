@@ -7,44 +7,27 @@
 """
 import uuid
 
-from pydantic import BaseModel, EmailStr
-from typing import Optional
-
-
-#TODO: Модели под пользователей
-#TODO: Модели под заявку
-#TODO: Модели под админа
-#TODO: Модели под менеджера
-
-
+from pydantic import BaseModel, EmailStr, UUID4, Field
+from typing import Optional, Annotated, Any, List
+from typing_extensions import TypedDict
+from datetime import datetime
 class Order(BaseModel):
-    user_tg_id: int
-    district: str
-    region: str
-    distance_from_mkad: int
-    address: str
-    full_adress: str | None = None 
-    weekday: int 
-    full_name: str | None = None
-    phone_number: str
-    price: float
-    is_legal_entity: bool | None = False
+    from_user: str
+    address_id: UUID4
+    day: str 
+    # box_type_id: UUID4
+    box_name: str
+    box_count: int
 
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
-                'user_tg_id': 7643079034697,
-                'district': 'МО',
-                'region': 'Красногорск',
-                'distance_from_mkad': 12,
-                'address': 'Ул. Пушкина 8',
-                'full_adress': '8-53. Домофон 53 и кнопка "вызов".' ,
-                'weekday': 6,
-                'full_name': 'Иванов Иван Иванович',
-                'phone_number': '+7 123 2323 88 88', 
-                'price': 350,
-                'is_legal_entity': False,
+                    'from_user': '851230989',
+                    'address_id': "1cac46a0-7635-4e01-aea4-e3b9f657ca79",
+                    'day': 'завтра',
+                    'box_name': "Пакет",
+                    'box_count': 5
                 }
             ]
         }
@@ -56,7 +39,10 @@ class OrderUpdate(BaseModel):
     Валидация на обновление данных заявки
     Отдельная т.к множество полей опциональные
     """
-    pass
+    address_id: Optional[UUID4] = None
+    # box_type_id: UUID4
+    box_name: Optional[str] = None
+    box_count: Optional[int] = None
 
 
 class CourierCreationValidator(BaseModel):
@@ -65,20 +51,6 @@ class CourierCreationValidator(BaseModel):
     """
     tg_id: int
 
-
-class User(BaseModel):
-    """
-    Возврат данных пользвателя
-    """
-    pass
-
-
-class UserUpdateValidator(BaseModel):
-    """
-    Валидатор на обновление данных пользователя
-    Все поля кроме айди пользователя не обязательны
-    """
-    pass
 
 
 class OrderFilter(BaseModel):
@@ -110,7 +82,8 @@ class UserCreationValidator(BaseModel):
     telegram_id: int | None = None
     telegram_username: str | None = None
     phone_number: str | None = None
-    full_name: str
+    firstname: str
+    secondname: str
 
     role: str = "user"
     send_email_invite: bool = False #Отправить ли письмо с приглашением
@@ -119,6 +92,8 @@ class UserCreationValidator(BaseModel):
 class UserUpdateValidator(BaseModel):
     """
     Валидатор на обновление данных пользователя
+
+    Все поля кроме айди пользователя не обязательны
     """
     user_id: str #Может быть и тг айди 
 
@@ -126,7 +101,9 @@ class UserUpdateValidator(BaseModel):
     telegram_id: Optional[int] = None
     telegram_username: Optional[int] = None
     phone_number: Optional[int] = None
-    full_name: Optional[str] = None
+    firstname: Optional[str] = None
+    secondname: Optional[str] = None
+    email: Optional[EmailStr] = None
 
 
 class AuthToken(BaseModel):
@@ -147,7 +124,8 @@ class TokenData(BaseModel):
 class CreateUserData(BaseModel):
     tg_id: int
     username: str | None = None #Опциональные т.к пользователь может скрыть или не иметь
-    fullname: str | None = None 
+    firstname: str | None = None 
+    secondname: str | None = None
 
 
 class UpdateUserDataFromTG(CreateUserData):
@@ -163,14 +141,44 @@ class Address(BaseModel):
     Модель на создание/обновление адреса
     """
     main: bool = True
-    address: str #Текст адреса
-    latitude: str 
-    longitude: str 
+    address:   Optional[str] = None #Текст адреса
+    latitude:  Optional[float] = None
+    longitude: Optional[float] = None
+    detail: Optional[str] = None 
+    comment: Optional[str] = None
 
     district: str | None = None
     region: str | None = None 
-    distance_from_mkad: str | None = None
+    distance_from_mkad: int | None = None
     point_on_map: str | None = None
+
+    selected_day_of_week:  Optional[List[str]] = None
+    selected_day_of_month: Optional[List[str]] = None
+    interval_type: Optional[str] = None
+    interval: Optional[List[str]] = None
+
+    #TODO типы интервалов
+    #month_day
+    #week_day
+    #day_once
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    'main': 'false',
+                    'district': 'МО',
+                    'longitude': '55.158193',
+                    'latitude': '51.837447',
+                    'region': 'Красногорск',
+                    'distance_from_mkad': 12,
+                    'address': 'Оренбург Просторная 19/1',
+                    'detail': '8-53. Домофон 53 и кнопка "вызов".',
+                    'comment': "Злая собака",
+                }
+            ]
+        }
+    }
 
 
 class AddressUpdate(Address):
@@ -185,3 +193,100 @@ class AddressUpdate(Address):
     region: str | None = None 
     distance_from_mkad: str | None = None
     point_on_map: str | None = None
+    interval:  str = None
+    interval_type: str = None
+
+
+class BoxType(BaseModel):
+    """
+    Модель контейнера
+    """
+    box_name: str
+    pricing_default: float 
+    volume: float
+    weight_limit: float
+
+
+class BoxUpdate(BaseModel):
+    box_name: Optional[str]
+    pricing_default: Optional[float] 
+    volume: Optional[float]
+    weight_limit: Optional[float]
+
+
+class Status(BaseModel):
+    """
+    Статус
+    """
+    status_name: str
+    description: str
+
+
+class OrderOut(BaseModel):
+    tg_id: Optional[int] = None
+    day: Optional[datetime] = None
+    last_disposal: Optional[datetime] = None
+    times_completed: int | None = None
+    status: Any
+    date_created: datetime
+    last_updated: datetime
+    id: UUID4
+    address_id: UUID4
+    legal_entity: bool
+    box_type_id: Any
+    box_count: Any
+    
+
+    interval_type: Optional[str] = None
+    intreval: Optional[str] = None
+
+    order_num: Optional[int] = None
+    user_order_num: Optional[int] = None
+
+    #TODO: Убрать annotated 
+    address_data: Annotated[Optional[Address], Field(None)]
+    box_data: Annotated[Optional[BoxType], Field(None)]
+    status_data: Annotated[Optional[Status], Field(None)]
+
+
+class UserOut(BaseModel):
+    """
+    Возврат данных пользвателя
+    """
+    email: Optional[EmailStr] 
+
+    id: UUID4
+    telegram_id: Optional[int]
+    telegram_username: Optional[str]
+
+    phone_number: Optional[str]
+
+    firstname: Optional[str]
+    secondname: Optional[str]
+
+    # orders: Optional[list[Annotated[Optional[OrderOut], Field(None)]]]
+    orders: Optional[list[OrderOut]] = None
+    roles: Optional[list[str]] = None
+    deleted_at: Optional[datetime] = None
+    link_code: Optional[str] = None
+
+
+class StatusOut(BaseModel):
+    status_name: str
+    description: str
+    id: UUID4
+
+
+class AddressSchedule(BaseModel):
+    selected_day_of_week:  Optional[List[str]] = None
+    selected_day_of_month: Optional[List[str]] = None
+    interval_type: Optional[str] = None
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    'selected_day_of_month': ['1', '23', '24'],
+                    'interval_type': 'month_day'
+                }
+            ]}}
