@@ -6,21 +6,23 @@ import requests
 import os, uuid
 
 
-from typing import Annotated, List, Tuple, Dict
+from typing import Annotated, List, Tuple, Dict, Optional
 from fastapi import APIRouter, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 from datetime import datetime, timedelta
 from uuid import UUID
 
+from sqlalchemy import desc, asc, desc
 from sqlalchemy import JSON
 
 from app.models import (
     Users, Session, engine, UsersAddress, 
-    Address, IntervalStatuses, Roles, Permissions, Regions, WEEK_DAYS_WORK_STR_LIST
+    Address, IntervalStatuses, Roles, Permissions, Regions, WEEK_DAYS_WORK_STR_LIST,
+    Routes, RoutesOrders
     )
 
-from app import CODER_KEY, CODER_SETTINGS
+from app import CODER_KEY, CODER_SETTINGS, Tags
 
 from app.auth import (
     oauth2_scheme, 
@@ -33,7 +35,7 @@ from app.validators import (
     AddressUpdate as AddressUpdateValidator,
     UserLogin as UserLoginSchema,
     AddressSchedule, CreateUserData, UpdateUserDataFromTG, AddressOut,
-    RegionOut, AddressDaysWork, UserOut
+    RegionOut, AddressDaysWork, UserOut, RouteOut
 )
 
 
@@ -607,3 +609,29 @@ async def delete_user_address(
         session.commit()
 
     return
+
+
+@router.get("/routes", tags=[Tags.routes, Tags.couriers, Tags.bot])
+async def get_routes(
+    courier_id: int,
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+    date: Optional[datetime] = None
+)->List[RouteOut]:
+    """
+    получить маршруты
+    - **date**: [datetime] - дата на получение маршрутов, по умолчанию получаются все маршруты
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        user = Users.get_or_404(t_id = courier_id)
+
+        routes = session.query(Routes)
+        routes = routes.filter(Routes.courier_id == user.id)
+
+        if date:
+            routes = routes.filter(Routes.date_created > date)
+        
+
+        routes = routes.order_by(asc(Routes.date_created)).all()
+
+        return routes
+    
