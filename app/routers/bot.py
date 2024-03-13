@@ -85,7 +85,6 @@ async def create_bot_client_from_link(
     """
     Привязать пользователя бота к клиенту по коду
     """
-    #TODO: Проверка на занятость тг айди? 
     with Session(engine, expire_on_commit=False) as session:
         user_query = session.query(Users).filter_by(link_code=user_link_data.promocode).first()
         if not user_query:
@@ -93,6 +92,12 @@ async def create_bot_client_from_link(
                 "message": f"No user with link code {user_link_data.promocode} found"
             }, status_code=404)
         
+        user_query = session.query(Users).filter_by(telegram_id=user_link_data.tg_id).first()
+        if user_query:
+            return JSONResponse({
+                "message": f"пользователь с таким айди телеграм ({user_link_data.tg_id}) уже существует"
+            })
+
         user_query.telegram_id = user_link_data.tg_id
         user_query.telegram_username = user_link_data.username
         user_query.first_name = user_link_data.first_name
@@ -270,14 +275,19 @@ async def get_main_address(
 @router.post('/user/addresses', tags=["addresses", "bot"])
 async def add_user_address(
         address_data: AddressValidator, 
-        tg_id: int,
-        bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
+        bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+        tg_id: int = None,
+        user_id: UUID = None
     ) -> AddressOut:
     """
     Создание адреса пользователя
     """
 
-    user = Users.get_or_create(t_id=int(tg_id))
+    user = Users.get_or_404(t_id=tg_id, internal_id=user_id)
+    if not user:
+        return JSONResponse({
+            "message": "User not found"
+        }, status_code=404)
 
     with Session(engine, expire_on_commit=False) as session:
 
@@ -362,7 +372,6 @@ async def add_user_address(
                 join(Users, UsersAddress.user_id == Users.id). \
                 where(Users.telegram_id == tg_id).where(Address.deleted_at == None).all()
 
-            #TODO: Перенести Update в query
             for address in update_query: 
                 address.main = False
 
