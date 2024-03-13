@@ -117,7 +117,6 @@ def get_user(username: str = None, user_id: UUID4 = None):
             userdict["roles"] = scopes
             userdict["refresh_tokens"] = [token.token for token in refresh_tokens]
             
-            print(userdict)
             if query.deleted_at:
                 userdict["disabled"] = True
 
