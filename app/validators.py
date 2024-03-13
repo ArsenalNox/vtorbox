@@ -11,6 +11,8 @@ from pydantic import BaseModel, EmailStr, UUID4, Field, ValidatorFunctionWrapHan
 from typing import Optional, Annotated, Any, List, Union, Tuple
 from typing_extensions import TypedDict
 from datetime import datetime
+
+
 class Order(BaseModel):
     from_user: str
     address_id: UUID4
@@ -318,6 +320,8 @@ class OrderOut(BaseModel):
     legal_entity: bool
     
     courier_id: Optional[UUID4] = None
+
+    comment: Optional[str] = None
     comment_manager: Optional[str] = None
     comment_courier: Optional[str] = None
 
