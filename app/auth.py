@@ -22,8 +22,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 
 from .models import (
-    engine, Users, Permissions, Roles, UserRefreshTokens
+    engine, Users, Permissions, Roles, UserRefreshTokens,
+    ROLE_ADMIN_NAME
     )
+
 
 from app import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_SECRET_KEY
 
@@ -167,6 +169,10 @@ async def get_current_user(
         raise credentials_exception
 
     for scope in security_scopes.scopes:
+
+        if ROLE_ADMIN_NAME in token_data.scopes:
+            break
+
         if scope not in token_data.scopes:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
