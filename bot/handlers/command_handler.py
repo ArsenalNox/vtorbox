@@ -102,11 +102,12 @@ class CommandHandler(Handler):
                         url=f'user/me?tg_id={message.from_user.id}'
                     )
 
-                if 'courier' in user.get('roles'):
-                    await message.answer(
-                        MESSAGES['COURIER'],
-                        reply_markup=self.kb.courier_btn()
-                    )
+                if user.get('roles'):
+                    if 'courier' in user.get('roles'):
+                        await message.answer(
+                            MESSAGES['COURIER'],
+                            reply_markup=self.kb.courier_btn()
+                        )
 
                 else:
                     await message.answer(
