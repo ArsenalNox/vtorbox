@@ -203,7 +203,7 @@ async def get_routes(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     date: Optional[datetime] = None,
     courier_id: Optional[UUID] = None
-):
+)->List[RouteOut]:
     """
     получить маршруты
 
@@ -229,6 +229,7 @@ async def update_route_orders(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     orders_to_delete: List[UUID] = Query(None),
     orders_to_add: List[UUID] = Query(None),
+    new_courier_id: UUID = None
 )->RouteOut:
     """
     Обновить заявки в маршруте
@@ -279,6 +280,15 @@ async def update_route_orders(
                 print(update_query.courier_id)
                 session.commit()
 
+        if new_courier_id: 
+            user = Users.get_user(str(new_courier_id))
+            if not user:
+                return JSONResponse({
+                    "message": "Courier not found"
+                }, 404)
+
+            route_query.courier_id = new_courier_id
+            session.commit()
 
         route_query = session.query(Routes).where(Routes.id==route_id).first()
         return route_query
