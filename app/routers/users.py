@@ -140,7 +140,12 @@ async def get_all_users(
         data = []
 
         for user in users:
-            user.phone_number = int(user.phone_number)
+            if user.phone_number:
+                try:
+                    user.phone_number = int(user.phone_number)
+                except Exception as err:
+                    print(err)
+
             user_data = UserOut(**user.__dict__)
 
             scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user.id).join(Roles).all()
@@ -191,9 +196,7 @@ async def get_all_users(
 
                     user_data.orders.append(order_data)
 
-
             data.append(user_data)
-
 
         return {
             "count": total,
@@ -207,7 +210,7 @@ async def create_user(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
     new_user_data: UserCreationData,
     send_email: bool = True
-):
+)->UserOut:
     """
     Ручное создание нового пользователя
     - **send_email**: Отправить ли пользвателю письмо с кодом связи
@@ -348,7 +351,7 @@ async def update_user_data(
         session.add(user_query)
         session.commit()
 
-        user_data = UserOut(**user_query.dict)
+        user_data = UserOut(**user_query.__dict__)
         scopes_query = session.query(Permissions, Roles.role_name).\
                 filter_by(user_id=user_query.id).join(Roles).all()
         user_data.roles = [role.role_name for role in scopes_query]
@@ -358,6 +361,7 @@ async def update_user_data(
                 outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.from_user == user_query.id).order_by(asc(Orders.date_created)).all()
+
         orders_out = []
         for order in orders:
             order_data = OrderOut(**order[0].dict)
@@ -469,7 +473,7 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
         scopes = [role.role_name for role in scopes_query]
 
         expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
-        refresh_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)*2)
+        refresh_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)*20)
         if ROLE_TELEGRAM_BOT_NAME in scopes:
             expires = None
 
@@ -539,7 +543,7 @@ async def refresh_access_token(
             }, 
             expires_delta=expires)
 
-        refresh_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)*2)
+        refresh_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)*20)
         refresh_token = create_refresh_token(
             data={
                 "internal_id": str(query.id),
