@@ -213,12 +213,22 @@ async def get_routes(
         routes = session.query(Routes)
 
         if date:
+            date = date.replace(hour=0, minute=0)
+            print(date)
+            date_tommorrow = date + timedelta(days=1)
             routes = routes.filter(Routes.date_created > date)
+            routes = routes.filter(Routes.date_created < date_tommorrow)
+
         
         if courier_id: 
             routes = routes.filter(Routes.courier_id == courier_id)
 
         routes = routes.order_by(asc(Routes.date_created)).all()
+
+        if len(routes)<1:
+            return JSONResponse({
+                "message": "Not found"
+            }, 404)
 
         return routes
     
@@ -256,7 +266,7 @@ async def update_route_orders(
                 for order_id in orders_to_delete:
                     for order_route in route.orders:
                         if order_route.order_id == order_id:
-                            delete_query = session.query(RoutesOrders).where(RoutesOrders.id==order_route.id).delete()
+                            delete_query = session.query(RoutesOrders).where(RoutesOrders.id==order_id).delete()
                             session.commit()
 
         if orders_to_add:   
@@ -264,10 +274,16 @@ async def update_route_orders(
                 for order_id in orders_to_add:
                     for order_route in route.orders:
                         if order_route.order_id == order_id:
-                            delete_query = session.query(RoutesOrders).where(RoutesOrders.id==order_route.id).delete()
+                            delete_query = session.query(RoutesOrders).where(RoutesOrders.id==order_id).delete()
                             session.commit()
 
+
             for order_id in orders_to_add:
+                
+                #TODO: Выбор маршрутам на только сегодня
+                delete_query = session.query(RoutesOrders).where(RoutesOrders.order_id == order_id).delete()
+                session.commit()
+
                 new_route_order = RoutesOrders(
                     route_id = route_id,
                     order_id = order_id
@@ -290,5 +306,6 @@ async def update_route_orders(
             route_query.courier_id = new_courier_id
             session.commit()
 
-        route_query = session.query(Routes).where(Routes.id==route_id).first()
+        session.refresh(route_query)
+        # route_query = session.query(Routes).where(Routes.id==route_id).first()
         return route_query
