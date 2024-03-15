@@ -64,6 +64,10 @@ def generate_route_short_name()->str:
     return short_code
 
 
+def generate_link_code()->str:
+    link_code = str(uuid.uuid4()[:8])
+    return link_code
+
 class Orders(Base):
     """
     Модель заявки от пользователя
@@ -224,7 +228,7 @@ class Users(Base):
     #last_login
     
     #Код для связки бота и пользователя
-    link_code = Column(String(), unique=True, default=str(uuid.uuid4())[:8])
+    link_code = Column(String(), unique=True, default=generate_link_code)
     allow_messages_from_bot = Column(Boolean(), default=True)
 
     disabled = Column(Boolean(), default=False)
