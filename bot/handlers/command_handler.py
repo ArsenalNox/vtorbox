@@ -7,7 +7,7 @@ import requests
 from aiogram import Bot, Router, F
 from aiogram.filters import Command, or_f
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 
 from bot.handlers.base_handler import Handler
 from bot.keyboards.base_keyboards import BaseKeyboard
@@ -118,3 +118,7 @@ class CommandHandler(Handler):
 
                 # сохраняем в состояние chat_id
                 await state.update_data(chat_id=message.chat.id)
+
+        @self.router.callback_query(F.data.startswith('123'))
+        async def test(callback: CallbackQuery):
+            print(callback.data)

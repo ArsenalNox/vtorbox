@@ -6,7 +6,8 @@ from bot.handlers.address_handler import AddressHandler
 from bot.handlers.questionnaire_handler import QuestionnaireHandler
 from bot.handlers.order import OrderHandler
 from bot.handlers.payment_handler import PaymentHandler
-from bot.handlers.schedule import NotificationHandler
+from bot.handlers.schedule import ScheduleHandler
+from bot.handlers.notification_handler import NotificationHandler
 from bot.handlers.courier import CourierHandler
 
 
@@ -22,6 +23,7 @@ class MainHandler:
         self.questionnaire_handler = QuestionnaireHandler(self.bot)
         self.order_handler = OrderHandler(self.bot)
         self.payment_handler = PaymentHandler(self.bot)
+        self.schedule_handler = ScheduleHandler(self.bot)
         self.notification_handler = NotificationHandler(self.bot)
         self.courier_handler = CourierHandler(self.bot)
 
@@ -34,5 +36,6 @@ class MainHandler:
         self.questionnaire_handler.handle()
         self.order_handler.handle()
         self.payment_handler.handle()
+        self.schedule_handler.handle()
         self.notification_handler.handle()
         self.courier_handler.handle()

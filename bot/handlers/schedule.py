@@ -15,7 +15,7 @@ from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
 
-class NotificationHandler(Handler):
+class ScheduleHandler(Handler):
     def __init__(self, bot: Bot):
         super().__init__(bot)
         self.router = Router()
