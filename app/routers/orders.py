@@ -38,6 +38,8 @@ from ..models import (
 
 router = APIRouter()
 
+#TODO: Получение заявок подтверждённых, но не в маршруте
+
 
 @router.get('/orders/filter/', tags=[Tags.orders, Tags.admins],
 responses={
