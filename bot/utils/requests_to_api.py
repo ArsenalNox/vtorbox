@@ -23,7 +23,6 @@ async def req_to_api(method: str, url: str, data: str = None) -> tuple[int, dict
     else:
         response = requests.delete(settings.base_url + url, headers=HEADERS)
     try:
-        print(f'response {url}: {response.text}')
         result = response.json()
 
         return response.status_code, result
