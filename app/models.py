@@ -273,7 +273,7 @@ class Users(Base):
 
     def get_or_404(
             t_id: int = None,
-            internal_id: int = None, 
+            internal_id: UUID = None, 
             ):
         with Session(engine, expire_on_commit=False) as session:
             user_query = None
