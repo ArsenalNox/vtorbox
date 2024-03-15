@@ -62,6 +62,7 @@ class MainBot:
         self.dp.include_router(self.handler.questionnaire_handler.router)
         self.dp.include_router(self.handler.order_handler.router)
         self.dp.include_router(self.handler.payment_handler.router)
+        self.dp.include_router(self.handler.schedule_handler.router)
         self.dp.include_router(self.handler.notification_handler.router)
         self.dp.include_router(self.handler.courier_handler.router)
         self.handler.handle()
