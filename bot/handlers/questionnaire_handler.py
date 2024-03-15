@@ -36,7 +36,6 @@ class QuestionnaireHandler(Handler):
                 method='get',
                 url=f'bot/users/telegram?tg_id={message.from_user.id}',
             )
-
             await message.answer(
                 MESSAGES['QUESTIONNAIRE'].format(
                     user_data.get('firstname') if user_data.get('firstname') else 'Не задано',

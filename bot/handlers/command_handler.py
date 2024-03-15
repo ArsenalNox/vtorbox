@@ -83,7 +83,7 @@ class CommandHandler(Handler):
                     url=f'user/me?tg_id={message.from_user.id}'
                 )
 
-                if not user:
+                if not user or user == {'message': 'Not found'}:
                     user_data = json.dumps({
                         'tg_id': message.from_user.id,
                         'username': message.from_user.username,
