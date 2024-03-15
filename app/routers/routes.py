@@ -214,7 +214,6 @@ async def get_routes(
 
         if date:
             date = date.replace(hour=0, minute=0)
-            print(date)
             date_tommorrow = date + timedelta(days=1)
             routes = routes.filter(Routes.date_created > date)
             routes = routes.filter(Routes.date_created < date_tommorrow)
@@ -309,3 +308,13 @@ async def update_route_orders(
         session.refresh(route_query)
         # route_query = session.query(Routes).where(Routes.id==route_id).first()
         return route_query
+
+
+@router.post('/route', tags=[Tags.routes, Tags.admins, Tags.managers])
+async def create_route():
+    """
+    Создать маршрут вручную
+    """
+    pass
+
+
