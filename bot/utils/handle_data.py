@@ -198,10 +198,6 @@ async def group_orders_by_month(orders_list: list[dict]):
     return result
 
 
-
-
-
-
 async def show_address_list(self: 'AddressHandler', message: Message, state: FSMContext, address_list: list[dict]):
     """Отображение списка адресов с кнопками(по умолчанию/удалить)"""
 
