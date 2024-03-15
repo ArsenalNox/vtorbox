@@ -626,12 +626,13 @@ async def get_routes(
 
         routes = session.query(Routes)
         routes = routes.filter(Routes.courier_id == user.id)
-
-        if date:
-            routes = routes.filter(Routes.date_created > date)
         
+        if date:
+            date = date.replace(hour=0, minute=0)
+            date_tommorrow = date + timedelta(days=1)
+            routes = routes.filter(Routes.date_created > date)
+            routes = routes.filter(Routes.date_created < date_tommorrow)
 
         routes = routes.order_by(asc(Routes.date_created)).all()
 
         return routes
-    
