@@ -108,7 +108,7 @@ class OrderKeyboard(BaseKeyboard):
                 InlineKeyboardButton(
                     text='Отменить',
                     callback_data=f'cancel_{order_id}',
-                    url=f'tg://msg?text={quote(MESSAGES["CANCEL_ORDER_MESSAGE"].format(order_id))}&to=@romaha_57'
+                    url=f'tg://user?id=851230989'
                 )
             )
 
@@ -123,7 +123,7 @@ class OrderKeyboard(BaseKeyboard):
             InlineKeyboardButton(
                 text='Связаться с менеджером',
                 callback_data=f'manager_{order_id}',
-                url=f'tg://msg?text={quote(MESSAGES["WRITE_TO_MANAGER"].format(order_id))}&to=@romaha_57'
+                url=f'tg://user?id=851230989'
             ),
         )
 
