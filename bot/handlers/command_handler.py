@@ -109,12 +109,12 @@ class CommandHandler(Handler):
                             reply_markup=self.kb.courier_btn()
                         )
 
-                else:
-                    await message.answer(
-                        MESSAGES['REGISTRATION_MENU'],
-                        reply_markup=self.kb.registration_btn()
-                    )
-                    await state.set_state(RegistrationUser.phone)
+                    else:
+                        await message.answer(
+                            MESSAGES['REGISTRATION_MENU'],
+                            reply_markup=self.kb.registration_btn()
+                        )
+                        await state.set_state(RegistrationUser.phone)
 
                 # сохраняем в состояние chat_id
                 await state.update_data(chat_id=message.chat.id)
