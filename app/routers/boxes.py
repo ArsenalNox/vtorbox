@@ -55,6 +55,9 @@ async def create_new_box_type(
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
     box_data: BoxType
 ):
+    """
+    Создание нового контейнера
+    """
     with Session(engine, expire_on_commit=False) as session:
         new_box = BoxTypes(**box_data.model_dump())
         session.add(new_box)
@@ -68,7 +71,10 @@ async def update_box_data(
     box_data: BoxType,
     box_id: uuid.UUID
 ):
-    pass
+    """
+    Обновление данных контейнера
+    - **box_id**: UUID контейнера
+    """
     with Session(engine, expire_on_commit=False) as session:
         box_query = session.query(BoxTypes).filter_by(id=box_id).where(BoxTypes.deleted_at == None).first()
         if not box_query:

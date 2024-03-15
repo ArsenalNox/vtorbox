@@ -1,18 +1,20 @@
 """
 Содержит в себе ендпоинты по заявкам
 """
-from typing import Annotated, List
+from operator import contains
+import re 
 
-from calendar import monthrange
+from app import Tags
+from typing import Annotated, List, Union, Optional
 
 from fastapi import APIRouter, Body, Security, Query
 from fastapi.responses import JSONResponse
 
-from datetime import datetime
-from datetime import timedelta
+from calendar import monthrange
+from datetime import datetime, timedelta
+from uuid import UUID
 
-from sqlalchemy import desc, asc
-from app import Tags
+from sqlalchemy import desc, asc, desc, or_
 
 from ..validators import (
     Order as OrderValidator,
@@ -26,179 +28,187 @@ from ..auth import (
 )
 
 from ..models import (
-    engine, 
-    Orders, 
-    Users, 
-    Session, 
-    Address,
-    UsersAddress,
-    BoxTypes,
-    OrderStatuses,
-    OrderStatusHistory,
-    ORDER_STATUS_DELETED,
-    ORDER_STATUS_AWAITING_CONFIRMATION,
-    IntervalStatuses
+    engine, Orders, Users, Session, 
+    Address, UsersAddress, BoxTypes,
+    OrderStatuses, OrderStatusHistory,
+    ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION,
+    IntervalStatuses, ROLE_ADMIN_NAME, Regions
     )
 
-from app import Tags
-from uuid import UUID
-
-import re 
 
 router = APIRouter()
 
 
-@router.get('/orders/filter/', tags=["orders", "admin"])
+@router.get('/orders/filter/', tags=[Tags.orders, Tags.admins],
+responses={
+    200: {
+        "description": "Заявка полученная по айди",
+        "content": {
+        "application/json": {
+            "example": {
+                "orders": [
+                    {
+      "id": "ead4e4e4-5735-46aa-bf34-bddeffbb27af",
+      "order_num": 1,
+      "user_order_num": 1,
+      "last_disposal": 'null',
+      "times_completed": 'null',
+      "day": "2024-02-23T00:00:00",
+      "date_created": "2024-02-16T13:39:16.346967",
+      "last_updated": "2024-02-16T13:39:16.347969",
+      "legal_entity": 'false',
+      "comment": "Без комментария",
+      "interval_type": 'null',
+      "interval": 'null',
+      "tg_id": 851230989,
+      "user_data": {
+        "telegram_id": 851230989,
+        "telegram_username": "romaha_57",
+        "firstname": "Тест",
+        "patronymic": 'null',
+        "link_code": 'null',
+        "email": "Test@test.com.ks",
+        "phone_number": "88888888888",
+        "secondname": "Тестов",
+        "deleted_at": 'null'
+      },
+      "address_id": "c2f2260e-156d-471f-ac82-ab04f55680a4",
+      "address_data": {
+        "detail": 'null',
+        "longitude": "37.549588",
+        "latitude": "55.756675",
+        "main": 'true',
+        "distance_from_mkad": 'null',
+        "interval": "friday",
+        "comment": 'null',
+        "address": "Сергеея Макеева 1",
+        "id": "c2f2260e-156d-471f-ac82-ab04f55680a4",
+        "region_id": "98f38e9f-8eca-43f7-b5c5-195333cfaaf4",
+        "point_on_map": 'null',
+        "interval_type": "week_day",
+        "region": {
+          "region_type": "district",
+          "id": "98f38e9f-8eca-43f7-b5c5-195333cfaaf4",
+          "is_active": 'true',
+          "name_short": 'null',
+          "name_full": "Пресненский район",
+          "work_days": "monday friday"
+        }
+      },
+      "box_type_id": 'null',
+      "box_count": 'null',
+      "box_data": 'null',
+      "status": "375432b2-0356-42aa-b4e7-8019a4a11338",
+      "status_data": {
+        "status_name": "ожидается подтверждение",
+        "description": "ожидается подтверждение от клиента"
+      }
+    }],
+    "global_count": 1,
+    "count": 1
+    }}}}}
+)
 async def get_filtered_orders(
         by_date: bool = False, 
-        # datetime_start: Annotated[datetime | None, Body()] = None,
-        # datetime_end: Annotated[datetime | None, Body()] = None,
-
+        datetime_start: datetime = None,
+        datetime_end: datetime = None,
         date_asc: bool = False,
 
-        limit: int | None = None,
         state: str = None,
-        state_id: UUID = None
+        state_id: UUID = None,
+        
+        show_deleted: bool = False,
+
+        filter_date: str = None,
+
+        limit: int = 5,
+        page: int = 0,
+        region_id: UUID = None,
+        
+        show_only_active: bool = False
         #TODO: Фильтр по району, округу, дистанции, курьеру итд
         ):
     """
     Получение заявок по фильтру
+    - **by_date**: показывать заявки на промежуток дат
+    - **datetime_start**: дата начала фильтра
+    - **datetime_end**: дата конца фильтра
+    
+    - **date_asc**: [bool] восходящий сорт по дате создание или нисходящий
+    - **state**: фильтр статуса по названию статуса
+    - **state_id**: фильтр статуса по id статуса
+    
+    - **show_deleted**: показывать удалённые заявки
+    - **filter_date**: показывать заявки только на одну конкретную дату
+    - **region_id**: айди региона заявки 
+
+    - **show_only_active**: [bool] показывать только заявки категории активные
     """
+    #TODO: Фильтр по статусу
+    #TODO: Фильтр по дате
+    #TODO: Фильтр по временным рамкам
 
     with Session(engine, expire_on_commit=False) as session:
-        #Получение конкретной заявки
 
-        order = session.query(Orders, Address, BoxTypes, OrderStatuses).\
+        orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users, Regions).\
             join(Address, Address.id == Orders.address_id).\
-            join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-            join(OrderStatuses, OrderStatuses.id == Orders.status)
+            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+            join(OrderStatuses, OrderStatuses.id == Orders.status).\
+            join(Users, Users.id == Orders.from_user).\
+            join(Regions, Regions.id == Address.region_id)
         
-        if state or state_id:
-            
+
+        if state:
             status_query = session.query(OrderStatuses).filter_by(status_name=state).first()
-            order = order.filter_by(Orders.status == status_query.id)
+            orders = orders.filter(Orders.status == status_query.id)
+
+        if state_id:
+            orders = orders.filter(Orders.status == state_id)
 
         if date_asc:
-            order = order.order_by(asc(Orders.date_created))
+            orders = orders.order_by(asc(Orders.date_created))
         else:
-            order = order.order_by(asc(Orders.date_created))
+            orders = orders.order_by(desc(Orders.date_created))
 
-        if limit:
-            order = order.limit(limit)
         
+        if by_date:
+            orders = orders.filter(Orders.day >= datetime_start)
+            orders = orders.filter(Orders.day <= datetime_end)
 
 
-        orders = order.all()
+        if region_id:
+            orders = orders.filter(Regions.id == region_id)
 
-        if not orders:
-            return JSONResponse({
-                "message": "not found"
-            },status_code=404)
+        if show_only_active: 
+            orders = orders.filter(or_(
+                Orders.status == OrderStatuses.status_accepted_by_courier().id,
+                Orders.status == OrderStatuses.status_default().id,
+                Orders.status == OrderStatuses.status_processing().id,
+                Orders.status == OrderStatuses.status_awating_confirmation().id,
+                Orders.status == OrderStatuses.status_confirmed().id,
+                Orders.status == OrderStatuses.status_awaiting_payment().id,
+                Orders.status == OrderStatuses.status_payed().id
+            ))
 
+        global_orders_count = orders.count()
 
-        return_data = []
-        for order in orders:
-            print(order)
-            order_data = OrderOut(**order[0].__dict__)
-            order_data.tg_id = session.query(Users).filter_by(id=order[0].from_user).first().telegram_id
+        if limit == 0:
+            orders = orders.all()
+        else:
+            orders = orders.offset(page  * limit).limit(limit).all()
 
-            try:
-                order_data.address_data = order[1]
-            except IndexError: 
-                order_data.address_data = None
+        total = len(orders)
 
-            try:
-                order_data.box_data = order[2]
-            except IndexError:
-                order_data.box_data = None
+        return_data = Orders.process_order_array(orders)
 
-            try:
-                order_data.status_data = order[3]
-            except IndexError:
-                order_data.status_data = None
-
-        return order_data
-
-
+        return {
+            "orders": return_data,
+            "global_count": global_orders_count,
+            "count": total
+        }
 
 
-@router.get('/orders', tags=["orders", "admin"], responses={
-        200: {
-            "description": "Получение всех заявок",
-            "content": {
-                "application/json": {
-                    "example": [
-                        {
-                        "district": "МО",
-                        "id": 1,
-                        "from_user": 1,
-                        "address": "Ул. Пушкина 8",
-                        "point_on_map": 'null',
-                        "weekday": "6",
-                        "tariff": 'null',
-                        "next_planned_date": 'null',
-                        "times_completed": 'null',
-                        "distance_from_mkad": "12",
-                        "region": "Красногорск",
-                        "full_adress": "8-53. Домофон 53 и кнопка \"вызов\".",
-                        "interval": 'null',
-                        "subscription": 'null',
-                        "last_disposal": 'null',
-                        "legal_entity": 'false',
-                        "payment_day": 'null'
-                        }
-                    ]
-                }
-            }
-        }   
-})
-async def get_all_orders(
-    show_deleted: bool = False,
-    filter_status: str = None,
-    filter_date: str = None,
-): 
-    """
-    Получить все заявки
-    """
-    #TODO: Пагинация заявок
-
-    with Session(engine, expire_on_commit=False) as session:
-        query = session.query(Orders, Address, BoxTypes, OrderStatuses).\
-            join(Address, Address.id == Orders.address_id).\
-            join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-            join(OrderStatuses, OrderStatuses.id == Orders.status)
-                
-        if not show_deleted:
-            query = query.filter(Orders.deleted_at == None)
-
-        orders = query.order_by(asc(Orders.date_created)).all()
-
-        return_data = []
-        for order in orders:
-            order_data = OrderOut(**order[0].__dict__)
-
-            try:
-                order[1].interval = str(order[1].interval).split(', ')
-                order_data.address_data = order[1]
-            except IndexError: 
-                order_data.address_data = None
-
-            try:
-                order_data.box_data = order[2]
-            except IndexError:
-                order_data.box_data = None
-
-            try:
-                order_data.status_data = order[3]
-            except IndexError:
-                order_data.status_data = None
-
-            return_data.append(order_data)
-
-        return return_data
-
-
-@router.get('/orders/{order_id}', tags=["orders", "bot"], 
+@router.get('/orders/{order_id}', tags=[Tags.orders, Tags.bot], 
     responses={
         200: {
             "description": "Заявка полученная по айди",
@@ -249,16 +259,20 @@ async def get_all_orders(
         }
     }
     )
-async def get_order_by_id(order_id: UUID) -> OrderOut:
+async def get_order_by_id(
+        order_id: UUID
+    ) -> OrderOut:
     """
     Получение конкретной заявки
     """
     with Session(engine, expire_on_commit=False) as session:
         #Получение конкретной заявки
-        order = session.query(Orders, Address, BoxTypes, OrderStatuses).\
+
+        order = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
             join(Address, Address.id == Orders.address_id).\
-            join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
             join(OrderStatuses, OrderStatuses.id == Orders.status).\
+            join(Users, Users.id == Orders.from_user).\
             where(Orders.id == order_id).\
             order_by(asc(Orders.date_created)).first()
 
@@ -269,29 +283,34 @@ async def get_order_by_id(order_id: UUID) -> OrderOut:
 
 
         order_data = OrderOut(**order[0].__dict__)
-        order_data.tg_id = session.query(Users).filter_by(id=order[0].from_user).first().telegram_id
+        order_data.interval = str(order[1].interval).split(', ')
 
         try:
             order_data.address_data = order[1]
+            order_data.address_data.region = order[1].region
+            order_data.address_data.region.work_days = str(order[1].region.work_days).split(' ')
         except IndexError: 
-            order_data.address_data = None
+            order_data.address_data = none
 
         try:
             order_data.box_data = order[2]
         except IndexError:
-            order_data.box_data = None
+            order_data.box_data = none
 
         try:
             order_data.status_data = order[3]
         except IndexError:
-            order_data.status_data = None
+            order_data.status_data = none
+        
+        try:
+            order_data.user_data = order[4]
+        except IndexError:
+            order_data.user_data = none
 
         return order_data
 
 
-@router.get('/users/orders/', 
-    tags=[Tags.bot, Tags.orders], 
-    response_description="Список заявок пользователя")
+@router.get('/users/orders/', tags=[Tags.bot, Tags.orders], response_description="Список заявок пользователя")
 async def get_user_orders(
     tg_id: int = None, 
     user_id: UUID = None, 
@@ -329,12 +348,13 @@ async def get_user_orders(
                 "message": "No user found"
             }, status_code=422)
 
+        #TODO: сократить то что идёт ниже, желательно на хотя бы 70%
         orders = None
         if not (order_id == None):
             #Получение конкретной заявки
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
-                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.id == order_id).\
                 where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
@@ -342,7 +362,7 @@ async def get_user_orders(
         elif orders_id:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
-                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 filter(Orders.id.in_(orders_id)).\
                 where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
@@ -350,21 +370,21 @@ async def get_user_orders(
         elif order_num:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
-                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.order_num == order_num).order_by(asc(Orders.date_created)).all()
         
         elif user_order_num:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
-                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.user_order_num == user_order_num).order_by(asc(Orders.date_created)).all()
         
         elif order_nums:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
-                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 filter(Orders.order_num.in_(order_nums)).\
                 where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
@@ -372,24 +392,25 @@ async def get_user_orders(
         else:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                 join(Address, Address.id == Orders.address_id).\
-                join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
 
         return_data = []
-
         for order in orders:
             order_data = OrderOut(**order[0].__dict__)
             order_data.tg_id = user.telegram_id
 
             try:
-                order[1].interval = str(order[1].interval).split(', ')
                 order_data.address_data = order[1]
+                order_data.interval = str(order[1].interval).split(', ')
             except IndexError: 
                 order_data.address_data = None
 
             try:
-                order_data.box_data = order[2]
+                print(order[2])
+                if not order[2] == None:
+                    order_data.box_data = order[2]
             except IndexError:
                 order_data.box_data = None
 
@@ -406,13 +427,13 @@ async def get_user_orders(
         return return_data
 
 
-@router.post('/orders/create', tags=["orders", "bot"])
+@router.post('/orders/create', tags=[Tags.orders, Tags.bot])
 async def create_order(
     order_data: OrderValidator,
     current_user: Annotated[UserLoginSchema, Security(get_current_user)]
     ):
     """
-    Создание заявки
+    Создание заявки 
     """
     #TODO: Оповещение менеджера при создании заявки
 
@@ -440,14 +461,19 @@ async def create_order(
             return JSONResponse({
                 "message": f"No user address with id '{order_data.from_user}' found"
             }, status_code=422)
+            
+        warnings = []
+        container = None
+        if order_data.box_name:
+            container = session.query(BoxTypes).filter_by(box_name = order_data.box_name).first()
+            if not container:
+                warnings.append(f"no {order_data.box_name} container found")
+        if order_data.box_type_id:
+            container = session.query(BoxTypes).filter_by(id = order_data.box_type_id).first()
+            if not container:
+                warnings.append(f"no {order_data.box_type_id} container found")
 
-        container = session.query(BoxTypes).filter_by(box_name = order_data.box_name).first()
-        if not container:
-            return JSONResponse({
-                "message": f"no {order_data.box_name} container found"
-            }, status_code=422)
-
-        order_data.day = datetime.strptime(order_data.day, "%d-%m-%Y").date()
+        order_data.day = datetime.strptime(order_data.day, "%Y-%m-%d").date()
 
         count = session.query(Orders.id).where(Orders.from_user == user.id).count()
 
@@ -455,12 +481,23 @@ async def create_order(
             from_user   = user.id,
             address_id  = order_data.address_id,
             day         = order_data.day,
-            box_type_id = container.id,
-            box_count   = order_data.box_count,
+            comment     = order_data.comment,
+            # box_type_id = container.id,
+            # box_count   = order_data.box_count,
             status      = OrderStatuses.status_default().id,
             date_created = datetime.now(),
             user_order_num = count + 1
         )
+        print("adding container")
+        print(container)
+        if container:
+            new_order.box_type_id = container.id
+            if order_data.box_count:
+                print(f'box count {order_data.box_count}')
+                new_order.box_count = order_data.box_count
+            else:
+                print("default box count")
+                new_order.box_count = 1
 
         session.add(new_order)
         session.commit()
@@ -470,32 +507,48 @@ async def create_order(
             status_id = new_order.status
         )
         session.add(status_update)
-        session.commit()
 
+        session.commit()
+    
     return {
         "status": 'created',
         "content": new_order,
-        "data_given": order_data
+        "data_given": order_data,
+        "warnings": warnings
     }
 
 
-@router.get("/orders/{order_id}/history", tags=['bot', 'orders'])
+@router.get("/orders/{order_id}/history", tags=[Tags.orders, Tags.bot])
 async def get_order_status_history(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
     order_id: UUID,
-    tg_id: int,
-    current_user: Annotated[UserLoginSchema, Security(get_current_user)]
+    tg_id: Optional[int] = None
     ):
     """
     Получение истории изменения статуса заявки
+    - **tg_id**: int телеграм айди пользователя (при наличии админской роли параметр необязателен)
+    - **user_id**:  UUID пользователя (при наличии админской роли параметр необязателен)
+
+    История возвращается с датой по убыванию (новое сначала)
     """
-    #TODO: Проверка владения заявки пользователя
+
     with Session(engine, expire_on_commit=False) as session:
-        order = session.query(Orders).\
-            join(Users, Users.id == Orders.from_user).\
-            where(Users.telegram_id == tg_id).\
-            where(Orders.id == order_id).\
-            where(Orders.deleted_at == None).\
-            first()
+        if ROLE_ADMIN_NAME in current_user.roles:
+            order = session.query(Orders).\
+                join(Users, Users.id == Orders.from_user).\
+                where(Orders.id == order_id).\
+                where(Orders.deleted_at == None).\
+                first()
+        else:
+            if tg_id == None:
+                print("NONE")
+
+            order = session.query(Orders).\
+                join(Users, Users.id == Orders.from_user).\
+                where(Users.telegram_id == tg_id).\
+                where(Orders.id == order_id).\
+                where(Orders.deleted_at == None).\
+                first()
 
         if not order:
             return JSONResponse({
@@ -511,7 +564,7 @@ async def get_order_status_history(
         return return_data
 
 
-@router.delete('/orders/all', tags=['bot', 'admin', 'orders'])
+@router.delete('/orders/all', tags=[Tags.bot, Tags.admins, Tags.orders])
 async def delete_all_orders(
     current_user: Annotated[UserLoginSchema, Security(get_current_user)],
 ):
@@ -526,10 +579,14 @@ async def delete_all_orders(
         return 
 
 
-@router.delete('/orders/{order_id}', tags=["orders"])
-async def delete_order_by_id(order_id:UUID):
+@router.delete('/orders/{order_id}', tags=[Tags.orders])
+async def delete_order_by_id(
+    order_id: UUID,
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+    ):
     """
     Удаление заявки
+    **order_id** - UUID заявки
     """
 
     with Session(engine, expire_on_commit=False) as session:
@@ -575,6 +632,11 @@ async def set_order_status(
 ):
     """
     Обновление/Установка статуса заявки
+    - **order_id**: UUID заявки
+    - **status_text**: status_name статсуа в бд
+    - **status_id**: UUID статуса в бд
+    
+    в запросе обязательно нужно передать либо **status_text** либо **status_id**
     """
     if (not status_text) and (not status_id):
         return JSONResponse({
@@ -602,6 +664,11 @@ async def set_order_status(
                 "message": "order not found"
             },status_code=404)
 
+        if order_query.status == status_query.id:
+            return JSONResponse({
+                "message": "Status is identical, change not saved"
+            }, 204)
+
         order_query.status = status_query.id
 
         status_update = OrderStatusHistory(
@@ -615,7 +682,7 @@ async def set_order_status(
         session.commit()
 
 
-@router.put('/orders/{order_id}/courier', tags=["orders"])
+@router.put('/orders/{order_id}/courier', tags=[Tags.orders, Tags.managers])
 async def set_order_courier():
     """
     Установить курьера на заказ
@@ -627,11 +694,14 @@ async def set_order_courier():
 async def update_order_data(order_id: UUID, new_order_data: OrderUpdate)->OrderOut:
     """
     Обновить данные заявки
+    - **order_id**: uuid заявки
     """
     with Session(engine, expire_on_commit=False) as session:
 
         order_query = session.query(Orders).filter_by(id=order_id)\
             .where(Orders.deleted_at == None).first()
+
+
         if not order_query:
             return JSONResponse({
                 "message": "Order not found"
@@ -672,7 +742,16 @@ async def update_order_data(order_id: UUID, new_order_data: OrderUpdate)->OrderO
 
         session.commit()
 
-        return OrderOut(**order_query.__dict__)
+        order_query = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
+            join(Address, Address.id == Orders.address_id).\
+            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+            join(OrderStatuses, OrderStatuses.id == Orders.status).\
+            join(Users, Users.id == Orders.from_user).\
+            where(Orders.id == order_id).\
+            order_by(asc(Orders.date_created)).first()
+        return_data = Orders.process_order_array([order_query])
+
+        return return_data[0]
 
 
 @router.post("/orders/{order_id}/accept", tags=[Tags.orders, Tags.bot])
@@ -724,17 +803,19 @@ async def accept_order_by_user(
 
 
 @router.get("/process_orders", tags=[Tags.managers, Tags.admins])
-async def process_current_orders():
+async def process_current_orders(
+
+):
     """
     Обработка всех доступных заявок, высчитывание следующего дня забора заявки без смены статуса
     """
-
+        
     #TODO: Добавить в routed_orders 
     with Session(engine, expire_on_commit=False) as session:
-        #TODO: Фильтр по статусу
+        #TODO: Фильтр по статусу (в работе и создана) (?)
         orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
             join(Address, Address.id == Orders.address_id).\
-            join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
             join(OrderStatuses, OrderStatuses.id == Orders.status).\
             join(Users, Users.id == Orders.from_user).\
             filter(Orders.deleted_at == None).\
@@ -742,9 +823,7 @@ async def process_current_orders():
             order_by(asc(Orders.date_created)).all()
 
         date_today = datetime.now()
-
         day_number_now = datetime.strftime(date_today, "%d")
-
         month_now_str = datetime.strftime(date_today, "%m")
         year_now_str = datetime.strftime(date_today, "%Y")
 
@@ -758,40 +837,68 @@ async def process_current_orders():
         order_list = []
 
         date_tommorrow = date_today + timedelta(days=1)
-        #TODO: Заменить формат
         # date_tommorrow = datetime.datetime.strptime(date_tommorrow, '%Y-%m-%dT%H:%M:%S')
         weekday_tomorrow = str(date_tommorrow.strftime('%A')).lower()
+        date_num_tommorrow = datetime.strftime(date_tommorrow, "%d-%m-%Y")
 
         print(f"date today: {date_today}\ndate tommorrow: {date_tommorrow}")
         print(f"weekday tomorrow: {weekday_tomorrow}")
         print(f"next day num {day_number_next}")
 
         for order in orders:
-            #Преобразовать интервал в форму списка
             flag_day_set = False
 
-            match order[1].interval_type:
-                case IntervalStatuses.MONTH_DAY:
-                    interval = [int(x) for x in str(order[1].interval).split(', ') ]
-                    if day_number_next in interval:
-                        print(f"Order {order[0].order_num} by month in interval")
-                        flag_day_set = True
-                        order[0].day = date_tommorrow
+            if order[1].region.work_days == None:
+                continue
 
-                case IntervalStatuses.WEEK_DAY:
-                    interval = [str(order[1].interval).split(', ')]
-                    if weekday_tomorrow in interval:
+            days_allowed = str(order[1].region.work_days).split(' ')
+            print(days_allowed)
+
+            if order[0].day > date_today:
+                print("DAY LARGER")
+                order_day_num = datetime.strftime(order[0].day, "%d-%m-%Y")
+                date_num_tommorrow = datetime.strftime(date_tommorrow, "%d-%m-%Y")
+                print(order_day_num, date_num_tommorrow)
+                if order_day_num == date_num_tommorrow:
+                    print("ORDER DATE ALREADY SET TO TOMMORROW")
+                    order_list.append(order[0])
+                    flag_day_set = True
+            else:
+                match order[1].interval_type:
+                    case IntervalStatuses.MONTH_DAY:
+                        interval = [int(x) for x in str(order[1].interval).split(', ') ]
+                        if day_number_next in interval:
+                            print(f"Order {order[0].order_num} by month in interval")
+                            flag_day_set = True
+                            order[0].day = date_tommorrow
+
+                    case IntervalStatuses.WEEK_DAY:
+                        interval = [str(order[1].interval).split(', ')]
+
+                        if not(weekday_tomorrow in days_allowed):
+                            continue
+
+                        if not(weekday_tomorrow in interval):
+                            continue
+                        
                         print(f"Order {order[0].order_num} by weekday in interval")
                         flag_day_set = True
                         order[0].day = date_tommorrow
 
-                case _:
-                    #TODO: Проверка остальных интервалов
-                    pass
-                
+                    case _:
+                        if order[0].day == None:
+                            continue
+                        order_day_num = datetime.strftime(order[0].day, "%d-%m-%Y")
+                        if order_day_num == date_num_tommorrow:
+                            print("ORDER DATE ALREADY SET TO TOMMORROW")
+                            order_list.append(order[0])
+                            flag_day_set = True
+            
+
             if flag_day_set:
-                order[0].update_status(OrderStatuses.status_awating_confirmation().id)
                 #TODO: Отправить уведомление пользователю
+                print("Updating order status")
+                order[0].update_status(OrderStatuses.status_awating_confirmation().id)
                 session.commit()
                 order_list.append(order[0])
 

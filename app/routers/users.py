@@ -5,43 +5,38 @@
 CRUD с пользователями
 Управление подпиской
 """
+from operator import ne
+import uuid, re, json
+import openpyxl as xl 
 
-from typing import Annotated
+
 from fastapi import (
-    APIRouter, 
-    Depends, 
-    HTTPException, 
-    status, 
-    Security, 
-    File, 
-    UploadFile)
-
+    APIRouter, Depends, HTTPException, status, 
+    Security, File, UploadFile
+    )
+from typing import Annotated, Dict
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
-
 from datetime import datetime
-
 from sqlalchemy import desc, asc, not_, or_
 from app import Tags
 
-from ..models import (
+from app.models import (
     Users, Orders, Session, engine, Roles, Permissions, 
     Address, UsersAddress, BoxTypes, OrderStatusHistory,
-    OrderStatuses, ROLE_CUSTOMER_NAME, ROLE_TELEGRAM_BOT_NAME
+    OrderStatuses, ROLE_CUSTOMER_NAME, ROLE_TELEGRAM_BOT_NAME,
+    Regions, UserRefreshTokens
     )
 
-from ..auth import (
-    oauth2_scheme, 
-    pwd_context, 
-    get_password_hash, 
-    verify_password, 
-    create_access_token,
-    get_current_active_user,
-    get_current_user,
-    ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
+from app.auth import (
+    oauth2_scheme, pwd_context, get_password_hash, 
+    verify_password, create_access_token,
+    get_current_active_user, get_current_user,
+    ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM,
+    create_refresh_token, get_current_user_refresh
 )
 
-from ..validators import (
+from app.validators import (
     UserSignUp as UserSignUpSchema,
     UserLogin as UserLoginSchema,
     UserCreationValidator as UserCreationData,
@@ -53,21 +48,14 @@ from app.utils import is_valid_uuid, get_lang_long_from_text_addres
 
 from passlib.context import CryptContext
 from datetime import timedelta
-
 from jose import jwt
-
 from dotenv import load_dotenv
 
-import os, uuid, re, json
-
-import openpyxl as xl 
-
-load_dotenv()
 router = APIRouter()
 
 #TODO: Отправка сообщения пользователю через бота 
 
-@router.get('/users', tags=["admins", "managers"], responses={
+@router.get('/users', tags=[Tags.admins, Tags.managers], responses={
     200: {
         "description": "Получение всех пользователей",
         "content": {
@@ -91,11 +79,13 @@ async def get_all_users(
         current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
         role_name: str = None,
         only_bot_users: bool = False,
-        non_deleted: bool = True,
-        #Применимо для клиентов
+
+        #Применимо для клиентов (На самом деле для всех)
         with_orders: bool = False,
         with_active_orders: bool = False,
         with_inactive_orders: bool = False, #все кроме активных
+        has_orders: bool = False,
+
 
         #Применимо для всех
         limit: int = 5,
@@ -103,11 +93,19 @@ async def get_all_users(
         show_deleted: bool = True
     ):
     """
-    Получение пользователей по фильтру
+    Получение пользователей по фильтрам:
+
+    - **role_name**: Фильтр по наличию роли у пользователя 
+    - **only_bot_users**: Возвращать ли только пользователей, привязавших/начавших пользоваться ботом
+    - **with_orders**: Возвращать информацию о пользователях вместе с их заявками
+    - **with_active_orders**: bool - возвращать пользователей только с активными заявками
+    - **limit**: кол-во пользователей на запрос
+    - **page**: номер страницы
+    - **show_deleted**: показывать удалённых пользвателей
+    - **has_orders**: показывать только пользователей, у которых есть хотя бы одна заявка
     """
 
     with Session(engine, expire_on_commit=False) as session:
-        
         query = session.query(Users)
 
         roles_query = session.query(Roles).all()
@@ -127,29 +125,55 @@ async def get_all_users(
 
             query = query.filter(Users.id.in_(roles_user_query))
 
+        if has_orders:
+            only_users_with_orders_query = session.query(Users.id).\
+                join(Orders, Orders.from_user == Users.id).subquery()
+            query = query.filter(Users.id.in_(only_users_with_orders_query))
+
         global_user_count = query.count()
-        users = query.order_by(asc(Users.date_created)).offset(page  * limit).limit(limit).all()
-        # users = session.query(Users, Roles, Permissions).filter_by(*filters).offset(page  * limit).limit(limit).all()
+        if limit == 0:
+            users = query.order_by(asc(Users.date_created)).all()
+        else:
+            users = query.order_by(asc(Users.date_created)).offset(page  * limit).limit(limit).all()
 
         total = len(users)
         data = []
+
         for user in users:
+            if user.phone_number:
+                try:
+                    user.phone_number = int(user.phone_number)
+                except Exception as err:
+                    print(err)
 
             user_data = UserOut(**user.__dict__)
-
 
             scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user.id).join(Roles).all()
 
             user_data.roles = [role.role_name for role in scopes_query]
 
-            #TODO: Фильтр по статусу заявки
+         
+
             if with_orders:
                 orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                     join(Address, Address.id == Orders.address_id).\
-                    join(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                    outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                     join(OrderStatuses, OrderStatuses.id == Orders.status).\
-                    where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
-                
+                    where(Orders.from_user == user.id).order_by(asc(Orders.date_created))
+
+                if with_active_orders:
+                    orders = orders.filter(or_(
+                        Orders.status == OrderStatuses.status_accepted_by_courier().id,
+                        Orders.status == OrderStatuses.status_default().id,
+                        Orders.status == OrderStatuses.status_processing().id,
+                        Orders.status == OrderStatuses.status_awating_confirmation().id,
+                        Orders.status == OrderStatuses.status_confirmed().id,
+                        Orders.status == OrderStatuses.status_awaiting_payment().id,
+                        Orders.status == OrderStatuses.status_payed().id
+                    ))
+
+                orders = orders.all()                    
+
                 user_data.orders = []
                 for order in orders:
 
@@ -174,25 +198,22 @@ async def get_all_users(
 
             data.append(user_data)
 
-
         return {
             "count": total,
             "global_count": global_user_count,
             "data": data
         }
 
-    return []
 
-
-
-@router.post('/users', tags=["admins"])
+@router.post('/users', tags=[Tags.managers, Tags.admins])
 async def create_user(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
     new_user_data: UserCreationData,
     send_email: bool = True
-):
+)->UserOut:
     """
     Ручное создание нового пользователя
+    - **send_email**: Отправить ли пользвателю письмо с кодом связи
     """
 
     with Session(engine, expire_on_commit=False) as session:
@@ -202,13 +223,29 @@ async def create_user(
                 "message": "Email already taken",
             }, status_code=400)
 
-        new_user_data.password = get_password_hash(new_user_data.password)
+        if not (new_user_data.telegram_id == None):
+            query_user = session.query(Users).\
+                    filter_by(telegram_id=new_user_data.telegram_id).first()
+            if query_user:
+                return JSONResponse({
+                    "message": "Email already taken",
+                }, status_code=400)
+
+        password_plain = ''
+        print(new_user_data.password)
+        if new_user_data.password == None:
+            password_plain = str(uuid.uuid4())[:10] 
+        else:
+            password_plain = str(new_user_data.password)
+
+        print(password_plain)
+        new_user_data.password = get_password_hash(password_plain)
         
         new_user_data = new_user_data.model_dump()
         user_role = new_user_data["role"]
         del new_user_data["role"]
 
-        if new_user_data.send_email_invite:
+        if send_email:
             pass
 
         new_user = Users(**new_user_data)
@@ -222,7 +259,7 @@ async def create_user(
 
         #Если админ - добавить все роли?
 
-        for role in str(user_role).split(' '):
+        for role in user_role:
             role_query = Roles.get_role(role)
             if role_query:
 
@@ -235,12 +272,20 @@ async def create_user(
 
         session.commit()
 
+        scopes_query = session.query(Permissions, Roles.role_name).\
+                filter_by(user_id=new_user.id).join(Roles).all()
+
+        scopes = [role.role_name for role in scopes_query]
+
         #TODO: Отправка приглашения на почту
+        user_out_data = UserOut(**new_user.__dict__)
+        user_out_data.roles = scopes
+        user_out_data.password_plain = password_plain
 
-        return new_user
+        return user_out_data
 
 
-@router.delete('/users', tags=["admins"])
+@router.delete('/users', tags=[Tags.admins, Tags.managers])
 async def delete_user(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
     tg_id: int | None = None,
@@ -273,13 +318,13 @@ async def delete_user(
         return
 
 
-@router.put('/user', tags=["admin"])
+@router.put('/user', tags=[Tags.managers, Tags.admins])
 async def update_user_data(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["manager"])],
     new_user_data: UserUpdateData
-):
+)->UserOut:
     """
-    Обновление данных пользователя админом
+    Обновление данных пользователя админом или менеджером
     """
     with Session(engine, expire_on_commit=False) as session:
         user_query = Users.get_user(new_user_data.user_id)
@@ -292,20 +337,58 @@ async def update_user_data(
         for attr, value in new_user_data.model_dump().items():
 
             print(attr)
-
             if attr == 'password' and value:
-                #TODO: Изменение пароля
-                print('Changing user password')
+                setattr(user_query, attr, get_password_hash(value))
+                continue
+            
+            if attr == 'roles' and value:
+                #TODO: Изменение ролей
                 continue
 
-            #TODO: Изменение ролей
             if value:
                 setattr(user_query, attr, value)
 
         session.add(user_query)
         session.commit()
 
-    return 
+        user_data = UserOut(**user_query.__dict__)
+        scopes_query = session.query(Permissions, Roles.role_name).\
+                filter_by(user_id=user_query.id).join(Roles).all()
+        user_data.roles = [role.role_name for role in scopes_query]
+        
+        orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
+                join(Address, Address.id == Orders.address_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                join(OrderStatuses, OrderStatuses.id == Orders.status).\
+                where(Orders.from_user == user_query.id).order_by(asc(Orders.date_created)).all()
+
+        orders_out = []
+        for order in orders:
+            order_data = OrderOut(**order[0].__dict__)
+            order_data.tg_id = user_query.telegram_id
+
+            try:
+                order_data.address_data = order[1]
+                order_data.interval = str(order[1].interval).split(', ')
+            except IndexError: 
+                order_data.address_data = None
+
+            try:
+                if not order[2] == None:
+                    order_data.box_data = order[2]
+            except IndexError:
+                order_data.box_data = None
+
+            try:
+                order_data.status_data = order[3]
+            except IndexError:
+                order_data.status_data = None
+
+            orders_out.append(order_data)
+
+        user_data.orders = orders_out
+
+        return user_query
 
 
 @router.put('/users', tags=[Tags.users])
@@ -316,7 +399,6 @@ async def update_user_self_data(
     """
     Обновить свои данные пользователем
     """
-
 
 
 @router.get('/users/bot_linked', tags=[Tags.bot, Tags.users])
@@ -369,7 +451,7 @@ async def signup(signup_data: UserSignUpSchema):
         return new_user
 
 
-@router.post('/token', tags=["default"])
+@router.post('/token', tags=[Tags.users])
 async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 
     with Session(engine, expire_on_commit=False) as session:
@@ -391,6 +473,7 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
         scopes = [role.role_name for role in scopes_query]
 
         expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
+        refresh_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)*20)
         if ROLE_TELEGRAM_BOT_NAME in scopes:
             expires = None
 
@@ -402,40 +485,115 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
             }, 
             expires_delta=expires)
 
+        refresh_token = create_refresh_token(
+            data={
+                "internal_id": str(query.id),
+                "scopes": scopes
+            }, expires_delta=refresh_expires
+        )
+        new_refresh_token = UserRefreshTokens(
+            user_id=query.id,
+            token=refresh_token
+        )
+        session.add(new_refresh_token)
+        session.commit()
+
         return JSONResponse({
             "access_token": token,
+            "refresh_token": refresh_token,
             "token_type": "bearer"
         })
 
 
-@router.get("/users/me", tags=["users"], responses={
+@router.post('/token/refresh', tags=[Tags.users])
+async def refresh_access_token(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user_refresh)]
+):
+    """
+    получить новый токен доступа, если текущий не истёк
+    """
+    with Session(engine, expire_on_commit=False) as session:
+
+        query = session.query(Users).filter_by(id=current_user.id).first()
+        scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
+
+        scopes = [role.role_name for role in scopes_query]
+
+        expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
+        if ROLE_TELEGRAM_BOT_NAME in scopes:
+            expires = None
+        
+        found = False
+        for token in current_user.refresh_tokens:
+            if current_user.refresh_token == token:
+                found = True
+                delete_query = session.query(UserRefreshTokens).filter_by(token=token).delete()
+                session.commit()
+
+        if not found:
+            return JSONResponse({
+                "message": "not authenticated"
+            }, status_code=401)
+
+        token = create_access_token(
+            data={
+                "sub": query.email,
+                "internal_id": str(query.id),
+                "scopes": scopes
+            }, 
+            expires_delta=expires)
+
+        refresh_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES)*20)
+        refresh_token = create_refresh_token(
+            data={
+                "internal_id": str(query.id),
+                "scopes": scopes
+            }, expires_delta=refresh_expires
+        )
+        new_refresh_token = UserRefreshTokens(
+            user_id=query.id,
+            token=refresh_token
+        )
+        session.add(new_refresh_token)
+        session.commit()
+
+        return JSONResponse({
+            "access_token": token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        })
+
+
+@router.get("/users/me", tags=[Tags.users], responses={
     200: {
         "description": "Получение информации об авторизованном пользователе (себе)",
         "content": {
             "application/json": {
                 "example": {
-                    "user_data": {
-                        "telegram_username": 'null',
-                        "email": "test@mail.ru",
-                        "password": "$2b$12$g9.50JMY2pLysGFeq15enuDxUKFz7LlXIgNO4mzgVW7ZgtruT2/YS",
-                        "full_name": 'null',
-                        "last_action": "2023-12-01T18:30:08.740109",
-                        "link_code": "f191e981",
-                        "telegram_id": 'null',
-                        "id": "dec36dc4-109c-43d5-99b4-b801502606a7",
-                        "phone_number": 'null',
-                        "date_created": "2023-12-01T18:30:08.740109",
-                        "allow_messages_from_bot": 'true'
-                    },
-                    "token_data": {
-                        "sub": "test@mail.ru",
-                        "internal_id": "dec36dc4-109c-43d5-99b4-b801502606a7",
-                        "scopes": [
-                        "users",
-                        "me"
-                        ],
-                        "exp": 1701652303
-                    }
+  "user_data": {
+    "email": "user3@example.com",
+    "id": "43f96b7c-c417-4be1-9be8-857bf9df8acb",
+    "telegram_id": 55455,
+    "telegram_username": 'null',
+    "phone_number": 'null',
+    "firstname": 'null',
+    "secondname": 'null',
+    "orders": 'null',
+    "roles": 'null',
+    "deleted_at": 'null',
+    "link_code": "e08d1fb4-6"
+  },
+  "token_data": {
+    "sub": "user3@example.com",
+    "internal_id": "43f96b7c-c417-4be1-9be8-857bf9df8acb",
+    "scopes": [
+      "customer",
+      "admin",
+      "manager",
+      "courier",
+      "bot"
+    ]
+  }
                 }
             }
         }
@@ -452,22 +610,31 @@ async def login(login_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 async def get_current_user_info(
     current_user: Annotated[UserLoginSchema, Security(get_current_user)]
 ):
+    """
+    Получить информацию о текущем пользователе по токену
+    """
     token_data = jwt.decode(token=current_user.access_token, key=SECRET_KEY, algorithms=ALGORITHM)
 
     with Session(engine, expire_on_commit=False) as session:
         query = session.query(Users).filter_by(email=current_user.username).first()
 
+        scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
+        scopes = [role.role_name for role in scopes_query]
+
+        user_data = UserOut(**query.__dict__)
+        user_data.roles = scopes
         return {
-            "user_data": query,
+            "user_data": user_data,
             "token_data": token_data
             }
 
 
-@router.get('/user/{user_id}', tags=[Tags.users, Tags.admins])
+@router.get('/user/{user_id}/info', tags=[Tags.users, Tags.admins])
 async def get_user_data(
     user_id: uuid.UUID,
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
-):
+    with_orders: bool = False
+)->UserOut:
     """
     Получить данные пользователя админом
     """
@@ -477,25 +644,70 @@ async def get_user_data(
             return JSONResponse({
                 "message": "Not found"
             }, status_code=404)
-        return user_query
+
+        scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user_query.id).join(Roles).all()
+        scopes = [role.role_name for role in scopes_query]
+
+        return_data = UserOut(**user_query.__dict__)
+        return_data.roles = scopes
+
+        if with_orders:
+            orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
+                    join(Address, Address.id == Orders.address_id).\
+                    outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                    join(OrderStatuses, OrderStatuses.id == Orders.status).\
+                    where(Orders.from_user == user_query.id).order_by(asc(Orders.date_created)).all()
+            orders_out = []
+            for order in orders:
+                order_data = OrderOut(**order[0].__dict__)
+                order_data.tg_id = user_query.telegram_id
+
+                try:
+                    order_data.address_data = order[1]
+                    order_data.interval = str(order[1].interval).split(', ')
+                except IndexError: 
+                    order_data.address_data = None
+
+                try:
+                    if not order[2] == None:
+                        order_data.box_data = order[2]
+                except IndexError:
+                    order_data.box_data = None
+
+                try:
+                    order_data.status_data = order[3]
+                except IndexError:
+                    order_data.status_data = None
+
+                orders_out.append(order_data)
+
+            return_data.orders = orders_out
+
+        return return_data
 
 
 @router.get('/user/me', tags=[Tags.bot, Tags.users])
 async def get_user_info(
     tg_id: int,
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
-):
+)->UserOut:
 
     with Session(engine, expire_on_commit=False) as session:
-        query = session.query(Users).filter_by(email=current_user.username).first()
+        # query = session.query(Users).filter_by(telegram_id=tg_id).first()
+        query = Users.get_or_create(t_id=tg_id)
+        print(query)
+        if not query:
+            return JSONResponse({
+                "message": "Not found"
+            }, status_code=404)
 
         scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
         scopes = [role.role_name for role in scopes_query]
-        return JSONResponse({
-            "user_data": query,
-            "scopes": scopes
-        })
-    pass
+
+        return_data = UserOut(**query.__dict__)
+        return_data.roles = scopes
+
+        return return_data
 
 
 @router.get('/users/check', tags=[Tags.admins, Tags.users])
@@ -514,7 +726,6 @@ async def check_user_roles(
                 print(f"User {user.id} has no roles")
                 print(scopes)
                 if ROLE_CUSTOMER_NAME not in scopes:
-                    #TODO: Добавить роль
                     user_role = Permissions(
                         user_id = user.id,
                         role_id = Roles.customer_role()
@@ -524,7 +735,7 @@ async def check_user_roles(
         session.commit()
 
 
-@router.post('/users/import/file', tags=["admins"])
+@router.post('/users/import/file', tags=[Tags.admins])
 async def import_clients(file: UploadFile):
     """
     Импорт клиентов и заявки с историей из excel таблицы
@@ -535,12 +746,17 @@ async def import_clients(file: UploadFile):
         sheet_obj = wb_obj.active
 
         users = []
-
         none_count = 0 
+
         #импорт самих клиентов, адресов, тарифов, подписки, интервалов
-        for row in range(1, sheet_obj.max_row+1):
-            print(f"row number {row} ")
-        # for row in range(1, 10):
+
+        # for row in range(1, sheet_obj.max_row+1):
+            # print(f"row number {row} ")
+
+        added_count = 0
+        error_data = []
+
+        for row in range(1, 100):
             #3840 24
             #print(sheet_obj.max_row, sheet_obj.max_column)
             cell_obj = sheet_obj.cell(row, 1)
@@ -559,9 +775,14 @@ async def import_clients(file: UploadFile):
             try:
                 phone_number = int(sheet_obj.cell(row, 11).value)
             except Exception as err:
+
+                error_data.append({
+                    "message": "Not phone number detected",
+                    "row": row
+                })
+
                 continue
 
-            #TODO: useraddress
             new_user = session.query(Users).filter_by(phone_number = str(phone_number)).first()
             if not new_user:
                 new_user = Users(
@@ -578,12 +799,24 @@ async def import_clients(file: UploadFile):
             if not new_address:
                 latitude, longitude = get_lang_long_from_text_addres(sheet_obj.cell(row,7).value)
                 if (latitude == None) or (longitude == None):
-                    print(f"No data found for address {sheet_obj.cell(row, 7).value}")
+                    error_data.append({
+                        "message": f"No data found for address {sheet_obj.cell(row, 7).value}",
+                        "row": row
+                    })
                     continue
+                
+                region = Regions.get_by_coords(latitude, longitude)
+                if not region:
+                    region = Regions.get_by_name(sheet_obj.cell(row, 4).value)
+                    if not region:
+                        error_data.append({
+                            "message": f"No region found for {sheet_obj.cell(row, 4).value}",
+                            "row": row
+                        })
+                        continue
 
                 new_address = Address(
-                    region = sheet_obj.cell(row, 4).value,
-                    district = sheet_obj.cell(row, 5).value,
+                    region_id = region.id,
                     distance_from_mkad = sheet_obj.cell(row, 6).value,
                     point_on_map = sheet_obj.cell(row, 8).value,
                     address = sheet_obj.cell(row, 7).value,
@@ -633,5 +866,11 @@ async def import_clients(file: UploadFile):
             session.add(new_order)
 
             session.commit()
+            added_count+=1
 
-    return {"filename": file.filename}
+    return JSONResponse({
+        "added_count": added_count,
+        "error_count": len(error_data),
+        "errors_detail": error_data
+    })
+        

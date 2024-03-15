@@ -1,23 +1,31 @@
 """
-Файл с ORM моделями данных
+Модели + функции инита данных, персистные данные
 """
 
-from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Float, Boolean, BigInteger, UUID
-from sqlalchemy.orm import declarative_base, relationship, backref, Session
+import uuid, re, json, copy
+from sqlalchemy import (
+    create_engine, Column, Integer, String, 
+    DateTime, Text, ForeignKey, Float, 
+    Boolean, BigInteger, UUID, Text)
+
+from sqlalchemy.orm import declarative_base, relationship, backref, Session, Mapped
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import func
-from datetime import datetime
 
-from enum import Enum
-
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from os import getenv
+from typing import Union, Tuple, Optional, Dict, List
 
-from .exceptions import UserNoIdProvided
+from app.exceptions import UserNoIdProvided
 from app.utils import is_valid_uuid
+from app.validators import UserCreationValidator
 
-import uuid, re
+from calendar import monthrange
+from passlib.context import CryptContext
+from shapely.geometry import Point, shape
+
+from app.validators import OrderOut, RegionOut
 
 load_dotenv()
 connection_url = URL.create(
@@ -38,10 +46,27 @@ def default_time():
 
 
 def order_order_num():
+    """
+    получить кол-во заявок в таблице (учитывая удалённые)
+    """
     with Session(engine, expire_on_commit=False) as session:
         count = session.query(Orders.id).count()
         return count + 1
 
+
+def generate_route_short_name()->str:
+    """
+    сгенерировать короткий код-название для машрута
+
+    """
+    short_code = str(uuid.uuid4())[:10] 
+    
+    return short_code
+
+
+def generate_link_code()->str:
+    link_code = str(uuid.uuid4()[:8])
+    return link_code
 
 class Orders(Base):
     """
@@ -59,25 +84,108 @@ class Orders(Base):
     #От юр. лица или нет
     legal_entity = Column(Boolean(), default=False)
     
-    box_type_id = Column(UUID(as_uuid=True), ForeignKey('boxtypes.id'))
-    box_count = Column(Integer())
+    box_type_id = Column(UUID(as_uuid=True), ForeignKey('boxtypes.id'), nullable=True)
+    box_count = Column(Integer(), nullable=True)
 
     order_num = Column(Integer(), default=order_order_num)
     user_order_num = Column(Integer())
 
     status = Column(UUID(as_uuid=True), ForeignKey('order_statuses.id'))
 
+    comment = Column(Text(), nullable=True)
+
     date_created = Column(DateTime(), default=default_time)
     last_updated = Column(DateTime(), default=default_time)
     
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
+    #айди курьера, если заявка принята курьером
+    courier_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+
+    #Комментарий к выполнению от менеджера
+    #SUGGESTION: Перенести коммента в отдельную таблицу? 
+    comment_manager = Column(Text(), nullable=True)
+    #Комментарий к выполнению от курьера
+    comment_courier = Column(Text(), nullable=True)
+
     @staticmethod
     def get_all_orders():
         with Session(engine, expire_on_commit=False) as session: 
             return session.query(Orders).all()
-    
-    
+
+    @staticmethod
+    def query_by_id(order_id: UUID) -> Optional['Orders']:
+        #TODO: реализовать запрос по айди внутри метода
+        with Session(engine, expire_on_commit=False) as session:
+            order = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
+                join(Address, Address.id == Orders.address_id).\
+                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+                join(OrderStatuses, OrderStatuses.id == Orders.status).\
+                join(Users, Users.id == Orders.from_user).\
+                where(Orders.id == order_id).first()
+
+            return order
+
+
+    @staticmethod
+    def process_order_array(orders: List[any]):
+        """
+        Обрабатывает лист заявок с query и формирует массив на выход по схеме OrderOut
+        """
+        return_data = []
+        for order in orders:
+            order_data = OrderOut(**order[0].__dict__)
+            order_data.tg_id = order[4].telegram_id
+            
+            if not(type(order[1].interval) == list):
+                order_data.interval = str(order[1].interval).split(', ')
+            else:
+                order_data.interval = order[1].interval
+
+            try:
+                order_data.address_data = order[1]
+                if not(type(order[1].interval) == list):
+                    order_data.address_data.interval = str(order[1].interval).split(', ')
+                else:
+                    order_data.address_data.interval = order[1].interval
+
+            except IndexError: 
+                order_data.address_data = None
+
+            try:
+                order_data.address_data.region = order[5]
+                if order[5].work_days != None:
+                    print(order[5].work_days)
+                    work_days_str = copy.deepcopy(order[5].work_days)
+                    if not (type(work_days_str) == list):
+                        work_days_str = str(work_days_str).split(' ')
+
+                    order_data.address_data.region.work_days = work_days_str
+                else:
+                    order_data.address_data.region.work_days = None
+            except IndexError:
+                order_data.address_data.region = None
+
+            try:
+                order_data.box_data = order[2]
+            except IndexError:
+                order_data.box_data = None
+
+            try:
+                order_data.status_data = order[3]
+            except IndexError:
+                order_data.status_data = None
+            
+            try:
+                order_data.user_data = order[4]
+            except IndexError:
+                order_data.user_data = None
+
+            return_data.append(order_data.model_dump())
+
+        return return_data
+
+
     def update_status(__self__, status_id) -> None:
         """
         Указать новый статус зявки с записью изменения в историю заявки
@@ -93,33 +201,6 @@ class Orders(Base):
             session.commit()
 
             return 
-
-class RoutedOrders(Base):
-    """
-    Принятые заказы на выполнении у курьера
-    """
-
-    __tablename__ = 'routed_orders'
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
-    order_id = Column(UUID(as_uuid=True), ForeignKey('orders.id'))
-    courier_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
-
-    #Дата сбора
-    date = Column(DateTime(), nullable=True)
-
-    #Статус заявки
-    status = Column(String(), nullable=True)
-
-    #Комментарий к выполнению от менеджера
-    #SUGGESTION: Перенести коммента в отдельную таблицу? 
-    comment_manager = Column(String(), nullable=True)
-    #Комментарий к выполнению от курьера
-    comment_courier = Column(String(), nullable=True)
-
-    # created_at = Column(datetime(), default=default_time)
-    deleted_at = Column(DateTime(), default=None, nullable=True)
 
 
 class Users(Base):
@@ -147,12 +228,14 @@ class Users(Base):
     #last_login
     
     #Код для связки бота и пользователя
-    link_code = Column(String(), unique=True, default=str(uuid.uuid4())[:8])
+    link_code = Column(String(), unique=True, default=generate_link_code)
     allow_messages_from_bot = Column(Boolean(), default=True)
 
     disabled = Column(Boolean(), default=False)
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
+
+    refresh_token = relationship('UserRefreshTokens', backref='users', lazy='joined')
 
     def get_or_create(
             t_id: int = None,
@@ -177,7 +260,7 @@ class Users(Base):
                 )
 
                 user_role = Permissions(
-                    user_id = new_user.id,
+                    user_id = user.id,
                     role_id = Roles.get_role(ROLE_CUSTOMER_NAME).id
                 )
 
@@ -196,10 +279,11 @@ class Users(Base):
             user_query = None
             if t_id:
                 user_query = session.query(Users).filter_by(telegram_id = t_id).\
-                    where(User.deleted_at == None).first()
+                    where(Users.deleted_at == None).first()
+
             elif internal_id:
                 user_query = session.query(Users).filter_by(id = internal_id).\
-                    where(User.deleted_at == None).first()
+                    where(Users.deleted_at == None).first()
             
             return user_query
 
@@ -248,6 +332,18 @@ class Users(Base):
         pass
 
 
+class UserRefreshTokens(Base):
+    """
+    рефреш токены пользователей
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    token = Column(String(), nullable=False)
+    date_created = Column(DateTime(), default=default_time)
+
 class Address(Base):
     """Модель для адреса"""
 
@@ -260,8 +356,8 @@ class Address(Base):
     longitude = Column(String(), nullable=False)
     main = Column(Boolean(), default=False)
 
-    district = Column(String())
-    region = Column(String())
+    region_id = Column(UUID(as_uuid=True), ForeignKey('regions.id'), nullable=False)
+
     distance_from_mkad = Column(String())
     point_on_map = Column(String())
 
@@ -278,13 +374,52 @@ class Address(Base):
     #Кол-во вывозов с даты оплаты
     times_completed = Column(Integer())
 
-
     comment = Column(String(), nullable=True)
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
+
     def __repr__(self):
         return f'{self.id}'
+
+    
+    def get_avaliable_days(self, days_list_len)->List[Dict]:
+        """
+        Сгенерировать список дат, по которым будет прободиться проверка
+        """
+        address_work_days = str(self.region.work_days).split(' ')
+        dates_list_passed = []
+        date_today = datetime.now()
+
+        for i in range(100):
+            if self.region.work_days == None:
+                break
+
+            day_number_now = datetime.strftime(date_today, "%d")
+            month_now_str = datetime.strftime(date_today, "%m")
+            year_now_str = datetime.strftime(date_today, "%Y")
+
+            days_max = monthrange(int(year_now_str), int(month_now_str))[1]
+
+            day_number_next = int(day_number_now)+1
+            if (day_number_next>days_max):
+                #если след день приходит на начало след месяца берём первое число как след день
+                day_number_next = 1
+
+            date_tommorrow = date_today + timedelta(days=i)
+            weekday_tomorrow = str(date_tommorrow.strftime('%A')).lower()
+
+            for day_allowed in address_work_days:
+                if day_allowed == weekday_tomorrow:
+                    dates_list_passed.append({
+                        "date": date_tommorrow.strftime('%Y-%m-%dT%H:%M:%S'),
+                        "weekday": weekday_tomorrow
+                    })
+
+            if len(dates_list_passed)>days_list_len-1:
+                break
+
+        return dates_list_passed
 
 
 class UsersAddress(Base):
@@ -330,22 +465,22 @@ class Roles(Base):
             query = session.query(Roles).filter_by(role_name=ROLE_CUSTOMER_NAME).first()
             return query.id
 
-    @property
-    def courier_role(self):
+    @staticmethod
+    def courier_role():
         with Session(engine, expire_on_commit=False) as session:
-            query = session.query(Roles).filter_by(role_name='courier').first()
+            query = session.query(Roles).filter_by(role_name=ROLE_COURIER_NAME).first()
             return query.id
 
     @property
     def manager_role(self):
         with Session(engine, expire_on_commit=False) as session:
-            query = session.query(Roles).filter_by(role_name='manager').first()
+            query = session.query(Roles).filter_by(role_name=ROLE_MANAGER_NAME).first()
             return query.id
 
     @property
     def admin_role(self):
         with Session(engine, expire_on_commit=False) as session:
-            query = session.query(Roles).filter_by(role_name='admin').first()
+            query = session.query(Roles).filter_by(role_name=ROLE_MANAGER_NAME).first()
             return query.id
 
 
@@ -401,6 +536,38 @@ class OrderStatuses(Base):
                 filter_by(status_name=ORDER_STATUS_AWAITING_CONFIRMATION["status_name"]).first()
             return query
         
+
+    @staticmethod
+    def status_confirmed():
+        with Session(engine,expire_on_commit=False) as session:
+            query = session.query(OrderStatuses).\
+                filter_by(status_name=ORDER_STATUS_CONFIRMED["status_name"]).first()
+            return query
+
+
+    @staticmethod
+    def status_accepted_by_courier():
+        with Session(engine,expire_on_commit=False) as session:
+            query = session.query(OrderStatuses).\
+                filter_by(status_name=ORDER_STATUS_COURIER_PROGRESS['status_name']).first()
+            return query
+
+
+    @staticmethod
+    def status_awaiting_payment():
+        with Session(engine,expire_on_commit=False) as session:
+            query = session.query(OrderStatuses).\
+                filter_by(status_name=ORDER_STATUS_AWAITING_PAYMENT['status_name']).first()
+            return query
+
+ 
+    @staticmethod
+    def status_payed():
+        with Session(engine,expire_on_commit=False) as session:
+            query = session.query(OrderStatuses).\
+                filter_by(status_name=ORDER_STATUS_PAYED['status_name']).first()
+            return query
+
 
 
 class OrderStatusHistory(Base):
@@ -460,8 +627,12 @@ class WeekDaysWork(Base):
     __tablename__ = 'week_days_work'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    day_num = Column(Integer(), nullable=False)
+    day_status = Column(Boolean(), default=False)
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
+
+    region_id = Column(UUID(as_uuid=True), ForeignKey('regions.id'))
 
 
 class DaysWork(Base):
@@ -495,9 +666,115 @@ class NotificationTypes(Base):
     __tablename__ = 'notification_types'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    type_name = Column(String(), nullable=False)
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
 
+class Regions(Base):
+    """
+    Регионы, в которых доступен вывоз
+    """
+    __tablename__ = 'regions'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name_short = Column(String(), nullable=True)
+    name_full = Column(String(), nullable=False)
+
+    region_type = Column(String(), nullable=False)
+
+    is_active = Column(Boolean(), default=True)
+    
+    geodata = Column(Text(), nullable=True)
+
+    # work_days = relationship(
+    #         'Regions',
+    #         backref=backref('WeekDaysWork', lazy='joined'), 
+    #         lazy='dynamic'
+        # )
+
+    work_days = Column(String(), nullable=True)
+    addresses = relationship('Address', backref='region', lazy='joined')
+    
+
+    def contains(self, point:Point)->bool:
+        """
+        Проверить, содержит ли регион указанную точку
+        """
+        data_points = str(self.geodata).replace('\'','\"')
+        data_points = json.loads(data_points)
+        feature = shape(data_points)
+
+        return feature.contains(point)
+    
+
+    @staticmethod
+    def get_by_coords(lat: float, long: float)-> Optional['Regions']:
+        """
+        Получить регион по координатам
+        """
+        point = Point(lat, long)
+        region = None
+
+        with Session(engine, expire_on_commit=False) as session:
+            regions_query = session.query(Regions).all()
+            for region_query in regions_query:
+
+                data_points = str(region_query.geodata).replace('\'','\"')
+                data_points = json.loads(data_points)
+                feature = shape(data_points)
+
+                if not region_query.contains(point):
+                    continue
+                else:
+                    region = region_query
+                    break
+
+        return region
+
+    
+    @staticmethod
+    def get_by_name(name: str) -> Optional['Regions']:
+        with Session(engine, expire_on_commit=False) as session:
+            query = session.query(Regions).\
+                filter(Regions.name_full.ilike(f"%{name}%")).first()
+            return query
+
+
+class Routes(Base):
+    """
+    Модель маршрутов 
+    """
+
+    __tablename__ = "routes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    courier_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    short_name = Column(String(), default=generate_route_short_name)
+
+    #На какой день предназначен маршрут 
+    date_created = Column(DateTime(), default=default_time)
+    orders = relationship('RoutesOrders', backref='routes', lazy='joined')
+    
+    @staticmethod
+    def get_all_routes(today_only: bool = True):
+        pass
+
+    
+class RoutesOrders(Base):
+    """
+    Связь маршрута с заявками 
+    """ 
+
+    __tablename__ ="routed_orders"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_id = Column(UUID(as_uuid=True), ForeignKey('orders.id'))
+    route_id = Column(UUID(as_uuid=True), ForeignKey('routes.id'))
+
+    order = relationship('Orders', backref='routedorders', lazy='joined')
+
+
+# === персистные данные/конфигурации
 Base.metadata.create_all(engine)
 
 #Роли пользователей в системе
@@ -581,6 +858,21 @@ class IntervalStatuses():
     ON_REQUEST = 'on_request'
 
 
+#Типы регионов
+class RegionTypes():
+    DISTRICT='district'
+    REGION='region'
+
+WEEK_DAYS_WORK_STR_LIST = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "sunday",
+    "saturday",
+]
+
 def init_role_table():
     """
     инициализировать таблицу ролей
@@ -646,7 +938,60 @@ def init_boxtype_table():
         session.commit()
 
 
+def create_admin_user():
+    """
+    Создать админского пользователя
+    """
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    def get_password_hash(password):
+        return pwd_context.hash(password)
+
+    new_user_data = UserCreationValidator(
+        email="user3@example.com",
+        password="string",
+        role= ['customer', 'user', 'admin', 'bot', 'manager', 'courier']
+    )
+
+    with Session(engine, expire_on_commit=False) as session:
+        query_user = session.query(Users).filter_by(email=new_user_data.email).first()
+        if query_user: 
+            return
+
+        new_user_data.password = get_password_hash(new_user_data.password)
+        new_user_data = new_user_data.model_dump()
+        user_role = new_user_data["role"]
+        del new_user_data["role"]
+        del new_user_data["send_email_invite"]
+
+        new_user = Users(**new_user_data)
+
+        #Фикс: при flush uuid остаётся в сесси и не перегенерируется, т.е получаем Exception на unique field'е 
+        new_user.link_code = str(uuid.uuid4())[:10] 
+
+        session.add(new_user)
+        session.flush()
+        session.refresh(new_user)
+
+        #Если админ - добавить все роли?
+
+        for role in user_role:
+            role_query = Roles.get_role(role)
+            if role_query:
+                user_role = Permissions(
+                    user_id = new_user.id,
+                    role_id = Roles.get_role(role).id
+                )
+
+                session.add(user_role)
+
+        session.commit()
+
+        return
+
+
 # if __name__ == "__main__":
 init_role_table()
 init_boxtype_table()
 init_status_table()
+create_admin_user()

@@ -1,46 +1,45 @@
 """
 Руты для бота
 """
-from app.validators import CreateUserData, UpdateUserDataFromTG
-from app.models import Users
-
-
-from typing import Annotated
-from fastapi import APIRouter, Security
-from fastapi.responses import JSONResponse
-from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
-
-from ..models import (
-    Users, Session, engine, UsersAddress, Address, IntervalStatuses, Roles
-    )
-
-from ..auth import (
-    oauth2_scheme, 
-    get_current_user
-)
-
-from ..validators import (
-    LinkClientWithPromocodeFromTG as UserLinkData,
-    Address as AddressValidator,
-    AddressUpdate as AddressUpdateValidator,
-    UserLogin as UserLoginSchema,
-    AddressSchedule
-)
-
 
 import requests
 import os, uuid
 
-from datetime import datetime
-from dotenv import load_dotenv
 
-load_dotenv()
+from typing import Annotated, List, Tuple, Dict, Optional
+from fastapi import APIRouter, Security
+from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
+from datetime import datetime, timedelta
+from uuid import UUID
+
+from sqlalchemy import desc, asc, desc
+from sqlalchemy import JSON
+
+from app.models import (
+    Users, Session, engine, UsersAddress, 
+    Address, IntervalStatuses, Roles, Permissions, Regions, WEEK_DAYS_WORK_STR_LIST,
+    Routes, RoutesOrders
+    )
+
+from app import CODER_KEY, CODER_SETTINGS, Tags
+
+from app.auth import (
+    oauth2_scheme, 
+    get_current_user
+)
+
+from app.validators import (
+    LinkClientWithPromocodeFromTG as UserLinkData,
+    Address as AddressValidator,
+    AddressUpdate as AddressUpdateValidator,
+    UserLogin as UserLoginSchema,
+    AddressSchedule, CreateUserData, UpdateUserDataFromTG, AddressOut,
+    RegionOut, AddressDaysWork, UserOut, RouteOut
+)
+
 
 router = APIRouter()
-
-CODER_KEY = os.getenv("Y_GEOCODER_KEY")
-
-CODER_SETTINGS = f"&format=json&lang=ru_RU&ll=37.618920,55.756994&spn=4.552069,4.400552&rspn=1"
 
 
 @router.post('/user', tags=["users", "bot"])
@@ -74,9 +73,8 @@ async def create_user(
             role_id = Roles.customer_role()
         )
 
-        session.add(new_user)
+        session.add(user_role)
         session.commit()
-
 
         return new_user
 
@@ -89,7 +87,6 @@ async def create_bot_client_from_link(
     """
     Привязать пользователя бота к клиенту по коду
     """
-    #TODO: Проверка на занятость тг айди? 
     with Session(engine, expire_on_commit=False) as session:
         user_query = session.query(Users).filter_by(link_code=user_link_data.promocode).first()
         if not user_query:
@@ -97,6 +94,12 @@ async def create_bot_client_from_link(
                 "message": f"No user with link code {user_link_data.promocode} found"
             }, status_code=404)
         
+        user_query = session.query(Users).filter_by(telegram_id=user_link_data.tg_id).first()
+        if user_query:
+            return JSONResponse({
+                "message": f"пользователь с таким айди телеграм ({user_link_data.tg_id}) уже существует"
+            })
+
         user_query.telegram_id = user_link_data.tg_id
         user_query.telegram_username = user_link_data.username
         user_query.first_name = user_link_data.first_name
@@ -119,6 +122,8 @@ async def check_user_by_phone(
 
     with Session(engine, expire_on_commit=False) as session:
         user_query = session.query(Users).filter_by(phone_number=phone_number).first()
+
+        
         if user_query:
             return user_query
         else:
@@ -131,14 +136,20 @@ async def check_user_by_phone(
 async def check_user_by_promocode(
     promocode: str,
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
-    ):
+    )->UserOut:
     """
     Поиск пользователя по промокоду (search-user-by-promocode)
     """
     with Session(engine, expire_on_commit=False) as session:
         user_query = session.query(Users).filter_by(link_code=promocode).first()
+
+
         if user_query:
-            return user_query
+            scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user_query.id).join(Roles).all()
+            scopes = [role.role_name for role in scopes_query]
+            return_data = UserOut(**user_query.__dict__)
+            return_data.roles = scopes
+            return return_data
         else:
             return JSONResponse({
                 "message": "not found"
@@ -192,29 +203,53 @@ async def get_user_by_tg_id(
 
 @router.get('/user/addresses/all', tags=['addresses', "bot"])
 async def get_addresses(
-    tg_id: int,
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
-    ):
+    days_list_len: int = 10,
+    tg_id: int = None,
+    user_id: UUID = None,
+    ) -> List[AddressOut]:
     """
     Получение всех адресов пользователя
+    - **tg_id**: тг айди пользователя
+    - **days_list_len**: 
     """
+
     with Session(engine, expire_on_commit=False) as session:
+        
+        user = None
+        if not(tg_id == None):
+            user = Users.get_or_404(t_id=tg_id)
+        elif not(user_id == None): 
+            user = Users.get_or_404(internal_id=user_id)
+        
+        if not user:
+            return JSONResponse({
+                "message": "User not found"
+                }, status_code=404)
+
         addresses = session.query(Address).\
             join(UsersAddress, UsersAddress.address_id == Address.id).\
             join(Users, UsersAddress.user_id == Users.id).\
-            where(Users.telegram_id == tg_id).\
+            where(Users.id == user.id).\
             where(Address.deleted_at == None).all()
+
+        return_data = []
 
         for address in addresses:
             address.interval = str(address.interval).split(', ')
 
-        return addresses
+            dates_list_passed = address.get_avaliable_days(days_list_len)
+            setattr(address, 'work_dates', dates_list_passed)
+
+            return_data.append(address)
+
+        return return_data
 
 
 @router.get('/user/addresses/main', tags=["addresses", "bot"])
 async def get_main_address(
-    tg_id: int,
-    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+        tg_id: int,
+        bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
     ):
     """
     Получение главного адреса пользователя
@@ -225,23 +260,37 @@ async def get_main_address(
             join(Users, UsersAddress.user_id == Users.id). \
             where(Users.telegram_id == tg_id, Address.main == True).\
             where(Address.deleted_at == None).first()
-        
+
+        if not address:
+            return JSONResponse({
+                "message": "Not found"
+            }, status_code=404)        
+
         address.interval = str(address.interval).split(', ')
 
-        return address
+        return_data = AddressOut(**address.__dict__)
+        address.region.work_days = str(address.region.work_days).split(' ')
+        return_data.region = RegionOut(**address.region.__dict__)
+
+        return return_data
 
 
 @router.post('/user/addresses', tags=["addresses", "bot"])
 async def add_user_address(
-    address_data: AddressValidator, 
-    tg_id: int,
-    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
-    ):
+        address_data: AddressValidator, 
+        bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+        tg_id: int = None,
+        user_id: UUID = None
+    ) -> AddressOut:
     """
     Создание адреса пользователя
     """
 
-    user = Users.get_or_create(t_id=int(tg_id))
+    user = Users.get_or_404(t_id=tg_id, internal_id=user_id)
+    if not user:
+        return JSONResponse({
+            "message": "User not found"
+        }, status_code=404)
 
     with Session(engine, expire_on_commit=False) as session:
 
@@ -253,7 +302,11 @@ async def add_user_address(
             address = session.query(Address).filter_by(
                 latitude=str(address_data.latitude),
                 longitude=str(address_data.longitude)
-            ).where(Address.deleted_at == None).first()
+            ).\
+            where(Address.deleted_at == None).\
+            join(UsersAddress, UsersAddress.address_id == Address.id).\
+            where(UsersAddress.user_id == user.id).\
+            first()
         
             if address:
                 return JSONResponse({
@@ -262,8 +315,6 @@ async def add_user_address(
 
             if not address_data.address:
                 #Если не предоставили текстовый адрес получаем через геокодер
-
-                #TODO: Ограничение по долготе/широте
                 url = f"https://geocode-maps.yandex.ru/1.x/?apikey={CODER_KEY}&geocode={address_data.longitude},{address_data.latitude}{CODER_SETTINGS}"
                 
                 data = requests.request("GET", url).json()
@@ -324,13 +375,11 @@ async def add_user_address(
                 join(Users, UsersAddress.user_id == Users.id). \
                 where(Users.telegram_id == tg_id).where(Address.deleted_at == None).all()
 
-            #TODO: Перенести Update в query
             for address in update_query: 
                 address.main = False
 
         #создаем новый адрес
 
-        #TODO: Сделать проверку на выпадание выходного на день вывоза
         interval = None
         if address_data.selected_day_of_week:
             interval = ', '.join(address_data.selected_day_of_week)
@@ -343,9 +392,29 @@ async def add_user_address(
             if address_data.interval_type == None:
                 address_data.interval_type = INTREVAL_TYPE_MONTH_DAY
         
+        #почистить данные в переданной схеме
         address_data_dump = address_data.model_dump()
         del address_data_dump["selected_day_of_month"]
         del address_data_dump["selected_day_of_week"]
+        del address_data_dump["region"]
+
+        print(address_data)
+        region = Regions.get_by_coords(
+            float(address_data.longitude),
+            float(address_data.latitude)
+        )
+
+        #попытаться найти регион по названию, если не нашёлся по координатам
+        if not region == None:
+            address_data_dump['region_id'] = region.id
+        else:
+            region = Regions.get_by_name(address_data.region)
+            if not region:
+                print("region still not found")
+
+            return JSONResponse({
+                "message": "Данный адрес находится во вне рабочих регионах"
+            }, status_code=422)
 
         address_data_dump['interval'] = interval
         address = Address(**address_data_dump)
@@ -353,33 +422,42 @@ async def add_user_address(
         
         session.add(address)
         session.commit()
+
         user_address = UsersAddress(
             user_id=user.id,
             address_id=address.id,
         )
-
         session.add(user_address)
         session.commit()
+        
+        dates_list_passed = address.get_avaliable_days(5)
+        setattr(address, 'work_dates', dates_list_passed)
+
+        # return_data = AddressOut(**address.__dict__)
+        # return_data.region = RegionOut(**region.__dict__)
+        # return_data.region.work_days = str(return_data.region.work_days).split(' ')
 
         return address
 
 
 @router.put('/user/addresses/{address_id}/schedule')
 async def set_address_schedule(
-    address_id: uuid.UUID,
-    tg_id: int,
-    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
-    address_schedule: AddressSchedule
-    ):
+        address_id: uuid.UUID,
+        tg_id: int,
+        bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+        address_schedule: AddressSchedule
+    )->AddressOut:
     """
     Указать расписание адреса
     """
 
     with Session(engine, expire_on_commit=False) as session:
 
-        address_query = session.query(Address).filter_by(id=address_id).\
+        address_query = session.query(Address).\
+            filter_by(id=address_id).\
             join(UsersAddress, UsersAddress.address_id == Address.id).\
             join(Users, UsersAddress.user_id == Users.id).\
+            join(Regions, Address.region_id == Regions.id).\
             where(Address.deleted_at == None).\
             where(Users.telegram_id == tg_id).\
             first()
@@ -391,28 +469,50 @@ async def set_address_schedule(
 
         #Обновляем расписание адреса на новое  
         interval = None
+
+        allowed_days = str(address_query.region.work_days).split(' ')
+
         if address_schedule.selected_day_of_week:
+            for day in address_schedule.selected_day_of_week:
+                if day not in allowed_days:
+                    return JSONResponse({
+                        "message": "cannot set given date in interval. Date not allowed",
+                        "date": day,
+                        "allowed_days": allowed_days
+                    })
+                # days_given_date_formatted.append(day)
+
             interval = ', '.join(address_schedule.selected_day_of_week)
             address_schedule.interval_type = IntervalStatuses.WEEK_DAY
-            
+
         if address_schedule.selected_day_of_month:
+            for day in address_schedule.selected_day_of_month:
+                #TODO: Проверку для дат
+                # weekday = str(date.strftime('%A')).lower()
+                print(day)
+
             interval = ', '.join(address_schedule.selected_day_of_month)
             address_schedule.interval_type = IntervalStatuses.MONTH_DAY
 
         address_query.interval = interval
         address_query.interval_type = address_schedule.interval_type
 
+        session.add(address_query)
+        session.flush()
         session.commit()
+        
+        address_query.interval = str(interval).split(', ')
 
         return address_query
 
 
 @router.get('/user/addresses/{address_id}', tags=["addresses", "bot"])
 async def get_address_information_by_id(
-    address_id: uuid.UUID, 
-    tg_id: int,
-    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
-    ):
+        address_id: uuid.UUID, 
+        tg_id: int,
+        bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+        days_list_len: int = 5,
+    ) -> AddressOut:
     """
     Получение информации об адресе пользователя по айди
     """
@@ -425,19 +525,26 @@ async def get_address_information_by_id(
 
         if addresses:
             addresses.interval = str(addresses.interval).split(', ')
+            #return_data = AddressOut(**addresses.__dict__)
+            #return_data.region = RegionOut(**addresses.region.__dict__)
+
+            dates_list_passed = addresses.get_avaliable_days(days_list_len)
+            setattr(addresses, 'work_dates', dates_list_passed)
+
             return addresses
+
         else:
             return JSONResponse({
                 "message": "Not found"
-            },status_code=404)
+            }, status_code=404)
 
 
 @router.put('/user/addresses/{address_id}', tags=["addresses", "bot"])
 async def update_user_addresses(
-    address_id:str, 
-    new_address_data: AddressUpdateValidator, 
-    tg_id: int,
-    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
+        address_id:str, 
+        new_address_data: AddressUpdateValidator, 
+        tg_id: int,
+        bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
     ):
     """
     Обновить данные адреса
@@ -453,7 +560,6 @@ async def update_user_addresses(
                 where(Users.telegram_id == tg_id).\
                 where(Address.deleted_at == None).all()
 
-            #TODO: Update в query
             for address in update_query: 
                 address.main = False
 
@@ -504,3 +610,29 @@ async def delete_user_address(
         session.commit()
 
     return
+
+
+@router.get("/routes", tags=[Tags.routes, Tags.couriers, Tags.bot])
+async def get_routes(
+    courier_id: int,
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+    date: Optional[datetime] = None
+)->List[RouteOut]:
+    """
+    получить маршруты
+    - **date**: [datetime] - дата на получение маршрутов, по умолчанию получаются все маршруты
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        user = Users.get_or_404(t_id = courier_id)
+
+        routes = session.query(Routes)
+        routes = routes.filter(Routes.courier_id == user.id)
+
+        if date:
+            routes = routes.filter(Routes.date_created > date)
+        
+
+        routes = routes.order_by(asc(Routes.date_created)).all()
+
+        return routes
+    

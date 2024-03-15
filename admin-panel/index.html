@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Admin panel</title>
+</head>
+
+<body>
+    <div id="root" class="hidden">
+        <nav class="main-nav">
+
+            <div id='user-info' class="user-info hidden">
+                <label>
+                    Текущий пользователь: <p id="user-email-holder"></p>
+                </label>
+
+                <label>
+                    Роли: <p id="user-roles-holder"></p>
+                </label>
+            </div>
+
+            <div id="main-menu" class="main-menu">
+                <ul>
+                    <li onclick="init_users()"> Пользователи </li>
+                    <li onclick="init_orders()"> Заявки </li>
+                    <li onclick=""> История вывоза </li>
+                    <li onclick="load_couriers()"> Курьеры </li>
+                    <li onclick="load_managers()"> Менеджеры </li>
+                    <li onclick="load_managers()"> Менеджеры </li>
+                    <li onclick="load_containers()"> Контейнеры </li>
+                    <li onclick="load_containers()"> Статусы </li>
+                    <li onclick="load_notifications()">Уведомления</li>
+                    <li onclick="logout()"> Выход </li>
+                </ul>
+            </div>
+
+        </nav>
+        
+        <div id="content-wrapper" class="content-wrapper">
+            <div id="data-wrapper"></div>
+
+            <div id="append-wrapper"></div>
+        </div>
+    
+
+
+    </div>
+
+    <div id='login-form-wrapper' class="login-wrapper">
+        <input type="email" name="email" id="user-email" value="user3@example.com">
+        <input type="password" id="user-password" value="string">
+        <button onclick="request_token()">submit</button>
+
+        <div class="blur-background"></div>
+    </div>
+
+<datalist id="roles_list_id"></datalist>
+
+</body>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="main.js"></script>
+
+</html>
