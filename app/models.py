@@ -65,7 +65,7 @@ def generate_route_short_name()->str:
 
 
 def generate_link_code()->str:
-    link_code = str(uuid.uuid4()[:8])
+    link_code = str(uuid.uuid4())[:8]
     return link_code
 
 class Orders(Base):
