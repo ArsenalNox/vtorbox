@@ -101,6 +101,7 @@ class CommandHandler(Handler):
                         method='get',
                         url=f'user/me?tg_id={message.from_user.id}'
                     )
+
                 if user.get('roles'):
                     if 'courier' in user.get('roles'):
                         await message.answer(
