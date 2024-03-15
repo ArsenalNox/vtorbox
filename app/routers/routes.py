@@ -211,7 +211,8 @@ async def generate_routes_today(
 async def get_routes(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     date: Optional[datetime] = None,
-    courier_id: Optional[UUID] = None
+    courier_id: Optional[UUID] = None,
+    courier_tg_id: Optional[int] = None
 )->List[RouteOut]:
     """
     получить маршруты
@@ -230,6 +231,10 @@ async def get_routes(
         
         if courier_id: 
             routes = routes.filter(Routes.courier_id == courier_id)
+
+        if courier_tg_id:
+            courier = Users.get_or_404(t_id=courier_tg_id)
+            routes = routes.filter(Routes.courier_id == courier.id)
 
         routes = routes.order_by(asc(Routes.date_created)).all()
 
