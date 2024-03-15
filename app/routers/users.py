@@ -364,7 +364,7 @@ async def update_user_data(
 
         orders_out = []
         for order in orders:
-            order_data = OrderOut(**order[0].dict)
+            order_data = OrderOut(**order[0].__dict__)
             order_data.tg_id = user_query.telegram_id
 
             try:
@@ -693,7 +693,9 @@ async def get_user_info(
 )->UserOut:
 
     with Session(engine, expire_on_commit=False) as session:
-        query = session.query(Users).filter_by(telegram_id=tg_id).first()
+        # query = session.query(Users).filter_by(telegram_id=tg_id).first()
+        query = Users.get_or_create(t_id=tg_id)
+        print(query)
         if not query:
             return JSONResponse({
                 "message": "Not found"
@@ -701,7 +703,6 @@ async def get_user_info(
 
         scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
         scopes = [role.role_name for role in scopes_query]
-
 
         return_data = UserOut(**query.__dict__)
         return_data.roles = scopes
