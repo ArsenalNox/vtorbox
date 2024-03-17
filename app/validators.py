@@ -408,7 +408,7 @@ class RouteOut(BaseModel):
     id: UUID4
     courier_id: UUID4
     short_name: str
-    route_link: Optional[str] = None
+    route_link: Optional[str] = "https://yandex.ru/maps/geo/moskva/53000094/?ll=37.385439%2C55.584227&z=9.03"
 
     #На какой день предназначен маршрут 
     date_created: datetime
