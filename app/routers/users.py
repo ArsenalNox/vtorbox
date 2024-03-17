@@ -693,9 +693,7 @@ async def get_user_info(
 )->UserOut:
 
     with Session(engine, expire_on_commit=False) as session:
-        # query = session.query(Users).filter_by(telegram_id=tg_id).first()
-        query = Users.get_or_create(t_id=tg_id)
-        print(query)
+        query = session.query(Users).filter_by(telegram_id=tg_id).first()
         if not query:
             return JSONResponse({
                 "message": "Not found"

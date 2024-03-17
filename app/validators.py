@@ -354,11 +354,11 @@ class UserOut(BaseModel):
     telegram_id: Optional[int]
     telegram_username: Optional[str]
 
-    phone_number: Optional[int]
+    phone_number: Optional[int] = None
     password_plain: Optional[str] = None
 
-    firstname: Optional[str]
-    secondname: Optional[str]
+    firstname: Optional[str] = None
+    secondname: Optional[str] = None
     patronymic: Optional[str] = None
     allow_messages_from_bot: bool
 

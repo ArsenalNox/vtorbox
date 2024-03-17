@@ -119,7 +119,14 @@ async def generate_routes_today(
     - **write_after_generation** [bool] - записать ли результат сразу в бд
     """
     with Session(engine, expire_on_commit=False) as session:
+        date = datetime.now()
+        #TODO: Статус отменена при удалении из маршрута
+        date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+        date_tommorrow = date + timedelta(days=1)
+
         order_pool_awaliable = [] #список доступных для вывоза заявок
+
+        print(date, date_tommorrow)
 
         orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users, Regions).\
             join(Address, Address.id == Orders.address_id).\
@@ -128,9 +135,11 @@ async def generate_routes_today(
             join(Users, Users.id == Orders.from_user).\
             join(Regions, Regions.id == Address.region_id).\
             filter(Orders.deleted_at == None).\
-            filter(Orders.status == OrderStatuses.status_confirmed().id)
+            filter(Orders.status == OrderStatuses.status_confirmed().id).\
+            filter(Orders.day >= date).\
+            filter(Orders.day < date_tommorrow)
 
-        
+
         if group_by == 'regions':
             orders = orders.order_by(asc(Regions.name_full))
         else:
@@ -202,7 +211,8 @@ async def generate_routes_today(
 async def get_routes(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     date: Optional[datetime] = None,
-    courier_id: Optional[UUID] = None
+    courier_id: Optional[UUID] = None,
+    courier_tg_id: Optional[int] = None
 )->List[RouteOut]:
     """
     получить маршруты
@@ -221,6 +231,10 @@ async def get_routes(
         
         if courier_id: 
             routes = routes.filter(Routes.courier_id == courier_id)
+
+        if courier_tg_id:
+            courier = Users.get_or_404(t_id=courier_tg_id)
+            routes = routes.filter(Routes.courier_id == courier.id)
 
         routes = routes.order_by(asc(Routes.date_created)).all()
 
@@ -318,3 +332,9 @@ async def create_route():
     pass
 
 
+@router.delete('/route', tags=[Tags.routes, Tags.admins, Tags.managers])
+async def delete_route():
+    """
+    Удалить маршрут
+    """
+    pass

@@ -38,6 +38,8 @@ from ..models import (
 
 router = APIRouter()
 
+#TODO: Получение заявок подтверждённых, но не в маршруте
+
 
 @router.get('/orders/filter/', tags=[Tags.orders, Tags.admins],
 responses={
@@ -900,6 +902,36 @@ async def process_current_orders(
                 print("Updating order status")
                 order[0].update_status(OrderStatuses.status_awating_confirmation().id)
                 session.commit()
+
                 order_list.append(order[0])
+                
+                #TODO: ПЕРЕПИСАТЬ ПО-ЧЕЛОВЕЧЕСКИ
+                import requests
+
+                token = '6700660749:AAGmWyCZ1bCG6Dp8MeIsfwdIPLR6FxYAeYc'
+                method = 'sendMessage'
+                print(order[4])
+                if order[4].telegram_id:
+                    b = {
+                        "chat_id" : order[4].telegram_id,
+                        "text" : f"От вас требуется подверждение заявки ({order[0].order_num}) по адресу ({order[1].address})",
+                        "parse_mode" : "html",
+                        "reply_markup" : {
+                            "inline_keyboard" : [[{
+                                        "text" : "Подтвердить",
+                                        "callback_data": f"confirm_order_{order[0].id}",
+                                    }]]
+                    }}
+                else:
+                    print(f"USER {order[4].id} has not telegram id connected")
+
+                try:
+                    test_request = requests.post(
+                        url='https://api.telegram.org/bot{0}/{1}'.format(token, method), json=b
+                    ).json()
+                    print(test_request)
+
+                except Exception as err:
+                    print(err)
 
         return order_list

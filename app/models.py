@@ -65,7 +65,7 @@ def generate_route_short_name()->str:
 
 
 def generate_link_code()->str:
-    link_code = str(uuid.uuid4()[:8])
+    link_code = str(uuid.uuid4())[:8]
     return link_code
 
 class Orders(Base):
@@ -273,7 +273,7 @@ class Users(Base):
 
     def get_or_404(
             t_id: int = None,
-            internal_id: int = None, 
+            internal_id: UUID = None, 
             ):
         with Session(engine, expire_on_commit=False) as session:
             user_query = None
