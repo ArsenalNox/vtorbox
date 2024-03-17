@@ -750,6 +750,7 @@ class Routes(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     courier_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
     short_name = Column(String(), default=generate_route_short_name)
+    route_link = Column(String(), nullable=True, default=None)
 
     #На какой день предназначен маршрут 
     date_created = Column(DateTime(), default=default_time)
