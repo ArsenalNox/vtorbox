@@ -78,21 +78,27 @@ async def get_list_of_couriers(
 @router.post('/courier', tags=[Tags.couriers])
 async def create_new_courier(
         current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
-        tg_id: int
+        tg_id: int = None,
+        user_id: UUID = None
     ):
     """
     Назначить роль курьера пользователю
     """
     user_query = Users.get_or_404(t_id=tg_id)
     if not user_query:
-        return JSONResponse({
-            "message": "User not found"
-        }, status_code=404)
+        user_query = Users.get_or_404(internal_id=user_id)
+        if not user_query:
+            return JSONResponse({
+                "message": "User not found"
+            }, status_code=404)
     
     with Session(engine, expire_on_commit=False) as session:
 
         scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user_query.id).join(Roles).all()
         roles = [role.role_name for role in scopes_query]
+
+        print(roles)
+
         if not (ROLE_COURIER_NAME in roles):
             role_query = Roles.courier_role()
             user_role = Permissions(
@@ -104,17 +110,51 @@ async def create_new_courier(
             session.commit()
         else:
             return JSONResponse({
-                "message": f"User already has role {ROLE_COURIER_NAME}"
-            }, 204)
+                "message": f"User already has role courier"
+            }, 200)
 
     return JSONResponse({
         "message": "role added"
     }, status_code=200)
 
 
-@router.get('/courier/{courier_tg_id}/info', tags=[Tags.couriers])
-async def get_courier_info_by_id():
-    pass
+@router.get('/courier/info', tags=[Tags.couriers, Tags.admins])
+async def get_courier_info_by_id(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    tg_id: int = None,
+    courier_id: UUID = None
+)->CourierOut:
+
+    with Session(engine, expire_on_commit=False) as session:
+        query = Users.get_or_404(t_id=tg_id, internal_id=courier_id)
+        # query = session.query(Users).filter_by(telegram_id=tg_id).first()
+        if not query:
+            return JSONResponse({
+                "message": "Not found"
+            }, status_code=404)
+
+        scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
+        scopes = [role.role_name for role in scopes_query]
+
+        return_data = CourierOut(**query.__dict__)
+        return_data.roles = scopes
+
+        orders_query = session.query(Orders)
+
+        orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users, Regions).\
+            join(Address, Address.id == Orders.address_id).\
+            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+            join(OrderStatuses, OrderStatuses.id == Orders.status).\
+            join(Users, Users.id == Orders.from_user).\
+            join(Regions, Regions.id == Address.region_id).\
+            filter(Orders.courier_id == query.id).all()
+
+        return_data.assigned_orders = Orders.process_order_array(orders)
+
+        routes = session.query(Routes).filter(Routes.courier_id == query.id).all()
+        return_data.assigned_routes = routes
+
+        return return_data
 
 
 @router.get('/courier/orders', tags=[Tags.couriers, Tags.orders])
