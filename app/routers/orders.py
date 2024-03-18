@@ -32,7 +32,8 @@ from ..models import (
     Address, UsersAddress, BoxTypes,
     OrderStatuses, OrderStatusHistory,
     ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION,
-    IntervalStatuses, ROLE_ADMIN_NAME, Regions
+    IntervalStatuses, ROLE_ADMIN_NAME, Regions, WeekDaysWork,
+    DaysWork
     )
 
 
@@ -825,6 +826,8 @@ async def process_current_orders(
             order_by(asc(Orders.date_created)).all()
 
         date_today = datetime.now()
+        date_today = date_today.replace(hour=0, minute=0, second=0, microsecond=0)
+
         day_number_now = datetime.strftime(date_today, "%d")
         month_now_str = datetime.strftime(date_today, "%m")
         year_now_str = datetime.strftime(date_today, "%Y")
@@ -846,6 +849,21 @@ async def process_current_orders(
         print(f"date today: {date_today}\ndate tommorrow: {date_tommorrow}")
         print(f"weekday tomorrow: {weekday_tomorrow}")
         print(f"next day num {day_number_next}")
+
+        date_search_query = session.query(DaysWork)
+        date_search_query = date_search_query.filter(
+                DaysWork.date >= date_today, 
+                DaysWork.date <= date_tommorrow
+            ).first()
+        
+        weekday_search_query = session.query(WeekDaysWork).\
+            filter(WeekDaysWork.weekday == date_today.strftime('%A')).\
+            first()
+
+        if date_search_query or weekday_search_query:
+            return JSONResponse({
+                "message": "Текущая дата помечена как нерабочий день. Генерация пула не запущена"
+            })
 
         for order in orders:
             flag_day_set = False
