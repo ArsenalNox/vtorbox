@@ -12,7 +12,7 @@ from datetime import datetime
 from ..validators import (
     Order as OrderValidator,
     UserLogin as UserLoginSchema,
-    OrderOut,
+    OrderOut, BoxUpdate,
     BoxType, RegionalBoxPrice
 )
 
@@ -88,13 +88,14 @@ async def create_new_box_type(
 @router.put('/boxes/{box_id}', tags=["boxes", "admin"])
 async def update_box_data(
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
-    box_data: BoxType,
+    box_data: BoxUpdate,
     box_id: uuid.UUID
 )->BoxType:
     """
     Обновление данных контейнера
     - **box_id**: UUID контейнера
     """
+    
     with Session(engine, expire_on_commit=False) as session:
         box_query = session.query(BoxTypes).filter_by(id=box_id).where(BoxTypes.deleted_at == None).first()
         if not box_query:
