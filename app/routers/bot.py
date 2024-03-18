@@ -512,12 +512,18 @@ async def get_address_information_by_id(
         tg_id: int|UUID,
         bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
         days_list_len: int = 5,
+        user_id: UUID = None
     ) -> AddressOut:
     """
     Получение информации об адресе пользователя по айди
     """
     with Session(engine, expire_on_commit=False) as session:
-        user_query = Users.get_user(str(tg_id))
+        user_query = None
+        if user_id:
+            user_query = Users.get_or_404(internal_id = user_id)
+        else:
+            user_query = Users.get_user(str(tg_id))
+
         if not user_query:
             return JSONResponse({
                 "message": "User not found"
