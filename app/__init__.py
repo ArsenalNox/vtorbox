@@ -25,7 +25,7 @@ class Tags(Enum):
     roles = "roles"
     regions = "regions"
     routes = "routes"
-
+    settings = "settings"
 
 class Scopes(Enum):
     bot = 'bot'
