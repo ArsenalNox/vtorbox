@@ -58,7 +58,7 @@ MESSAGES = {
     'APPLICATIONS_HISTORY': 'HERE История заявок',
     'MY_ADDRESSES': 'HERE Мои адреса',
     'ADD_ADDRESS': 'В данном меню вы можете управлять своими адресами:',
-    'PAYMENTS': 'HERE Способы оплаты',
+    'PAYMENTS': 'Данный раздел находится в разработке',
     'QUESTIONNAIRE': questionnaire_text,
     'CHANGE_QUESTIONNAIRE': 'Выберите, что хотите изменить:',
     'NOTIFICATIONS': 'HERE Уведомления',
@@ -89,7 +89,7 @@ MESSAGES = {
     'WRONG_EMAIL': 'Неверный email!',
     'WRONG_FIRSTNAME': 'Неверное имя! Оно должно состоять из букв',
     'WRONG_LASTNAME': 'Неверная фамилия! Она должно состоять из букв',
-    'WRONG_ADDRESS': 'Не удалось найти такой адрес(((',
+    'WRONG_ADDRESS': 'В пределах Москвы ваш адрес не найден\nБот работает только в Москве, пожалуйста, выберите геопозицию или адрес в пределах Москвы',
     'CHOOSE_SCHEDULE_PERIOD': 'Выберите по каким дням вывозить мусор:',
     'CHOOSE_DAY_OF_WEEK': 'Выберите дни недели',
     'CHOOSE_DAY_OF_MONTH': 'Выберите дни месяца',
@@ -124,7 +124,7 @@ MESSAGES = {
     'UNAVAILABLE_DAY': 'В данный день мы не можем вывозить(((',
     'YOUR_CHANGE_WAS_ADDED': 'Ваши изменения успешно применены',
     'ORDER_WAS_APPROVED': 'Заявка # <b>{}</b> успешно подтверждена',
+    'ANY_TEXT': 'Главное меню',
+    'NO_SCHEDULE_ADDRESS': '<b>Адресов пока нет</b>.\nДобавьте адреса, после этого сможете настроить расписание',
+    'YOUR_ADD_ADDRESS': 'Адрес: <b>{}</b>'
 }
-
-
-

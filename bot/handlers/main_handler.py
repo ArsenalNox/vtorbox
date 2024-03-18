@@ -18,7 +18,6 @@ class MainHandler:
 
         self.bot = bot
         self.command_handler = CommandHandler(self.bot)
-        self.text_handler = TextHandler(self.bot)
         self.address_handler = AddressHandler(self.bot)
         self.questionnaire_handler = QuestionnaireHandler(self.bot)
         self.order_handler = OrderHandler(self.bot)
@@ -26,12 +25,12 @@ class MainHandler:
         self.schedule_handler = ScheduleHandler(self.bot)
         self.notification_handler = NotificationHandler(self.bot)
         self.courier_handler = CourierHandler(self.bot)
+        self.text_handler = TextHandler(self.bot)
 
     def handle(self):
         """Регистрация хендлеров на отлавливание сообщений"""
 
         self.command_handler.handle()
-        self.text_handler.handle()
         self.address_handler.handle()
         self.questionnaire_handler.handle()
         self.order_handler.handle()
@@ -39,3 +38,4 @@ class MainHandler:
         self.schedule_handler.handle()
         self.notification_handler.handle()
         self.courier_handler.handle()
+        self.text_handler.handle()
