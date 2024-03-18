@@ -180,6 +180,19 @@ async def get_filtered_orders(
             orders = orders.filter(Orders.day >= datetime_start)
             orders = orders.filter(Orders.day <= datetime_end)
 
+        if filter_date:
+            try:
+                date = datetime.strptime(filter_date, "%Y-%m-%d")
+            except Exception as err:
+                return JSONResponse({
+                    "message": f"{err}"
+                }, 422)
+
+            date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+            date_tommorrow = date + timedelta(days=1)
+            orders = orders.filter(Orders.day >= date)
+            orders = orders.filter(Orders.day <= date_tommorrow)
+
 
         if region_id:
             orders = orders.filter(Regions.id == region_id)
