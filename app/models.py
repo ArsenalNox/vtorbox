@@ -297,7 +297,8 @@ class Users(Base):
         with Session(engine, expire_on_commit=False) as session:
             if is_valid_uuid(user_id):
                 user_query = session.query(Users).filter_by(id=user_id).first()
-            elif re.match(r'[\d]+', user_id):
+                return user_query
+            elif re.match(r'^[\d]*$', user_id):
                 user_query = session.query(Users).filter_by(telegram_id=int(user_id)).first()
 
         return user_query
@@ -781,6 +782,7 @@ class BotSettings(Base):
     key = Column(String()) #название в боте
     value = Column(String()) #текст
     detial = Column(String(), nullable=True) #коммент
+
 
 
 class RegionalBoxPrices(Base):
