@@ -647,3 +647,38 @@ async def get_routes(
         routes = routes.order_by(asc(Routes.date_created)).all()
 
         return routes
+
+
+@router.get('/address/check', tags=[Tags.addresses])
+async def check_given_address(
+    lat: float,
+    long: float,
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+):
+    #Если не предоставили текстовый адрес получаем через геокодер
+    url = f"https://geocode-maps.yandex.ru/1.x/?apikey={CODER_KEY}&geocode={long},{lat}{CODER_SETTINGS}"
+    
+    data = requests.request("GET", url).json()
+    data = dict(data)
+
+    try:
+        address = data.get('response', {}). \
+            get('GeoObjectCollection', {}). \
+            get('featureMember')[0]. \
+            get('GeoObject', {}). \
+            get('metaDataProperty', {}). \
+            get('GeocoderMetaData', {}). \
+            get('text')
+    except:
+        return False
+
+    region = Regions.get_by_coords(
+            float(long),
+            float(lat)
+        )
+
+    #попытаться найти регион по названию, если не нашёлся по координатам
+    if not region:
+        return False
+
+    return address
