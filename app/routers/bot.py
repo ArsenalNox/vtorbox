@@ -543,21 +543,26 @@ async def get_address_information_by_id(
 async def update_user_addresses(
         address_id:str, 
         new_address_data: AddressUpdateValidator, 
-        tg_id: int,
-        bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
+        bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+        tg_id: int = None,
+        user_id: UUID = None,
     ):
     """
     Обновить данные адреса
     """
     
     with Session(engine, expire_on_commit=False) as session:
-
+        user_query = Users.get_or_404(t_id=tg_id, internal_id=user_id)
+        if not user_query:
+            return JSONResponse({
+                "message": "User not found"
+            },status_code=404)
         if new_address_data.main:
         #Сбросить статус главного у всех адресов
             update_query = session.query(Address).\
                 join(UsersAddress, UsersAddress.address_id == Address.id).\
                 join(Users, UsersAddress.user_id == Users.id). \
-                where(Users.telegram_id == tg_id).\
+                where(Users.id == user_query.id).\
                 where(Address.deleted_at == None).all()
 
             for address in update_query: 
@@ -585,10 +590,16 @@ async def update_user_addresses(
 @router.delete('/user/addresses/{address_id}', tags=["addresses", "bot"])
 async def delete_user_address(
     address_id: str, 
-    tg_id: int,
-    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])]
+    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+    tg_id: int = None,
+    user_id: UUID = None
     ):
     with Session(engine, expire_on_commit=False) as session:
+        user_query = Users.get_or_404(t_id=tg_id, internal_id=user_id)
+        if not user_query:
+            return JSONResponse({
+                "message": "User not found"
+            },status_code=404)
 
         select_query = session.query(Address).\
                     join(UsersAddress, UsersAddress.address_id == Address.id).\
