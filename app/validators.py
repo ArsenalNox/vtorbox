@@ -285,10 +285,11 @@ class BoxType(BaseModel):
 
 
 class BoxUpdate(BaseModel):
-    box_name: Optional[str]
-    pricing_default: Optional[float] 
-    volume: Optional[float]
-    weight_limit: Optional[float]
+    box_name: Optional[str] = None
+    pricing_default: Optional[float] = None
+    volume: Optional[float] = None
+    weight_limit: Optional[float] = None
+    regional_prices: Optional[List[RegionalBoxPrice]] = None
 
 
 class Status(BaseModel):
