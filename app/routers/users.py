@@ -342,8 +342,8 @@ async def update_user_data(
                 continue
             
             if attr == 'roles' and value:
+                delete_query = session.query(Permissions).filter(Permissions.user_id == user_query.id).delete()
                 for role in new_user_data.roles:
-                    delete_query = session.query(Permissions).filter(Permissions.user_id == user_query.id).delete()
                     role_query = Roles.get_role(role)
                     if role_query:
                         user_role = Permissions(
