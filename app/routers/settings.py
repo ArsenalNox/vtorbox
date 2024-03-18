@@ -112,10 +112,10 @@ async def get_work_days():
 
 @router.patch('/work_days', tags=[Tags.settings])
 async def edit_work_days(
-    dates_add: List[datetime] = None,
-    weekdays_add: List[str] = None,
-    dates_remove: List[datetime] = None,
-    weekdays_remove: List[str] = None
+    dates_add: List[datetime] = [],
+    weekdays_add: List[str] = [],
+    dates_remove: List[datetime] = [],
+    weekdays_remove: List[str] = []
 ):
     """
     все datetime поля используют формат YYYY-MM-DDT00:00
@@ -125,6 +125,7 @@ async def edit_work_days(
     - **weekdays_remove**: список дней недели для удаления из нерабочих дней
     """
     warnings = []
+    result = []
     with Session(engine, expire_on_commit=False) as session:
         for date in dates_add:
             date = date.replace(hour=00, minute=0, second=0, microsecond=0)
@@ -141,6 +142,7 @@ async def edit_work_days(
                 date = date
             )
             session.add(new_date)
+            result.append(f'date {date.strftime("%Y-%m-%d")} added')
 
         
         for weekday in weekdays_add:
@@ -158,9 +160,33 @@ async def edit_work_days(
                 weekday = weekday
             )
             session.add(new_weekday)
+            result.append(f'{weekday} added')
+
+
+        for weekday in weekdays_remove:
+            if str(weekday).lower() not in WEEK_DAYS_WORK_STR_LIST:
+                return JSONResponse({
+                    "message": f"weekday {weekday} is invaild"
+                }, status_code=422)
+
+            weekdays_search_query = session.query(WeekDaysWork).filter(WeekDaysWork.weekday == weekday).delete()
+            if weekdays_search_query:
+                result.append(f'{weekday} removed')
+
+
+        for date in dates_remove:
+            date = date.replace(hour=00, minute=0, second=0, microsecond=0)
+            date_tommorrow = date + timedelta(days=1)
+            date_search_query = session.query(DaysWork)
+            date_search_query = date_search_query.filter(DaysWork.date >= date, DaysWork.date <= date_tommorrow)
+            date_search_query = date_search_query.delete()
+
+            if date_search_query:
+                result.append(f'date {date.strftime("%Y-%m-%d")} removed')
 
         session.commit()
 
         return JSONResponse({
-            "warnings": warnings
+            "warnings": warnings,
+            "result": result
         }, 201)
