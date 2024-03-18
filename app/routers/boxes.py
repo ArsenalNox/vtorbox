@@ -13,7 +13,7 @@ from ..validators import (
     Order as OrderValidator,
     UserLogin as UserLoginSchema,
     OrderOut,
-    BoxType
+    BoxType, RegionalBoxPrice
 )
 
 from ..auth import (
@@ -21,10 +21,10 @@ from ..auth import (
 )
 
 from ..models import (
-    engine, 
-    Session, 
-    BoxTypes
+    engine, Session, BoxTypes,
+    RegionalBoxPrices, Regions
     )
+
 from uuid import UUID
 
 import os, uuid
@@ -44,8 +44,28 @@ async def get_box_types(
     """
     with Session(engine, expire_on_commit=False) as session:
         boxes_query = session.query(BoxTypes).where(BoxTypes.deleted_at == None).all()
+
+        return_data = []
         if boxes_query:
-            return boxes_query
+            for box in boxes_query:
+                box_data = BoxType(**box.__dict__)
+
+                regional_box_prices_qeury = session.query(RegionalBoxPrices, Regions).\
+                    join(Regions, Regions.id == RegionalBoxPrices.region_id).\
+                    where(RegionalBoxPrices.box == box.id).all()
+                
+                box_prices = []
+                for price in regional_box_prices_qeury:
+
+                    box_prices.append(RegionalBoxPrice(
+                        region_name = str(price[1].name_full),
+                        price = str(price[0].price)
+                    ))
+                    
+                box_data.regional_prices = box_prices
+                return_data.append(box_data)
+
+            return return_data
 
         return None
 
@@ -70,7 +90,7 @@ async def update_box_data(
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
     box_data: BoxType,
     box_id: uuid.UUID
-):
+)->BoxType:
     """
     Обновление данных контейнера
     - **box_id**: UUID контейнера
@@ -83,10 +103,44 @@ async def update_box_data(
             },status_code=404)
 
         for attr, value in box_data.model_dump().items():
+            if attr == 'regional_prices':
+                prices_query = session.query(RegionalBoxPrices).filter(RegionalBoxPrices.box == box_query.id).delete()
+                for price in value:
+                    region_query = session.query(Regions).\
+                        filter(Regions.name_full.ilike(f"%{price['region_name']}%")).first()
+                    if not region_query:
+                        continue
+
+                    new_reg_price = RegionalBoxPrices(
+                        region_id = region_query.id,
+                        box = box_query.id,
+                        price = price['price']
+                    ) 
+                    session.add(new_reg_price)
+
+                    print(price)
+                continue
+
             if value:
                 setattr(box_query, attr, value)
 
         session.add(box_query)
         session.commit()
 
-        return box_query
+        box_data = BoxType(**box_query.__dict__)
+
+        regional_box_prices_qeury = session.query(RegionalBoxPrices, Regions).\
+            join(Regions, Regions.id == RegionalBoxPrices.region_id).\
+            where(RegionalBoxPrices.box == box_query.id).all()
+        
+        box_prices = []
+        for price in regional_box_prices_qeury:
+
+            box_prices.append(RegionalBoxPrice(
+                region_name = str(price[1].name_full),
+                price = str(price[0].price)
+            ))
+            
+        box_data.regional_prices = box_prices
+
+        return box_data
