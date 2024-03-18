@@ -276,6 +276,7 @@ class BoxType(BaseModel):
     """
     Модель контейнера
     """
+    id: UUID4
     box_name: str
     pricing_default: float 
     volume: float
