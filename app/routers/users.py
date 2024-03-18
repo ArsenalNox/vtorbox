@@ -342,6 +342,17 @@ async def update_user_data(
                 continue
             
             if attr == 'roles' and value:
+                for role in new_user_data.roles:
+                    delete_query = session.query(Permissions).filter(Permissions.user_id == user_query.id).delete()
+                    role_query = Roles.get_role(role)
+                    if role_query:
+                        user_role = Permissions(
+                            user_id = user_query.id,
+                            role_id = Roles.get_role(role).id
+                        )
+
+                        session.add(user_role)
+
                 #TODO: Изменение ролей
                 continue
 
