@@ -447,6 +447,7 @@ class Roles(Base):
 
     id = Column(Integer(), unique=True, primary_key=True)
     role_name = Column(String(), default='')
+    label = Column(String(), nullable=True)
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
