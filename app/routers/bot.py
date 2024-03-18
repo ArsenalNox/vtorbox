@@ -508,9 +508,9 @@ async def set_address_schedule(
 @router.get('/user/addresses/{address_id}', tags=["addresses", "bot"])
 async def get_address_information_by_id(
         address_id: uuid.UUID, 
-        tg_id: int|UUID,
         bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
         days_list_len: int = 5,
+        tg_id: int|UUID = None,
         user_id: UUID = None
     ) -> AddressOut:
     """
