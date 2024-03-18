@@ -281,3 +281,10 @@ class TextHandler(Handler):
                 MESSAGES['MENU'],
                 reply_markup=self.kb.start_menu_btn()
             )
+
+        @self.router.message(F.text)
+        async def any_text(message: Message):
+            await message.answer(
+                MESSAGES['ANY_TEXT'],
+                reply_markup=self.kb.start_menu_btn()
+            )

@@ -36,8 +36,12 @@ class MainBot:
         async def catch_error(event: ErrorEvent):
             try:
                 error_data: dict = event.model_dump()
-                chat_id = error_data.get('update', {}).get('message', {}).get('from_user', {}).get('id')
                 error = error_data.get('exception')
+                if error_data.get('update', {}).get('message'):
+                    chat_id = error_data.get('update', {}).get('message', {}).get('from_user', {}).get('id')
+                else:
+                    chat_id = error_data.get('update', {}).get('callback_query', {}).get('from_user', {}).get(
+                        'id')
                 error_text = f'User: {chat_id}, err: {error}'
 
                 logger.warning(error_text)
@@ -52,12 +56,16 @@ class MainBot:
                 logger.warning(e)
                 logger.warning(traceback.format_exc())
 
+                await self.bot.send_message(
+                    chat_id=chat_id,
+                    text=MESSAGES['ERROR_IN_HANDLER'],
+                    reply_markup=self.kb.start_btn()
+                )
 
     async def start(self):
         """Подключение всех роутеров/старт отлова сообщений/логгирование"""
 
         self.dp.include_router(self.handler.command_handler.router)
-        self.dp.include_router(self.handler.text_handler.router)
         self.dp.include_router(self.handler.address_handler.router)
         self.dp.include_router(self.handler.questionnaire_handler.router)
         self.dp.include_router(self.handler.order_handler.router)
@@ -65,6 +73,7 @@ class MainBot:
         self.dp.include_router(self.handler.schedule_handler.router)
         self.dp.include_router(self.handler.notification_handler.router)
         self.dp.include_router(self.handler.courier_handler.router)
+        self.dp.include_router(self.handler.text_handler.router)
         self.handler.handle()
         # logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
