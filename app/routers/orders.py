@@ -173,6 +173,8 @@ async def get_filtered_orders(
         else:
             orders = orders.order_by(desc(Orders.date_created))
 
+        if not show_deleted:
+            orders = orders.filter(Orders.deleted_at == None)
         
         if by_date:
             orders = orders.filter(Orders.day >= datetime_start)
