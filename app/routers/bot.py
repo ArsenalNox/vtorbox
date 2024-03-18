@@ -509,7 +509,7 @@ async def set_address_schedule(
 @router.get('/user/addresses/{address_id}', tags=["addresses", "bot"])
 async def get_address_information_by_id(
         address_id: uuid.UUID, 
-        tg_id: int,
+        tg_id: int|UUID,
         bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
         days_list_len: int = 5,
     ) -> AddressOut:
@@ -517,10 +517,16 @@ async def get_address_information_by_id(
     Получение информации об адресе пользователя по айди
     """
     with Session(engine, expire_on_commit=False) as session:
+        user_query = Users.get_user(str(tg_id))
+        if not user_query:
+            return JSONResponse({
+                "message": "User not found"
+            }, status_code=404)
+
         addresses = session.query(Address).\
             join(UsersAddress, UsersAddress.address_id == Address.id).\
             join(Users, UsersAddress.user_id == Users.id). \
-            where(Users.telegram_id == tg_id, Address.id == address_id).\
+            where(Users.id == user_query.id, Address.id == address_id).\
             where(Address.deleted_at == None).first()
 
         if addresses:
