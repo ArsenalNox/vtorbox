@@ -782,6 +782,13 @@ class BotSettings(Base):
     detial = Column(String(), nullable=True) #коммент
 
 
+class RegionalBoxPrices(Base):
+    __tablename__ = 'regional_box_prices'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    region_id = Column(UUID(as_uuid=True), ForeignKey('regions.id'))
+    box = Column(UUID(as_uuid=True), ForeignKey('boxtypes.id'))
+    price = Column(Float())
+
 
 # === персистные данные/конфигурации
 Base.metadata.create_all(engine)
