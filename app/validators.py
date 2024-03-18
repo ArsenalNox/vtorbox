@@ -266,6 +266,12 @@ class AddressUpdate(Address):
     interval_type: str = None
 
 
+
+class RegionalBoxPrice(BaseModel):
+    region_name: str
+    price: float
+    
+
 class BoxType(BaseModel):
     """
     Модель контейнера
@@ -274,6 +280,7 @@ class BoxType(BaseModel):
     pricing_default: float 
     volume: float
     weight_limit: float
+    regional_prices: Optional[List[RegionalBoxPrice]] = None
 
 
 class BoxUpdate(BaseModel):
