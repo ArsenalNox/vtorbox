@@ -5,7 +5,12 @@ import sys
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import orders, users, couriers, admins, bot, boxes, regions, routes
+from app.routers import (
+    orders, users, couriers, 
+    admins, bot, boxes, 
+    regions, routes, notifications,
+    settings
+    )
 
 app = FastAPI()
 
@@ -21,7 +26,8 @@ origins = [
 #ВЕЧНО
 #TODO: подправить под soft delete'ы где не подправил 
 
-#TODO: Уведомление пользователю о подтверждении заявки
+#TODO: Настройка сообщений бота
+#TODO: настройка принятия заявок с бота
 #TODO: Цены на контейнеры в районах 
 #TODO: в какие дни автоматом генерация пулов
 #TODO: В какие дни пул НЕ генерируется 
@@ -80,6 +86,17 @@ app.include_router(
     prefix='/api'
 )
 
+
+app.include_router(
+    notifications.router,
+    prefix='/api'
+)
+
+
+app.include_router(
+    settings.router,
+    prefix='/api'
+)
 
 #TODO argparse на инит бд  
 
