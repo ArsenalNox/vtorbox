@@ -627,12 +627,7 @@ class WeekDaysWork(Base):
     __tablename__ = 'week_days_work'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    day_num = Column(Integer(), nullable=False)
-    day_status = Column(Boolean(), default=False)
-
-    deleted_at = Column(DateTime(), default=None, nullable=True)
-
-    region_id = Column(UUID(as_uuid=True), ForeignKey('regions.id'))
+    weekday = Column(String(), nullable=False)
 
 
 class DaysWork(Base):
@@ -643,8 +638,7 @@ class DaysWork(Base):
     __tablename__ = 'days_work'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
-    deleted_at = Column(DateTime(), default=None, nullable=True)
+    date = Column(DateTime(), default=None, nullable=False)
 
 
 class Notifications(Base):
@@ -773,6 +767,20 @@ class RoutesOrders(Base):
     route_id = Column(UUID(as_uuid=True), ForeignKey('routes.id'))
 
     order = relationship('Orders', backref='routedorders', lazy='joined')
+
+
+class BotSettings(Base):
+    """
+    Модель настроек бота
+    """
+    __tablename__ ="bot_settings"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(), nullable=True) #Имя в чел-ом формате
+    key = Column(String()) #название в боте
+    value = Column(String()) #текст
+    detial = Column(String(), nullable=True) #коммент
+
 
 
 # === персистные данные/конфигурации
