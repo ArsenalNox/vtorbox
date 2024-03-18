@@ -59,6 +59,8 @@ services:
       context: .
       dockerfile: bot/.dockerfile
 
+    restart: always
+
     container_name: aiogram_bot
     command: sh -c "python3 -m bot.start_bot"
     env_file:
