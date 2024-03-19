@@ -137,7 +137,7 @@ async def generate_routes_today(
             filter(Orders.deleted_at == None).\
             filter(Orders.status == OrderStatuses.status_confirmed().id).\
             filter(Orders.day >= date).\
-            filter(Orders.day < date_tommorrow)
+            filter(Orders.day <= date_tommorrow)
 
 
         if group_by == 'regions':

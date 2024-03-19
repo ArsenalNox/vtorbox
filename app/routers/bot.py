@@ -615,7 +615,7 @@ async def delete_user_address(
         select_query = session.query(Address).\
                     join(UsersAddress, UsersAddress.address_id == Address.id).\
                     join(Users, UsersAddress.user_id == Users.id).\
-                    where(Users.telegram_id == tg_id, Address.id == address_id).\
+                    where(Users.id == user_query.id, Address.id == address_id).\
                     where(Address.deleted_at == None).first()
 
         if not select_query:
