@@ -164,7 +164,6 @@ class AddressHandler(Handler):
                     "longitude": data.get("longitude"),
                 }
             )
-            print(address_data)
 
             status_code, response = await req_to_api(
                 method='post',
@@ -186,6 +185,7 @@ class AddressHandler(Handler):
                     address=address,
                     message=message,
                     kb=self.order_kb.choose_date_btn,
+                    menu_kb=self.kb.start_menu_btn,
                     state=state
                 )
 
@@ -213,7 +213,6 @@ class AddressHandler(Handler):
                 method='get',
                 url=f'bot/address/check/text?text={message.text}'
             )
-            print(address)
             if address:
 
                 msg = await message.answer(
@@ -241,6 +240,7 @@ class AddressHandler(Handler):
                 src=callback.message
             )
             is_correct_address = callback.data.split('_')[-1]
+            print(await state.get_state())
 
             if is_correct_address == 'yes':
 
@@ -254,14 +254,14 @@ class AddressHandler(Handler):
             else:
                 await callback.message.answer(
                     MESSAGES['MENU'],
-                    reply_markup=self.kb.menu_btn()
+                    reply_markup=self.kb.start_menu_btn()
                 )
 
                 msg = await callback.message.answer(
                     MESSAGES['TRY_AGAIN_ADD_ADDRESS'],
                     reply_markup=self.kb.add_address_btn(self.flag_to_return)
                 )
-
+                await state.set_state(state=None)
                 await state.update_data(msg=msg.message_id)
 
         @self.router.callback_query(F.data.startswith('delete_address'))
