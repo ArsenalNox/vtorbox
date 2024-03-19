@@ -185,4 +185,4 @@ async def update_region_data(
 
         session.commit()
 
-        return return_data
+        return query
