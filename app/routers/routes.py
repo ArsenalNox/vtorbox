@@ -68,7 +68,6 @@ from app.models import (
     )
 
 
-
 router = APIRouter()
 
 
@@ -99,6 +98,32 @@ async def write_routes_to_db(routes):
 
                 session.add(new_route_order)
                 session.add(order_update)
+
+            token = '6700660749:AAGmWyCZ1bCG6Dp8MeIsfwdIPLR6FxYAeYc'
+            method = 'sendMessage'
+
+            courier_query = session.query(Users).filter(id=route['courier']).first()
+
+            if not courier_query.allow_messages_from_bot:
+                continue
+            
+            if courier_query.telegram_id:
+                b = {
+                    "chat_id" : courier_query.telegram_id,
+                    "text" : f"Вам назначен маршрут",
+                    "parse_mode" : "html"
+                    }
+            else:
+                print(f"USER {courier_query.id} has not telegram id connected")
+
+            try:
+                test_request = requests.post(
+                    url='https://api.telegram.org/bot{0}/{1}'.format(token, method), json=b
+                ).json()
+                print(test_request)
+
+            except Exception as err:
+                print(err)
 
         session.commit()
 
@@ -227,7 +252,7 @@ async def get_routes(
             date_tommorrow = date + timedelta(days=1)
             routes = routes.filter(Routes.date_created > date)
             routes = routes.filter(Routes.date_created < date_tommorrow)
-
+            
         
         if courier_id: 
             routes = routes.filter(Routes.courier_id == courier_id)
