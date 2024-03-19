@@ -58,7 +58,6 @@ class OrderHandler(Handler):
                 reply_markup=self.kb.address_list_btn(address_list, flag_to_return)
             )
             await state.update_data(msg=msg.message_id)
-            await state.set_state(CreateOrder.date)
 
         @self.router.callback_query(F.data.startswith('getaddress'))
         async def get_order_address(callback: CallbackQuery, state: FSMContext):
@@ -85,6 +84,7 @@ class OrderHandler(Handler):
                     address=address,
                     message=callback.message,
                     kb=self.kb.choose_date_btn,
+                    menu_kb=self.kb.start_menu_btn,
                     state=state
                 )
 
