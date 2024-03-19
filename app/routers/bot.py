@@ -695,3 +695,37 @@ async def check_given_address(
         return False
 
     return address
+
+
+@router.get('/address/check/text', tags=[Tags.addresses])
+async def check_given_address(
+    text: str,
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+):
+    #Если не предоставили текстовый адрес получаем через геокодер
+
+    url = f"https://geocode-maps.yandex.ru/1.x/?apikey={CODER_KEY}&geocode={text}{CODER_SETTINGS}"
+    
+    data = requests.request("GET", url).json()
+    data = dict(data)
+
+    try:
+        long, lat = str(data.get('response', {}). \
+            get('GeoObjectCollection', {}). \
+            get('featureMember')[0]. \
+            get('GeoObject', {}).\
+            get('Point').get('pos')).split()
+
+    except Exception as err: 
+        return False
+
+    region = Regions.get_by_coords(
+            float(long),
+            float(lat)
+        )
+
+    #попытаться найти регион по названию, если не нашёлся по координатам
+    if not region:
+        return False
+
+    return text
