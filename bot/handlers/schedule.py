@@ -57,21 +57,27 @@ class ScheduleHandler(Handler):
                 url=f'bot/user/addresses/all?tg_id={message.chat.id}',
             )
             msg_ids = {}
-            for address in address_list:
-                address_text = address.get('address') + address.get('detail') if address.get('detail') else address.get('address')
-                text = format_schedule_text(
-                    type_interval=address.get('interval_type'),
-                    interval=address.get('interval')
+            if address_list:
+                for address in address_list:
+                    address_text = address.get('address') + address.get('detail') if address.get('detail') else address.get('address')
+                    text = format_schedule_text(
+                        type_interval=address.get('interval_type'),
+                        interval=address.get('interval')
+                    )
+                    msg = await message.answer(
+                        MESSAGES['CHANGE_SCHEDULE'].format(
+                            address_text,
+                            text
+                        ),
+                        reply_markup=self.kb.change_btn(address.get('id'))
+                    )
+                    msg_ids[address['id']] = msg.message_id
+                await state.update_data(msg_ids=msg_ids)
+
+            else:
+                await message.answer(
+                    MESSAGES['NO_SCHEDULE_ADDRESS']
                 )
-                msg = await message.answer(
-                    MESSAGES['CHANGE_SCHEDULE'].format(
-                        address_text,
-                        text
-                    ),
-                    reply_markup=self.kb.change_btn(address.get('id'))
-                )
-                msg_ids[address['id']] = msg.message_id
-            await state.update_data(msg_ids=msg_ids)
 
             await message.answer(
                 MESSAGES['MENU'],

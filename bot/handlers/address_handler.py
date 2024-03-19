@@ -27,7 +27,7 @@ class AddressHandler(Handler):
         self.flag_to_return = False
 
     def handle(self):
-        @self.router.message(F.text.startswith(BUTTONS['MY_ADDRESSES']))
+        @self.router.message(F.text == BUTTONS['MY_ADDRESSES'])
         async def get_my_addresses(message: Message, state: FSMContext):
             """Получение всех адресов пользователя"""
 
@@ -100,13 +100,30 @@ class AddressHandler(Handler):
 
             longitude = str(message.location.longitude)
             latitude = str(message.location.latitude)
-            await state.update_data(longitude=longitude)
-            await state.update_data(latitude=latitude)
-
-            await message.answer(
-                MESSAGES['WRITE_YOUR_DETAIL_ADDRESS']
+            status_code, address = await req_to_api(
+                method='get',
+                url=f'bot/address/check?lat={latitude}&long={longitude}'
             )
-            await state.set_state(AddAddressState.detail)
+            if address:
+                await state.update_data(longitude=longitude)
+                await state.update_data(latitude=latitude)
+
+                await message.answer(
+                    MESSAGES['YOUR_ADD_ADDRESS'].format(
+                        address
+                    )
+                )
+                await message.answer(
+                    MESSAGES['WRITE_YOUR_DETAIL_ADDRESS']
+                )
+                await state.set_state(AddAddressState.detail)
+
+            else:
+                await message.answer(
+                    MESSAGES['WRONG_ADDRESS'],
+                    reply_markup=self.kb.start_menu_btn()
+                )
+                await state.set_state(state=None)
 
         @self.router.message(F.text, AddAddressState.detail)
         async def get_detail_address(message: Message, state: FSMContext):
