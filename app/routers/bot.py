@@ -697,7 +697,7 @@ async def check_given_address(
 
 
 @router.get('/address/check/text', tags=[Tags.addresses])
-async def check_given_address(
+async def check_given_address_by_text(
     text: str,
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
 ):
@@ -715,6 +715,14 @@ async def check_given_address(
             get('GeoObject', {}).\
             get('Point').get('pos')).split()
 
+        address = data.get('response', {}). \
+            get('GeoObjectCollection', {}). \
+            get('featureMember')[0]. \
+            get('GeoObject', {}). \
+            get('metaDataProperty', {}). \
+            get('GeocoderMetaData', {}). \
+            get('text')
+
     except Exception as err: 
         return False
 
@@ -727,4 +735,4 @@ async def check_given_address(
     if not region:
         return False
 
-    return text
+    return  address
