@@ -944,6 +944,10 @@ async def process_current_orders(
                 token = '6700660749:AAGmWyCZ1bCG6Dp8MeIsfwdIPLR6FxYAeYc'
                 method = 'sendMessage'
                 print(order[4])
+
+                if not order[4].allow_messages_from_bot:
+                    continue
+
                 if order[4].telegram_id:
                     b = {
                         "chat_id" : order[4].telegram_id,
