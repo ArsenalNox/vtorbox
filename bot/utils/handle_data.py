@@ -236,18 +236,19 @@ async def show_address_list(self: 'AddressHandler', message: Message, state: FSM
     await state.update_data(msg_ids=msg_ids)
 
 
-async def show_address_date(message: Message, address: 'Address', kb: 'OrderKeyboard', state: FSMContext):
+async def show_address_date(message: Message, address: 'Address',
+                            kb: 'OrderKeyboard', menu_kb: 'OrderKeyboard',state: FSMContext):
     work_dates = address.get('work_dates')
     if work_dates:
         await message.answer(
             MESSAGES['CHOOSE_DATE_ORDER'],
             reply_markup=kb(work_dates)
         )
+        await state.set_state(CreateOrder.date)
 
     else:
         await message.answer(
             MESSAGES['NO_WORK_DAYS_FOR_ADDRESS'],
-            reply_markup=kb(work_dates)
+            reply_markup=menu_kb()
         )
 
-    await state.set_state(CreateOrder.date)
