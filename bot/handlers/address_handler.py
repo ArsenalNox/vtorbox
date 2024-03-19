@@ -121,7 +121,7 @@ class AddressHandler(Handler):
             else:
                 await message.answer(
                     MESSAGES['WRONG_ADDRESS'],
-                    reply_markup=self.kb.start_menu_btn()
+                    reply_markup=self.kb.settings_btn()
                 )
                 await state.set_state(state=None)
 
@@ -209,13 +209,60 @@ class AddressHandler(Handler):
                 src=message
             )
 
-            await state.update_data(address=message.text)
-            await state.set_state(AddAddressState.comment)
-
-            await message.answer(
-                MESSAGES['WRITE_COMMENT_ADDRESS'],
-                reply_markup=self.kb.empty_comment_btn()
+            status_code, address = await req_to_api(
+                method='get',
+                url=f'bot/address/check/text?text={message.text}'
             )
+            print(address)
+            if address:
+
+                msg = await message.answer(
+                    MESSAGES['ADDRESS_FOUND_BY_YANDEX'].format(
+                        address
+                    ),
+                    reply_markup=self.kb.yes_or_no_btn()
+                )
+                await state.update_data(address=message.text)
+                await state.update_data(msg=msg.message_id)
+
+            else:
+                await message.answer(
+                    MESSAGES['WRONG_ADDRESS'],
+                    reply_markup=self.kb.settings_btn()
+                )
+                await state.set_state(state=None)
+
+        @self.router.callback_query(F.data.startswith('found_address'))
+        async def check_found_address_by_yandex(callback: CallbackQuery, state: FSMContext):
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=callback.message
+            )
+            is_correct_address = callback.data.split('_')[-1]
+
+            if is_correct_address == 'yes':
+
+                await state.set_state(AddAddressState.comment)
+
+                await callback.message.answer(
+                    MESSAGES['WRITE_COMMENT_ADDRESS'],
+                    reply_markup=self.kb.empty_comment_btn()
+                )
+
+            else:
+                await callback.message.answer(
+                    MESSAGES['MENU'],
+                    reply_markup=self.kb.menu_btn()
+                )
+
+                msg = await callback.message.answer(
+                    MESSAGES['TRY_AGAIN_ADD_ADDRESS'],
+                    reply_markup=self.kb.add_address_btn(self.flag_to_return)
+                )
+
+                await state.update_data(msg=msg.message_id)
 
         @self.router.callback_query(F.data.startswith('delete_address'))
         async def delete_address(callback: CallbackQuery, state: FSMContext):

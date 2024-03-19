@@ -126,5 +126,7 @@ MESSAGES = {
     'ORDER_WAS_APPROVED': 'Заявка # <b>{}</b> успешно подтверждена',
     'ANY_TEXT': 'Главное меню',
     'NO_SCHEDULE_ADDRESS': '<b>Адресов пока нет</b>.\nДобавьте адреса, после этого сможете настроить расписание',
-    'YOUR_ADD_ADDRESS': 'Адрес: <b>{}</b>'
+    'YOUR_ADD_ADDRESS': 'Адрес: <b>{}</b>',
+    'ADDRESS_FOUND_BY_YANDEX': 'Найденный адрес: <b>{}</b>\n\nВерно?',
+    'TRY_AGAIN_ADD_ADDRESS': 'Пожалуйста, попробуйте еще раз)',
 }
