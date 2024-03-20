@@ -694,6 +694,12 @@ async def check_given_address(
     if not region:
         return False
 
+    if not region.work_days:
+        return False
+
+    if not region.is_active:
+        return False
+
     return address
 
 
@@ -734,6 +740,12 @@ async def check_given_address_by_text(
 
     #попытаться найти регион по названию, если не нашёлся по координатам
     if not region:
+        return False
+
+    if not region.work_days:
+        return False
+
+    if not region.is_active:
         return False
 
     return  address
