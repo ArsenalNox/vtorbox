@@ -183,6 +183,8 @@ async def update_region_data(
 
                 query.work_days = ' '.join(value)
 
+            setattr(query, attr, value)
+
         session.commit()
 
         return query
