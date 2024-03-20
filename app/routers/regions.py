@@ -182,6 +182,7 @@ async def update_region_data(
                         }, status_code=422)
 
                 query.work_days = ' '.join(value)
+                continue
 
             setattr(query, attr, value)
 
