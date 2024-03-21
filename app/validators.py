@@ -169,11 +169,9 @@ class RegionOut(BaseModel):
     
     @validator('work_days', pre=True, always=True)
     def replace_as_list(cls, v):
-        print(type(v))
         if (v != None) and (type(v) == str):
             return v.split(' ')
         else:
-            print('false')
             return v
 
 class RegionOutWithGeoData(RegionOut):
