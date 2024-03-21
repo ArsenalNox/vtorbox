@@ -681,7 +681,9 @@ async def check_given_address(
             get('GeocoderMetaData', {}). \
             get('text')
     except:
-        return False
+        return JSONResponse({
+            "message": "Адресс находится вне рабочей области проекта"
+        },status_code=422)
 
     region = Regions.get_by_coords(
             float(long),
@@ -690,15 +692,23 @@ async def check_given_address(
 
     #попытаться найти регион по названию, если не нашёлся по координатам
     if not region:
-        return False
+        return JSONResponse({
+            "message": "Не найден регион"
+        },status_code=422)
 
     if not region.work_days:
-        return False
+        return JSONResponse({
+            "message": "В расписании региона отсутствуют рабочие дни"
+        },status_code=422)
 
     if not region.is_active:
-        return False
+        return JSONResponse({
+            "message": f"В регионе '{region.name}' на данный момент не принимаются заявки"
+        },status_code=422)
 
-    return address
+    return JSONResponse({
+        "message": address
+    })
 
 
 @router.get('/address/check/text', tags=[Tags.addresses])
@@ -729,7 +739,9 @@ async def check_given_address_by_text(
             get('text')
 
     except Exception as err: 
-        return False
+        return JSONResponse({
+            "message": "Адресс находится вне рабочей области проекта"
+        },status_code=422)
 
     region = Regions.get_by_coords(
             float(long),
@@ -738,12 +750,20 @@ async def check_given_address_by_text(
 
     #попытаться найти регион по названию, если не нашёлся по координатам
     if not region:
-        return False
+        return JSONResponse({
+            "message": "Не найден регион"
+        },status_code=422)
 
     if not region.work_days:
-        return False
+        return JSONResponse({
+            "message": "В расписании региона отсутствуют рабочие дни"
+        },status_code=422)
 
     if not region.is_active:
-        return False
+        return JSONResponse({
+            "message": f"В регионе '{region.name}' на данный момент не принимаются заявки"
+        },status_code=422)
 
-    return  address
+    return JSONResponse({
+        "message": address
+    })
