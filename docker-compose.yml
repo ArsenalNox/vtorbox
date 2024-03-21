@@ -31,6 +31,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=admin
       - POSTGRES_DB=my_app
+      - POSTGRES_HOST=project_db
       - PGPORT=5433
 
       - environment=dev
