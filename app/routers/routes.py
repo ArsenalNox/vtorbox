@@ -48,7 +48,7 @@ from app.validators import (
     OrderUpdate
 )
 
-from ..auth import (
+from app.auth import (
     get_current_user
 )
 
@@ -66,6 +66,8 @@ from app.models import (
     IntervalStatuses, ROLE_ADMIN_NAME, ROLE_COURIER_NAME,
     Routes, RoutesOrders
     )
+
+from app.utils import send_message_through_bot
 
 
 router = APIRouter()
@@ -94,36 +96,18 @@ async def write_routes_to_db(routes):
                 order_update = Orders.query_by_id(order['id'])[0]
                 order_update.courier_id = route['courier']
                 if not (order_update.status == OrderStatuses.status_accepted_by_courier().id):
-                    order_update.update_status(OrderStatuses.status_accepted_by_courier().id)
+                    order_update = order_update.update_status(OrderStatuses.status_accepted_by_courier().id)
 
                 session.add(new_route_order)
                 session.add(order_update)
+                
 
-            token = '6700660749:AAGmWyCZ1bCG6Dp8MeIsfwdIPLR6FxYAeYc'
-            method = 'sendMessage'
-
-            courier_query = session.query(Users).filter(id=route['courier']).first()
-
-            if not courier_query.allow_messages_from_bot:
-                continue
-            
-            if courier_query.telegram_id:
-                b = {
-                    "chat_id" : courier_query.telegram_id,
-                    "text" : f"Вам назначен маршрут",
-                    "parse_mode" : "html"
-                    }
-            else:
-                print(f"USER {courier_query.id} has not telegram id connected")
-
-            try:
-                test_request = requests.post(
-                    url='https://api.telegram.org/bot{0}/{1}'.format(token, method), json=b
-                ).json()
-                print(test_request)
-
-            except Exception as err:
-                print(err)
+            courier_query = session.query(Users).filter(Users.id==route['courier']).first()
+            if (not courier_query.allow_messages_from_bot) and (not courier_query.telegram_id):
+                send_message_through_bot(
+                    receipient_id=courier_query.telegram_id,
+                    message="Вам назначен маршрут"
+                )
 
         session.commit()
 
@@ -318,7 +302,6 @@ async def update_route_orders(
 
             for order_id in orders_to_add:
                 
-                #TODO: Выбор маршрутам на только сегодня
                 delete_query = session.query(RoutesOrders).where(RoutesOrders.order_id == order_id).delete()
                 session.commit()
 
@@ -350,7 +333,9 @@ async def update_route_orders(
 
 
 @router.post('/route', tags=[Tags.routes, Tags.admins, Tags.managers])
-async def create_route():
+async def create_route(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+):
     """
     Создать маршрут вручную
     """
@@ -358,7 +343,9 @@ async def create_route():
 
 
 @router.delete('/route', tags=[Tags.routes, Tags.admins, Tags.managers])
-async def delete_route():
+async def delete_route(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+):
     """
     Удалить маршрут
     """
