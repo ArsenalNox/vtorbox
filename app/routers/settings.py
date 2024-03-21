@@ -27,7 +27,14 @@ from app.validators import (
     AddressUpdate as AddressUpdateValidator,
     UserLogin as UserLoginSchema,
     AddressSchedule, CreateUserData, UpdateUserDataFromTG, AddressOut,
-    RegionOut, AddressDaysWork, UserOut, RouteOut
+    RegionOut, AddressDaysWork, UserOut, RouteOut, BotSetting, BotSettingOut,
+    BotSettingUpdate
+)
+
+from app.validators import (
+    Order as OrderValidator,
+    UserLogin as UserLoginSchema,
+    OrderOut, OrderUpdate
 )
 
 from app import Tags
@@ -40,14 +47,9 @@ from uuid import UUID
 
 from sqlalchemy import desc, asc, desc
 
-from app.validators import (
-    Order as OrderValidator,
-    UserLogin as UserLoginSchema,
-    OrderOut,
-    OrderUpdate
-)
 
-from ..auth import (
+
+from app.auth import (
     get_current_user
 )
 
@@ -63,7 +65,8 @@ from app.models import (
     OrderStatuses, OrderStatusHistory,
     ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION,
     IntervalStatuses, ROLE_ADMIN_NAME, ROLE_COURIER_NAME,
-    Routes, RoutesOrders, WeekDaysWork, DaysWork
+    Routes, RoutesOrders, WeekDaysWork, DaysWork,
+    BotSettings, BotSettingsTypes, SettingsTypes
     )
 
 
@@ -72,17 +75,143 @@ router = APIRouter()
 
 
 @router.get('/bot/settings', tags=[Tags.settings])
-async def get_bot_settings(
-    setting_name: Optional[str] = None
-):
+async def get_settings(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    setting_name: Optional[str] = None,
+    setting_key: Optional[str] = None,
+    setting_id: Optional[UUID] = None
+)->List[BotSettingOut]:
     """
-    Получить настройки бота
+    Получить настройки проекта (и бота и бэкенда)
     """
-    pass
+    with Session(engine, expire_on_commit=False) as session:
+        query = session.query(BotSettings)
+        
+        if setting_name:
+            query = query.filter(BotSettings.name == setting_name)
+        
+        if setting_key:
+            query = query.filter(BotSettings.key == setting_key)
+
+        if setting_key:
+            query = query.filter(BotSettings.id == setting_id)
+
+        query = query.all()
+        return query
+
+
+@router.post('/bot/settings', tags=[Tags.settings])
+async def create_bot_settings(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    setting_data: BotSetting,
+)->BotSettingOut:
+    """
+    Создать новую настройку
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        print(setting_data)
+        query = session.query(BotSettings).filter(BotSettings.key==setting_data.key).first()
+        if query:
+            return JSONResponse({
+                "message": f"Setting with key {setting_data.key} already exists"
+            }, 422)
+        
+        new_setting = BotSettings(
+                key=setting_data.key,
+                name=setting_data.name,
+                value=setting_data.value,
+                detail=setting_data.detail
+            )
+        
+        session.add(new_setting)
+        session.commit()
+        types = []
+        print(setting_data.types)
+        for setting_type in setting_data.types:
+            print(setting_type)
+            setting_query = None
+            if setting_type.id:
+                setting_query = session.query(SettingsTypes).filter(SettingsTypes.id==setting_type.id).first()
+            elif setting_type.name:
+                setting_query = session.query(SettingsTypes).filter(SettingsTypes.name==setting_type.name).first()
+            else:
+                continue
+
+            if not setting_query:
+                if not setting_type.name:
+                    continue
+
+                setting_query = SettingsTypes(name=setting_type.name)
+                session.add(setting_query)
+                session.commit()
+
+            print(setting_query.id)
+            types.append(setting_query)
+
+        print(types)
+        new_setting.types = types
+        session.commit()
+
+        return new_setting
+
+
+@router.put('/bot/setting/{setting_id}', tags=[Tags.settings])
+async def update_bot_setting(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    setting_id: UUID,
+    setting_data: BotSettingUpdate,
+)->BotSettingOut:
+    """
+    Обновить настройку
+
+    **Сбрасывает** старые типы настройки и устанавливает новые
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        query = session.query(BotSettings).filter(BotSettings.id==setting_id).first()
+        if not query:
+            return JSONResponse({
+                "message": f"Setting with key {setting_data.key} does not exist"
+            }, 404)
+        
+        for attr, value in setting_data.model_dump().items():
+            if attr == 'types' and value:
+                types = []
+                query.types = []
+                for setting_type in setting_data.types:
+                    session.add(query)
+                    session.commit()
+
+                    setting_query = None
+                    if setting_type.id:
+                        setting_query = session.query(SettingsTypes).filter(SettingsTypes.id==setting_type.id).first()
+                    elif setting_type.name:
+                        setting_query = session.query(SettingsTypes).filter(SettingsTypes.name==setting_type.name).first()
+                    else:
+                        continue
+
+                    if not setting_query:
+                        if not setting_type.name:
+                            continue
+                        setting_query = SettingsTypes(name=setting_type.name)
+                        session.add(setting_query)
+                        session.commit()
+
+                    types.append(setting_query)
+
+                query.types = types
+                continue
+
+            if value:
+                setattr(query, attr, value)
+
+        session.commit()
+
+        return query
 
 
 @router.get('/bot/messages', tags=[Tags.settings])
 async def get_bot_messages(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     message_key: Optional[str] = None,
 ):
     """
@@ -92,7 +221,9 @@ async def get_bot_messages(
 
 
 @router.get("/work_days", tags=[Tags.settings])
-async def get_work_days():
+async def get_work_days(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+):
     """
     Получить настройки рабочих дней
     """
@@ -112,10 +243,11 @@ async def get_work_days():
 
 @router.patch('/work_days', tags=[Tags.settings])
 async def edit_work_days(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     dates_add: List[datetime] = [],
     weekdays_add: List[str] = [],
     dates_remove: List[datetime] = [],
-    weekdays_remove: List[str] = []
+    weekdays_remove: List[str] = [],
 ):
     """
     все datetime поля используют формат YYYY-MM-DDT00:00
