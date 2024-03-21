@@ -12,6 +12,9 @@ from app.routers import (
     settings
     )
 
+import os
+from dotenv import load_dotenv
+
 app = FastAPI()
 
 origins = [
@@ -23,17 +26,18 @@ origins = [
     "*"
 ]
 
+
+load_dotenv()
+
+
 #ВЕЧНО
 #TODO: подправить под soft delete'ы где не подправил 
 
+#TODO: Доработать настройки
 #TODO: Настройка сообщений бота
 #TODO: настройка принятия заявок с бота
-#TODO: Цены на контейнеры в районах 
-#TODO: в какие дни автоматом генерация пулов
-#TODO: В какие дни пул НЕ генерируется 
-
 #TODO: переброс маршрута в яндекс маршрутизацию
-#TODO: Добавить возможность передевать uuid вместо tg_id 
+#TODO: фикс дейттайма
 
 
 app.add_middleware(
@@ -99,6 +103,19 @@ app.include_router(
 )
 
 #TODO argparse на инит бд  
+
+if os.getenv('CREATE_DB'):
+    from app.models import (
+        init_role_table, init_boxtype_table, init_status_table,
+        create_admin_user, add_default_messages_bot
+    )
+    init_role_table()
+    init_boxtype_table()
+    init_status_table()
+    create_admin_user()
+    add_default_messages_bot()
+
+    exit()
 
 if __name__ == '__main__':
     uvicorn.run('app.main:app', reload=True)

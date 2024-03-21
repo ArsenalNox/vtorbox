@@ -169,10 +169,12 @@ class RegionOut(BaseModel):
     
     @validator('work_days', pre=True, always=True)
     def replace_as_list(cls, v):
-        if v != None:
+        print(type(v))
+        if (v != None) and (type(v) == str):
             return v.split(' ')
         else:
-            return None
+            print('false')
+            return v
 
 class RegionOutWithGeoData(RegionOut):
     geodata: str
@@ -427,3 +429,30 @@ class RouteOut(BaseModel):
 class CourierOut(UserOut):
     assigned_orders: Optional[List[OrderOut]] = None
     assigned_routes: Optional[List[RouteOut]] = None
+
+
+class BotSettingType(BaseModel):
+    id: Optional[UUID4] = None
+    name: Optional[str] = None
+
+class BotSetting(BaseModel):
+    """
+    Схема на создание настройки
+    """
+    
+    key: str
+    value: str
+    name: Optional[str] = None
+    detail: Optional[str] = None
+    types: List[BotSettingType] = None
+
+
+class BotSettingOut(BotSetting):
+    id: UUID4
+
+
+class BotSettingUpdate(BaseModel):
+    value: Optional[str] = None
+    name: Optional[str] = None
+    detail: Optional[str] = None
+    types: List[BotSettingType] = None
