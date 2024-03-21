@@ -11,7 +11,7 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from pydantic import ValidationError, BaseModel, UUID4
 
-from .validators import (
+from app.validators import (
     UserLogin as User,
     Token, 
     TokenData, RefreshTokenData

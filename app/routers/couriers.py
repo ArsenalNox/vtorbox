@@ -255,7 +255,9 @@ async def get_list_of_avaliable_orders(
 
 
 @router.get('/courier/orders/my', tags=[Tags.couriers, Tags.orders])
-async def get_list_of_accepted_orders():
+async def get_list_of_accepted_orders(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+):
     pass
 
 
@@ -311,7 +313,9 @@ async def accept_order_by_courier(
 
 
 @router.post('/courier/order/{order_id}/comment', tags=[Tags.couriers, Tags.orders])
-async def post_order_comment_by_courier():
+async def post_order_comment_by_courier(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+):
     """
     Оставить комментарий к заявке курьером
     """

@@ -298,7 +298,6 @@ async def add_user_address(
         if address_data.longitude and address_data.latitude:
 
             #Проверяем есть ли такой адресс с коордами
-            #TODO: Проверка адреса не по всем адреса а только у пользователя
             address = session.query(Address).filter_by(
                 latitude=str(address_data.latitude),
                 longitude=str(address_data.longitude)

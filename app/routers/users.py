@@ -53,7 +53,6 @@ from dotenv import load_dotenv
 
 router = APIRouter()
 
-#TODO: Отправка сообщения пользователю через бота 
 
 @router.get('/users', tags=[Tags.admins, Tags.managers], responses={
     200: {
@@ -353,7 +352,6 @@ async def update_user_data(
 
                         session.add(user_role)
 
-                #TODO: Изменение ролей
                 continue
 
             if value:

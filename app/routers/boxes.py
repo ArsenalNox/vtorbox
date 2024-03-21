@@ -9,18 +9,18 @@ from fastapi.responses import JSONResponse
 
 from datetime import datetime
 
-from ..validators import (
+from app.validators import (
     Order as OrderValidator,
     UserLogin as UserLoginSchema,
     OrderOut, BoxUpdate,
     BoxType, RegionalBoxPrice
 )
 
-from ..auth import (
+from app.auth import (
     get_current_user
 )
 
-from ..models import (
+from app.models import (
     engine, Session, BoxTypes,
     RegionalBoxPrices, Regions
     )
@@ -145,3 +145,13 @@ async def update_box_data(
         box_data.regional_prices = box_prices
 
         return box_data
+
+
+@router.delete('/boxes/{box_id}')
+async def delete_box(
+    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+    box_id: uuid.UUID
+):
+    """
+    Удаление контейнера
+    """

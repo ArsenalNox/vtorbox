@@ -7,18 +7,18 @@ from fastapi import APIRouter, Depends, HTTPException, status, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 
-from ..models import (
+from app.models import (
     engine, 
     Session, 
     OrderStatuses,
 )
 
-from ..validators import (
+from app.validators import (
     UserLogin as UserLoginSchema,
     StatusOut
 )
 
-from ..auth import (
+from app.auth import (
     oauth2_scheme, 
     pwd_context, 
     get_password_hash, 

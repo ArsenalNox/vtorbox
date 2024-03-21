@@ -47,7 +47,7 @@ from app.validators import (
     OrderUpdate
 )
 
-from ..auth import (
+from app.auth import (
     get_current_user
 )
 
