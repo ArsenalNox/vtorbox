@@ -119,7 +119,6 @@ async def import_regions_from_geojson(
             region_type = 'district'
 
             match feature['properties']['admin_level']:
-                #TODO: Сделать кейсы под остальные admin_level's
                 case 5:
                     region_type = 'district'
 
@@ -155,6 +154,7 @@ async def import_regions_from_geojson(
 
 @router.put('/regions/{region_id}', tags=[Tags.regions, Tags.managers])
 async def update_region_data(
+        current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
         new_data: RegionUpdate,
         region_id: UUID
     ) -> RegionOut:

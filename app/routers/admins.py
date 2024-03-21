@@ -1,35 +1,28 @@
 
 #TODO: Пригласить пользователя по e-mail
 
-#TODO: Указание дней работы
-#TODO: Сегменты адресов (разделение городов по сегментам вывоза, туда входят улицы, районы, метро) - сложна 
-#TODO: Цены для сегментов (указываем цену для сегмента и для единицы вывоза (мешок, масса, размер и др)) - в модели? 
 #TODO: Курьерские настройки (добавление курьеров, тонкие настройки маршрутизации и др)
 #TODO: Платежные шлюзы (добавляем возможные варианты приема денег, 
 # чтобы давать их на выбор клиентам, админ может вкл/выкл какие-то шлюзы, управлять их настройками)
-
-#TODO: Настройки ботов 
-#TODO: Редактирование текстов бота
-#TODO: Пул заявок
 
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 
-from ..models import (
+from app.models import (
     engine, 
     Session, 
     OrderStatuses,
     Roles, Permissions
 )
 
-from ..validators import (
+from app.validators import (
     UserLogin as UserLoginSchema,
     StatusOut
 )
 
-from ..auth import (
+from app.auth import (
     oauth2_scheme, 
     pwd_context, 
     get_password_hash, 
@@ -91,3 +84,11 @@ async def get_avaliable_roles(
     with Session(engine, expire_on_commit=False) as session:
         roles_query = session.query(Roles).all()
         return roles_query
+
+
+@router.get("/stats", tags=[Tags.admins])
+async def get_statistics():
+    """
+    получить статистику использования проекта
+    """
+    pass
