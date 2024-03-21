@@ -683,7 +683,8 @@ async def check_given_address(
             get('text')
     except:
         return JSONResponse({
-            "message": "Адресс находится вне рабочей области проекта"
+            "message": "Адресс находится вне рабочей области проекта",
+            "address": None,
         },status_code=422)
 
     region = Regions.get_by_coords(
@@ -694,21 +695,25 @@ async def check_given_address(
     #попытаться найти регион по названию, если не нашёлся по координатам
     if not region:
         return JSONResponse({
-            "message": "Не найден регион"
+            "message": "Не найден регион",
+            "address": None,
         },status_code=422)
 
     if not region.work_days:
         return JSONResponse({
-            "message": "В расписании региона отсутствуют рабочие дни"
+            "message": "В расписании региона отсутствуют рабочие дни",
+            "address": None,
         },status_code=422)
 
     if not region.is_active:
         return JSONResponse({
-            "message": f"В регионе '{region.name}' на данный момент не принимаются заявки"
+            "message": f"В регионе '{region.name}' на данный момент не принимаются заявки",
+            "address": None,
         },status_code=422)
 
     return JSONResponse({
-        "message": address
+        "message": address,
+        "address": None,
     })
 
 
@@ -741,7 +746,8 @@ async def check_given_address_by_text(
 
     except Exception as err: 
         return JSONResponse({
-            "message": "Адресс находится вне рабочей области проекта"
+            "message": "Адрес находится вне рабочей области проекта",
+            "address": None,
         },status_code=422)
 
     region = Regions.get_by_coords(
@@ -752,19 +758,23 @@ async def check_given_address_by_text(
     #попытаться найти регион по названию, если не нашёлся по координатам
     if not region:
         return JSONResponse({
-            "message": "Не найден регион"
+            "message": "Не найден регион",
+            "address": None,
         },status_code=422)
 
     if not region.work_days:
         return JSONResponse({
-            "message": "В расписании региона отсутствуют рабочие дни"
+            "message": "В расписании региона отсутствуют рабочие дни",
+            "address": None,
         },status_code=422)
 
     if not region.is_active:
         return JSONResponse({
-            "message": f"В регионе '{region.name}' на данный момент не принимаются заявки"
+            "message": f"В регионе '{region.name}' на данный момент не принимаются заявки",
+            "address": None,
         },status_code=422)
 
     return JSONResponse({
-        "message": address
+        "address": address,
+        "message": None
     })
