@@ -342,11 +342,22 @@ async def create_route(
     pass
 
 
-@router.delete('/route', tags=[Tags.routes, Tags.admins, Tags.managers])
+@router.delete('/route/{route_id}', tags=[Tags.routes, Tags.admins, Tags.managers])
 async def delete_route(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    route_id: UUID
 ):
     """
     Удалить маршрут
     """
-    pass
+    with Session(engine, expire_on_commit=False) as session:
+        route_query = session.query(Routes).filter(Routes.id==route_id).first()
+        if not route_query:
+            return JSONResponse({
+                "message": "not found"
+            }, 404)
+        
+        routed_orders = session.query(RoutesOrders).filter(RoutesOrders.route_id==route_id).delete()
+        route_query = session.query(Routes).filter(Routes.id==route_id).delete()
+        session.commit()
+        return
