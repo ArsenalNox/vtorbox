@@ -16,18 +16,18 @@ from uuid import UUID
 
 from sqlalchemy import desc, asc, desc, or_
 
-from ..validators import (
+from app.validators import (
     Order as OrderValidator,
     UserLogin as UserLoginSchema,
     OrderOut,
     OrderUpdate
 )
 
-from ..auth import (
+from app.auth import (
     get_current_user
 )
 
-from ..models import (
+from app.models import (
     engine, Orders, Users, Session, 
     Address, UsersAddress, BoxTypes,
     OrderStatuses, OrderStatusHistory,
@@ -36,10 +36,9 @@ from ..models import (
     DaysWork
     )
 
+from app.utils import send_message_through_bot
 
 router = APIRouter()
-
-#TODO: Получение заявок подтверждённых, но не в маршруте
 
 
 @router.get('/orders/filter/', tags=[Tags.orders, Tags.admins],
@@ -129,7 +128,7 @@ async def get_filtered_orders(
         region_id: UUID = None,
         
         show_only_active: bool = False
-        #TODO: Фильтр по району, округу, дистанции, курьеру итд
+        #TODO: дистанции, курьеру итд
         ):
     """
     Получение заявок по фильтру
@@ -147,10 +146,6 @@ async def get_filtered_orders(
 
     - **show_only_active**: [bool] показывать только заявки категории активные
     """
-    #TODO: Фильтр по статусу
-    #TODO: Фильтр по дате
-    #TODO: Фильтр по временным рамкам
-
     with Session(engine, expire_on_commit=False) as session:
 
         orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users, Regions).\
@@ -454,8 +449,6 @@ async def create_order(
     Создание заявки 
     """
     #TODO: Оповещение менеджера при создании заявки
-
-        
     with Session(engine, expire_on_commit=False) as session:
         user = Users.get_user(order_data.from_user)
         if not user:
@@ -685,20 +678,14 @@ async def set_order_status(
         if order_query.status == status_query.id:
             return JSONResponse({
                 "message": "Status is identical, change not saved"
-            }, 204)
+            }, 200)
 
-        order_query.status = status_query.id
-
-        status_update = OrderStatusHistory(
-            order_id = order_query.id,
-            status_id = status_query.id,
-            date = datetime.now()
-        )
-        session.add(status_update)
+        order_query = order_query.update_status(status_query.id)
 
         session.add(order_query)
         session.commit()
 
+        return order_query
 
 @router.put('/orders/{order_id}/courier', tags=[Tags.orders, Tags.managers])
 async def set_order_courier():
@@ -709,7 +696,10 @@ async def set_order_courier():
 
 
 @router.put('/orders/{order_id}', tags=[Tags.bot, Tags.orders])
-async def update_order_data(order_id: UUID, new_order_data: OrderUpdate)->OrderOut:
+async def update_order_data(
+        order_id: UUID, 
+        new_order_data: OrderUpdate
+    )->OrderOut:
     """
     Обновить данные заявки
     - **order_id**: uuid заявки
@@ -755,7 +745,6 @@ async def update_order_data(order_id: UUID, new_order_data: OrderUpdate)->OrderO
                     "message": "Cannot set box_count below 1"
                 }, status_code=422)
 
-
             setattr(order_query, attr, value)
 
         session.commit()
@@ -768,6 +757,9 @@ async def update_order_data(order_id: UUID, new_order_data: OrderUpdate)->OrderO
             where(Orders.id == order_id).\
             order_by(asc(Orders.date_created)).first()
         return_data = Orders.process_order_array([order_query])
+
+
+
 
         return return_data[0]
 
@@ -828,9 +820,7 @@ async def process_current_orders(
     Обработка всех доступных заявок, высчитывание следующего дня забора заявки без смены статуса
     """
         
-    #TODO: Добавить в routed_orders 
     with Session(engine, expire_on_commit=False) as session:
-        #TODO: Фильтр по статусу (в работе и создана) (?)
         orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
             join(Address, Address.id == Orders.address_id).\
             outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
@@ -939,28 +929,20 @@ async def process_current_orders(
                 order_list.append(order[0])
                 
                 #TODO: ПЕРЕПИСАТЬ ПО-ЧЕЛОВЕЧЕСКИ
-                import requests
 
-                token = '6700660749:AAGmWyCZ1bCG6Dp8MeIsfwdIPLR6FxYAeYc'
-                method = 'sendMessage'
-                print(order[4])
-
-                if not order[4].allow_messages_from_bot:
-                    continue
-
-                if order[4].telegram_id:
-                    b = {
-                        "chat_id" : order[4].telegram_id,
-                        "text" : f"От вас требуется подверждение заявки ({order[0].order_num}) по адресу ({order[1].address})",
-                        "parse_mode" : "html",
-                        "reply_markup" : {
-                            "inline_keyboard" : [[{
-                                        "text" : "Подтвердить",
-                                        "callback_data": f"confirm_order_{order[0].id}",
-                                    }]]
-                    }}
-                else:
+                if not order[4].allow_messages_from_bot and order[4].telegram_id:
                     print(f"USER {order[4].id} has not telegram id connected")
+                    continue
+                else:
+                    send_message_through_bot(
+                        order[4].telegram_id,
+                        message=f"От вас требуется подверждение заявки ({order[0].order_num}) по адресу ({order[1].address})",
+                        btn={
+                            "inline_keyboard" : [[{
+                            "text" : "Подтвердить",
+                            "callback_data": f"confirm_order_12345",
+                        }]]}
+                    )
 
                 try:
                     test_request = requests.post(
