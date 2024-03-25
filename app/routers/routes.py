@@ -117,7 +117,7 @@ async def generate_routes_today(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     group_by: str = 'regions',
     statuses_list = List[UUID],
-    couriers_id = List[UUID],
+    couriers_id = List[UUID|int],
     write_after_generation: bool = False
 ):
     """
@@ -261,7 +261,7 @@ async def update_route_orders(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     orders_to_delete: List[UUID] = Query(None),
     orders_to_add: List[UUID] = Query(None),
-    new_courier_id: UUID = None
+    new_courier_id: UUID|int = None
 )->RouteOut:
     """
     Обновить заявки в маршруте
@@ -356,7 +356,8 @@ async def delete_route(
             return JSONResponse({
                 "message": "not found"
             }, 404)
-        
+
+        #TODO: Сброс статуса заявки 
         routed_orders = session.query(RoutesOrders).filter(RoutesOrders.route_id==route_id).delete()
         route_query = session.query(Routes).filter(Routes.id==route_id).delete()
         session.commit()
