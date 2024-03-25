@@ -335,8 +335,12 @@ async def add_user_address(
             #Если предоставили только текстовый адрес получаем коорды
             address = session.query(Address).filter_by(
                 address = address_data.address
-            ).where(Address.deleted_at == None).first()
-        
+            ).\
+            where(Address.deleted_at == None).\
+            join(UsersAddress, UsersAddress.address_id == Address.id).\
+            where(UsersAddress.user_id == user.id).\
+            first()
+            
             if address:
                 return JSONResponse({
                     "message": "Address already exists"
