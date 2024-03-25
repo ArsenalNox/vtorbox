@@ -1216,9 +1216,9 @@ def add_default_messages_bot():
         print('Done adding messages')
 
 
-if __name__ == "__main__":
-    init_role_table()
-    init_boxtype_table()
-    init_status_table()
-    create_admin_user()
-    add_default_messages_bot()
+# if __name__ == "__main__":
+init_role_table()
+init_boxtype_table()
+init_status_table()
+create_admin_user()
+add_default_messages_bot()
