@@ -213,11 +213,25 @@ async def update_bot_setting(
 @router.get('/bot/messages', tags=[Tags.settings])
 async def get_bot_messages(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
-    message_key: Optional[str] = None,
-):
+    message_key: str,
+)->str:
     """
     Получить сообщения бота
     """
+
+    """
+    Получить настройки проекта (и бота и бэкенда)
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        query = session.query(BotSettings)
+        
+        if message_key:
+            query = query.filter_by(key = message_key)
+
+        query = query.first()
+        return query.value
+
+
     pass
 
 
