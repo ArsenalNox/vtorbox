@@ -86,16 +86,17 @@ async def get_settings(
     """
     with Session(engine, expire_on_commit=False) as session:
         query = session.query(BotSettings)
-        
+        print(setting_key)
         if setting_name:
-            query = query.filter(BotSettings.name == setting_name)
+            query = query.filter_by(name = setting_name)
         
         if setting_key:
-            query = query.filter(BotSettings.key == setting_key)
+            query = query.filter_by(key = setting_key)
 
-        if setting_key:
-            query = query.filter(BotSettings.id == setting_id)
+        if setting_id:
+            query = query.filter_by(id = setting_id)
 
+        print(setting_key)
         query = query.all()
         return query
 
