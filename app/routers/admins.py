@@ -83,7 +83,27 @@ async def get_avaliable_roles(
 
     with Session(engine, expire_on_commit=False) as session:
         roles_query = session.query(Roles).all()
-        return roles_query
+        return_data = []
+        for role in roles_query:
+            match role.role_name:
+                case 'admin':
+                    role.label = 'админ'
+
+                case 'bot':
+                    role.label = 'бот'
+                    
+                case 'customer':
+                    role.label = 'клиент'
+
+                case 'courier':
+                    role.label = 'курьер'
+
+                case 'manager':
+                    role.label = 'менеджер'
+
+            return_data.append(role)
+
+        return return_data
 
 
 @router.get("/stats", tags=[Tags.admins])
