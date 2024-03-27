@@ -418,6 +418,7 @@ class RouteOut(BaseModel):
     courier_id: UUID4
     short_name: str
     route_link: Optional[str] = None
+    route_task_id: Optional[str] = None
 
     #На какой день предназначен маршрут 
     date_created: datetime
