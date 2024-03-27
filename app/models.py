@@ -109,6 +109,8 @@ class Orders(Base):
     #Комментарий к выполнению от курьера
     comment_courier = Column(Text(), nullable=True)
 
+    address = relationship('Address', backref='orders', lazy='joined')
+
     @staticmethod
     def get_all_orders():
         with Session(engine, expire_on_commit=False) as session: 
@@ -765,6 +767,7 @@ class Routes(Base):
     courier_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
     short_name = Column(String(), default=generate_route_short_name)
     route_link = Column(String(), nullable=True, default=None)
+    route_task_id = Column(String(), nullable=True, default=None)
 
     #На какой день предназначен маршрут 
     date_created = Column(DateTime(), default=default_time)
