@@ -1,5 +1,12 @@
 import uuid, os, requests
-from app import CODER_KEY, CODER_SETTINGS, BOT_TOKEN
+import time
+import datetime
+
+
+from app import (
+    CODER_KEY, CODER_SETTINGS, BOT_TOKEN,
+    COURIER_API_ROOT_ENDPOINT as API_ROOT_ENDPOINT
+    )
 
 token = BOT_TOKEN
 
@@ -63,3 +70,98 @@ def send_message_through_bot(receipient_id:int, message, btn=None):
 
     except Exception as err:
         print(err)
+
+
+def generate_y_courier_json(route_data):
+    """
+    Сгенерировать json для отправки в яндекс.маршрутизацию
+    """
+    locations = []
+
+    print(route_data.orders)
+
+    time_winow = "07:00-18:00"
+
+    for order in route_data.orders:
+        order_d = order.order
+        print(f"LAT: {order_d.address.latitude}; LONG: {order_d.address.longitude}, ID: {order_d.order_num}")
+
+        locations.append({
+            "id": order_d.order_num,
+            "point": {
+                "lat": float(order_d.address.latitude),
+                "lon": float(order_d.address.longitude)
+            },
+            "time_window": time_winow,
+        })
+
+    payload = {
+        "depot": {
+            "id": 1,
+            "point": {
+                "lat": 55.734157,
+                "lon": 37.589346
+            },
+            "time_window": "07:00-18:00"
+        },
+        "vehicles": [{
+                "id": 2
+            }
+        ],
+        "locations": locations,
+        "options": {
+            "time_zone": 3,
+            "quality": "normal"
+        }
+    }
+
+    print(payload)
+    return payload
+
+
+def get_result_by_id(request_id):
+    poll_stop_codes = {
+        requests.codes.ok,
+        requests.codes.gone,
+        requests.codes.internal_server_error
+    }
+
+    poll_url = '{}/result/mvrp/{}'.format(API_ROOT_ENDPOINT, request_id)
+
+    response = requests.get(poll_url)
+    while response.status_code not in poll_stop_codes:
+        time.sleep(1)
+        response = requests.get(poll_url)
+
+    # Вывод информации в пользовательском формате.
+    if response.status_code != 200:
+        print ('Error {}: {}'.format(response.text, response.status_code))
+    else:
+        print ('Route optimization completed')
+        print ('')
+
+        for route in response.json()['result']['routes']:
+            print ('Vehicle {} route: {:.2f}km'.format(
+                route['vehicle_id'], route['metrics']['total_transit_distance_m'] / 1000))
+
+            # Вывод маршрута в текстовом формате.
+            for waypoint in route['route']:
+                print ('  {type} {id} at {eta}, {distance:.2f}km driving '.format(
+                    type=waypoint['node']['type'],
+                    id=waypoint['node']['value']['id'],
+                    eta=str(datetime.timedelta(seconds=waypoint['arrival_time_s'])),
+                    distance=waypoint['transit_distance_m'] / 1000))
+
+            # Вывод маршрута в формате ссылки на Яндекс Карты.
+            yamaps_url = 'https://yandex.ru/maps/?mode=routes&rtext='
+            for waypoint in route['route']:
+                point = waypoint['node']['value']['point']
+                yamaps_url += '{}%2c{}~'.format(point['lat'], point['lon'])
+
+            print ('')
+            print ('See route on Yandex.Maps:')
+            print (yamaps_url)
+
+            return yamaps_url
+    
+    return None
