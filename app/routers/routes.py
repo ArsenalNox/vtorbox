@@ -15,7 +15,7 @@ import datetime as dt
 from datetime import datetime, timedelta
 
 
-from app import CODER_KEY, CODER_SETTINGS
+from app import CODER_KEY, CODER_SETTINGS, COURIER_KEY
 
 from app.auth import (
     oauth2_scheme, 
@@ -67,11 +67,14 @@ from app.models import (
     Routes, RoutesOrders
     )
 
-from app.utils import send_message_through_bot
+from app.utils import (
+    send_message_through_bot, get_result_by_id, 
+    generate_y_courier_json)
 
 
 router = APIRouter()
 
+API_ROOT_ENDPOINT = 'https://courier.yandex.ru/vrs/api/v1'
 
 async def write_routes_to_db(routes):
     """
@@ -362,3 +365,46 @@ async def delete_route(
         route_query = session.query(Routes).filter(Routes.id==route_id).delete()
         session.commit()
         return
+
+
+@router.get('/route/{route_id}/courier_map', tags=[Tags.routes, Tags.admins])
+async def get_route_y_map(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    route_id: UUID
+):
+    """
+    Получить маршрутизацию от яндекса, создать её если нет
+    """
+
+    with Session(engine, expire_on_commit=False) as session:
+        route_query = session.query(Routes).filter(Routes.id==route_id).first()
+        if not route_query:
+            return JSONResponse({
+                "message": "not found"
+            }, 404)
+        
+        if route_query.route_link:
+            return route_query.route_link
+        
+        if route_query.route_task_id:
+            result = get_result_by_id(route_query.route_task_id)
+            route_query.route_link = result
+            session.commit()
+            return result
+        
+        payload = generate_y_courier_json(route_query)
+
+        response = requests.post(
+            API_ROOT_ENDPOINT + '/add/mvrp',
+            params={'apikey': COURIER_KEY}, json=payload)
+
+        print(response.status_code)
+        if response.status_code == 400:
+            return response.json()
+
+        request_id = response.json()['id']
+
+        route_query.route_task_id = request_id
+        session.commit()
+
+        return response.json()
