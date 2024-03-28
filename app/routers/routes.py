@@ -63,7 +63,8 @@ from app.models import (
     Address, UsersAddress, BoxTypes,
     OrderStatuses, OrderStatusHistory,
     ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION,
-    IntervalStatuses, ROLE_ADMIN_NAME, ROLE_COURIER_NAME,
+    ORDER_STATUS_CANCELED, IntervalStatuses, 
+    ROLE_ADMIN_NAME, ROLE_COURIER_NAME,
     Routes, RoutesOrders
     )
 
@@ -277,6 +278,8 @@ async def update_route_orders(
     print(f"date today: {date_today}")
     with Session(engine, expire_on_commit=False) as session:
 
+        #TODO: Повторная генерация я.маршрута при изменении заявок маршрута
+
         route_query = session.query(Routes).where(Routes.id==route_id).first()
         if not route_query:
             return JSONResponse({
@@ -296,6 +299,11 @@ async def update_route_orders(
 
             for order_id in orders_to_delete:
                 delete_query = session.query(RoutesOrders).where(RoutesOrders.order_id == order_id).delete()
+
+                order_query = session.query(Orders).where(Orders.id==order_id).first()
+                order_query = order_query.update_status(OrderStatuses.status_canceled().id)
+                session.add(order_query)
+
                 session.commit()
 
         if orders_to_add:   
