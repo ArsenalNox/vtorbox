@@ -218,10 +218,6 @@ async def get_bot_messages(
     """
     Получить сообщения бота
     """
-
-    """
-    Получить настройки проекта (и бота и бэкенда)
-    """
     with Session(engine, expire_on_commit=False) as session:
         query = session.query(BotSettings)
         
@@ -271,6 +267,7 @@ async def edit_work_days(
     - **dates_remove**: список дат для удаления их нерабочих дат
     - **weekdays_remove**: список дней недели для удаления из нерабочих дней
     """
+    #TODO: Получение дат не обращая на год
     warnings = []
     result = []
     with Session(engine, expire_on_commit=False) as session:
@@ -278,7 +275,7 @@ async def edit_work_days(
             date = date.replace(hour=00, minute=0, second=0, microsecond=0)
             date_tommorrow = date + timedelta(days=1)
             date_search_query = session.query(DaysWork)
-            date_search_query = date_search_query.filter(DaysWork.date >= date, DaysWork.date <= date_tommorrow)
+            date_search_query = date_search_query.filter(DaysWork.date == date)
             date_search_query = date_search_query.first()
 
             if date_search_query:
