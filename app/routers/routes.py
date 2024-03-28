@@ -294,6 +294,10 @@ async def update_route_orders(
                             delete_query = session.query(RoutesOrders).where(RoutesOrders.id==order_id).delete()
                             session.commit()
 
+            for order_id in orders_to_delete:
+                delete_query = session.query(RoutesOrders).where(RoutesOrders.order_id == order_id).delete()
+                session.commit()
+
         if orders_to_add:   
             for route in routes_today:
                 for order_id in orders_to_add:
