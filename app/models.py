@@ -589,6 +589,12 @@ class OrderStatuses(Base):
                 filter_by(status_name=ORDER_STATUS_PAYED['status_name']).first()
             return query
 
+    @staticmethod
+    def status_canceled():
+        with Session(engine,expire_on_commit=False) as session:
+            query = session.query(OrderStatuses).\
+                filter_by(status_name=ORDER_STATUS_CANCELED['status_name']).first()
+            return query
 
 
 class OrderStatusHistory(Base):
