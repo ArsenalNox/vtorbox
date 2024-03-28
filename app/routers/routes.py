@@ -289,6 +289,9 @@ async def update_route_orders(
         routes_today = session.query(Routes).\
             filter(Routes.date_created > date_today).all()
 
+        route_query.route_task_id = None
+        route_query.route_link = None
+
         if orders_to_delete:
             for route in routes_today:
                 for order_id in orders_to_delete:
