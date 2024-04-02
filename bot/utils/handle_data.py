@@ -8,13 +8,11 @@ from aiogram.types import Message, CallbackQuery
 
 from bot.states.states import CreateOrder
 from bot.utils.messages import MESSAGES
+from bot.utils.requests_to_api import req_to_api
 
 fullname_pattern = r"^[а-яА-ЯёЁ\s]+$"
 phone_pattern = r'^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$'
 email_pattern = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-HEADERS = {
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyM0BleGFtcGxlLmNvbSIsImludGVybmFsX2lkIjoiODA0ODFlNTctYjk1Zi00MmM3LWExYWYtNjM3NDAxYjkxNTJiIiwic2NvcGVzIjpbImN1c3RvbWVyIiwiYWRtaW4iLCJib3QiLCJtYW5hZ2VyIiwiY291cmllciJdfQ._PUj3bg34h-TJQ6oa5sKI7XRrtON0gKqgPd5y_rrbuE'
-}
 
 
 def validate_date(user_date: str) -> bool:
@@ -49,8 +47,14 @@ async def show_active_orders(self: 'TextHandler', message: Message, orders: list
 
     first_order = orders[0]
     await state.set_state(state=None)
+
+    status_code, active_order_msg = await req_to_api(
+        method='get',
+        url='bot/messages?message_key=YOU_HAVE_ACTIVE_ORDERS'
+    )
+
     msg = await message.answer(
-        MESSAGES['YOU_HAVE_ACTIVE_ORDERS'].format(
+        active_order_msg.format(
             len(orders)
         ),
         reply_markup=self.kb.show_btn(first_order)
@@ -90,12 +94,21 @@ async def show_order_info(self: 'OrderHandler', message: Message, order: dict, s
         box_count = 'Не задано'
         box_name = 'Не задано'
 
+    order_comment = order.get('comment')
+    address_comment = order.get('address_data', {}).get('comment')
+
+    status_code, order_info_msg = await req_to_api(
+        method='get',
+        url='bot/messages?message_key=ORDER_INFO'
+    )
+
     order_msg = await message.answer(
-        MESSAGES['ORDER_INFO'].format(
+        order_info_msg.format(
             order.get('order_num'),
             order.get('address_data', {}).get('address'),
+            address_comment if address_comment != 'Без комментария' else '-',
             date,
-            order.get('comment', '-'),
+            order_comment if order_comment != 'Без комментария' else '-',
             order.get('status_data', {}).get('status_name') + f'({order.get("status_data", {}).get("description", "")})',
             box_name,
             box_count,
@@ -201,8 +214,13 @@ async def group_orders_by_month(orders_list: list[dict]):
 async def show_address_list(self: 'AddressHandler', message: Message, state: FSMContext, address_list: list[dict]):
     """Отображение списка адресов с кнопками(по умолчанию/удалить)"""
 
+    status_code, add_address_msg = await req_to_api(
+        method='get',
+        url='bot/messages?message_key=ADD_ADDRESS'
+    )
+
     msg = await message.answer(
-        MESSAGES['ADD_ADDRESS'],
+        add_address_msg,
         reply_markup=self.kb.add_address_btn(self.flag_to_return)
     )
 
@@ -215,16 +233,27 @@ async def show_address_list(self: 'AddressHandler', message: Message, state: FSM
         address_text = address.get('address') + address.get('detail', ' ') if address.get('detail') else address.get(
             'address')
         if address['main']:
+
+            status_code, default_address_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=ADDRESS_INFO_DEDAULT'
+            )
+
             msg = await message.answer(
-                MESSAGES['ADDRESS_INFO_DEDAULT'].format(
+                default_address_msg.format(
                     count,
                     address_text
                 ),
                 reply_markup=self.kb.address_delete_default_btn(address)
             )
         else:
+            status_code, no_default_address_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=ADDRESS_INFO_NOT_DEDAULT'
+            )
+
             msg = await message.answer(
-                MESSAGES['ADDRESS_INFO_NOT_DEDAULT'].format(
+                no_default_address_msg.format(
                     count,
                     address_text
                 ),
@@ -240,15 +269,25 @@ async def show_address_date(message: Message, address: 'Address',
                             kb: 'OrderKeyboard', menu_kb: 'OrderKeyboard',state: FSMContext):
     work_dates = address.get('work_dates')
     if work_dates:
+
+        status_code, choose_date_msg = await req_to_api(
+            method='get',
+            url='bot/messages?message_key=CHOOSE_DATE_ORDER'
+        )
+
         await message.answer(
-            MESSAGES['CHOOSE_DATE_ORDER'],
+            choose_date_msg,
             reply_markup=kb(work_dates)
         )
         await state.set_state(CreateOrder.date)
 
     else:
-        await message.answer(
-            MESSAGES['NO_WORK_DAYS_FOR_ADDRESS'],
-            reply_markup=menu_kb()
+        status_code, no_work_days_msg = await req_to_api(
+            method='get',
+            url='bot/messages?message_key=NO_WORK_DAYS_FOR_ADDRESS'
         )
 
+        await message.answer(
+            no_work_days_msg,
+            reply_markup=menu_kb()
+        )

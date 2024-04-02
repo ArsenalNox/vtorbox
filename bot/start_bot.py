@@ -13,6 +13,7 @@ from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.settings import settings
 from bot.utils.logger import warning_log_write, debug_log_write
 from bot.utils.messages import MESSAGES
+from bot.utils.requests_to_api import req_to_api
 
 
 class MainBot:

@@ -7,6 +7,7 @@ from bot.keyboards.payment_kb import PaymentKeyboard
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
 from bot.utils.messages import MESSAGES
+from bot.utils.requests_to_api import req_to_api
 
 
 class PaymentHandler(Handler):
@@ -29,7 +30,12 @@ class PaymentHandler(Handler):
                 src=message
             )
 
+            status_code, payment_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=PAYMENTS'
+            )
+
             await message.answer(
-                MESSAGES['PAYMENTS'],
+                payment_msg,
                 reply_markup=self.kb.settings_btn()
             )

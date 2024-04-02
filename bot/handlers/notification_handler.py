@@ -21,11 +21,27 @@ class NotificationHandler(Handler):
         @self.router.callback_query(F.data.startswith('confirm_order'))
         async def approve_order(callback: CallbackQuery, state: FSMContext):
 
+            data = await state.get_data()
+
+
+
             order_id = callback.data.split('_')[-1]
 
             status_code, order = await req_to_api(
                 method='get',
                 url=f'orders/{order_id}',
+            )
+
+            status_code, approve_order_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=ORDER_WAS_APPROVED'
+            )
+
+            await callback.bot.edit_message_text(
+                chat_id=data.get('chat_id'),
+                message_id=callback.message.message_id,
+                text=approve_order_msg.format(order.get('order_num')),
+                reply_markup=None
             )
 
             status = quote("подтверждена")
@@ -35,9 +51,3 @@ class NotificationHandler(Handler):
                 url=f'orders/{order_id}/status?status_text={status}',
             )
 
-            await callback.message.answer(
-                MESSAGES['ORDER_WAS_APPROVED'].format(
-                    order.get('order_num')
-                ),
-                reply_markup=self.kb.start_menu_btn()
-            )

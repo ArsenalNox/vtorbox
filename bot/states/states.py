@@ -57,3 +57,10 @@ class SMSEmail(StatesGroup):
     """Отлов кода из смс/email"""
 
     code = State()
+
+
+class ConfirmAddress(StatesGroup):
+    """Отлов подтверждения адреса, найденного Яндекс"""
+
+    confirm = State()
+
