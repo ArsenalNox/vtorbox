@@ -14,7 +14,7 @@ from bot.settings import settings
 from bot.states.states import EditQuestionnaireState
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn, format_questionnaire
-from bot.utils.handle_data import fullname_pattern, phone_pattern, email_pattern, HEADERS
+from bot.utils.handle_data import fullname_pattern, phone_pattern, email_pattern
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
@@ -36,8 +36,14 @@ class QuestionnaireHandler(Handler):
                 method='get',
                 url=f'bot/users/telegram?tg_id={message.from_user.id}',
             )
+
+            status_code, questionnaire_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=QUESTIONNAIRE'
+            )
+
             await message.answer(
-                MESSAGES['QUESTIONNAIRE'].format(
+                questionnaire_msg.format(
                     user_data.get('firstname') if user_data.get('firstname') else 'Не задано',
                     user_data.get('secondname') if user_data.get('secondname') else 'Не задано',
                     user_data.get('phone_number') if user_data.get('phone_number') else 'Не задано',
@@ -52,8 +58,14 @@ class QuestionnaireHandler(Handler):
 
             await state.update_data(chat_id=message.chat.id)
             await state.set_state(EditQuestionnaireState.first_name)
+
+            status_code, firstname_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=WRITE_YOUR_FIRSTNAME'
+            )
+
             await message.answer(
-                MESSAGES['WRITE_YOUR_FIRSTNAME'],
+                firstname_msg,
                 reply_markup=self.kb.menu_btn()
             )
 
@@ -89,8 +101,14 @@ class QuestionnaireHandler(Handler):
                     state=state
                 )
             else:
+
+                status_code, wrong_firstname_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRONG_FIRSTNAME'
+                )
+
                 await message.answer(
-                    MESSAGES['WRONG_FIRSTNAME']
+                    wrong_firstname_msg
                 )
 
         @self.router.message(F.text.startswith(BUTTONS['LAST_NAME']))
@@ -99,8 +117,14 @@ class QuestionnaireHandler(Handler):
 
             await state.update_data(chat_id=message.chat.id)
             await state.set_state(EditQuestionnaireState.last_name)
+
+            status_code, lastname_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=WRITE_YOUR_LASTNAME'
+            )
+
             await message.answer(
-                MESSAGES['WRITE_YOUR_LASTNAME'],
+                lastname_msg,
                 reply_markup=self.kb.menu_btn()
             )
 
@@ -136,8 +160,14 @@ class QuestionnaireHandler(Handler):
                     state=state
                 )
             else:
+
+                status_code, wrong_lastname_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRONG_LASTNAME'
+                )
+
                 await message.answer(
-                    MESSAGES['WRONG_LASTNAME']
+                    wrong_lastname_msg
                 )
 
         @self.router.message(F.text.startswith(BUTTONS['PHONE_NUMBER']))
@@ -146,8 +176,14 @@ class QuestionnaireHandler(Handler):
 
             await state.update_data(chat_id=message.chat.id)
             await state.set_state(EditQuestionnaireState.phone_number)
+
+            status_code, phone_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=WRITE_YOUR_PHONE_NUMBER'
+            )
+
             await message.answer(
-                MESSAGES['WRITE_YOUR_PHONE_NUMBER'],
+                phone_msg,
                 reply_markup=self.kb.send_phone()
             )
 
@@ -163,23 +199,34 @@ class QuestionnaireHandler(Handler):
             else:
                 check_phone = re.search(phone_pattern, message.text)
 
+            status_code, sms_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=SEND_SMS'
+            )
+
             if phone:
                 await message.answer(
-                    MESSAGES['SEND_SMS']
+                    sms_msg
                 )
                 await state.update_data(phone_number=phone)
                 await state.set_state(EditQuestionnaireState.approve_phone)
 
             elif check_phone and len(message.text) == 11:
                 await message.answer(
-                    MESSAGES['SEND_SMS']
+                    sms_msg
                 )
                 await state.update_data(phone_number=message.text)
                 await state.set_state(EditQuestionnaireState.approve_phone)
 
             else:
+
+                status_code, wrong_phone_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRONG_PHONE_NUMBER'
+                )
+
                 await message.answer(
-                    MESSAGES['WRONG_PHONE_NUMBER']
+                    wrong_phone_msg
                 )
 
         @self.router.message(EditQuestionnaireState.approve_phone)
@@ -216,16 +263,27 @@ class QuestionnaireHandler(Handler):
                     state=state
                 )
             else:
+
+                status_code, wrong_code_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRONG_CODE'
+                )
+
                 await message.answer(
-                    MESSAGES['WRONG_CODE']
+                    wrong_code_msg
                 )
                 await get_questionnaire(
                     message=message,
                     state=state
                 )
 
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=MENU'
+            )
+
             await message.answer(
-                MESSAGES['MENU'],
+                menu_msg,
                 reply_markup=self.kb.questionnaire_btn()
             )
 
@@ -235,8 +293,14 @@ class QuestionnaireHandler(Handler):
 
             await state.update_data(chat_id=message.chat.id)
             await state.set_state(EditQuestionnaireState.email)
+
+            status_code, email_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=WRITE_YOUR_EMAIL'
+            )
+
             await message.answer(
-                MESSAGES['WRITE_YOUR_EMAIL'],
+                email_msg,
                 reply_markup=self.kb.menu_btn()
             )
 
@@ -247,15 +311,27 @@ class QuestionnaireHandler(Handler):
             await state.update_data(chat_id=message.chat.id)
             check_email = re.search(email_pattern, message.text)
             if check_email:
+
+                status_code, send_email_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=SEND_EMAIL'
+                )
+
                 await message.answer(
-                    MESSAGES['SEND_EMAIL']
+                    send_email_msg
                 )
                 await state.update_data(email=message.text)
                 await state.set_state(EditQuestionnaireState.approve_email)
 
             else:
+
+                status_code, wrong_email_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRONG_EMAIL'
+                )
+
                 await message.answer(
-                    MESSAGES['WRONG_EMAIL'],
+                    wrong_email_msg,
                 )
 
         @self.router.message(EditQuestionnaireState.approve_email)
@@ -291,10 +367,21 @@ class QuestionnaireHandler(Handler):
                     state=state
                 )
             else:
+
+                status_code, wrong_code_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRONG_CODE'
+                )
+
+                status_code, menu_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=MENU'
+                )
+
                 await message.answer(
-                    MESSAGES['WRONG_CODE']
+                    wrong_code_msg
                 )
                 await message.answer(
-                    MESSAGES['MENU'],
+                    menu_msg,
                     reply_markup=self.kb.start_menu_btn()
                 )

@@ -44,12 +44,13 @@ class ScheduleHandler(Handler):
 
                 await state.update_data(msg_ids={})
 
-            # запрос на получение текущего выбранного расписания
-            # по всем адрес для данного пользователя
-            # прикрепляем кнопку 'изменить' и вшиваем id адреса или расписания
+            status_code, schedule_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=SCHEDULE'
+            )
 
             await message.answer(
-                MESSAGES['SCHEDULE'],
+                schedule_msg,
             )
 
             status_code, address_list = await req_to_api(
@@ -64,8 +65,14 @@ class ScheduleHandler(Handler):
                         type_interval=address.get('interval_type'),
                         interval=address.get('interval')
                     )
+
+                    status_code, change_schedule_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=CHANGE_SCHEDULE'
+                    )
+
                     msg = await message.answer(
-                        MESSAGES['CHANGE_SCHEDULE'].format(
+                        change_schedule_msg.format(
                             address_text,
                             text
                         ),
@@ -75,12 +82,23 @@ class ScheduleHandler(Handler):
                 await state.update_data(msg_ids=msg_ids)
 
             else:
-                await message.answer(
-                    MESSAGES['NO_SCHEDULE_ADDRESS']
+
+                status_code, no_schedule_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=NO_SCHEDULE_ADDRESS'
                 )
 
+                await message.answer(
+                    no_schedule_msg
+                )
+
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=MENU'
+            )
+
             await message.answer(
-                MESSAGES['MENU'],
+                menu_msg,
                 reply_markup=self.kb.start_menu_btn()
             )
 
@@ -109,11 +127,16 @@ class ScheduleHandler(Handler):
                 url=f'bot/user/addresses/{address_id}?tg_id={callback.message.chat.id}',
             )
 
+            status_code, change_schedule_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=CHANGE_SCHEDULE_ADDRESS'
+            )
+
             # сохраняем для отправки на бэк
             await state.update_data(address_id=address_id)
             address_text = address.get('address') + address.get('detail', ' ') if address.get('detail') else address.get('address')
             await callback.message.answer(
-                MESSAGES['CHANGE_SCHEDULE_ADDRESS'].format(
+                change_schedule_msg.format(
                     address_text
                 ),
                 reply_markup=self.kb.change_schedule_btn()
@@ -164,8 +187,13 @@ class ScheduleHandler(Handler):
             )
             work_days = address.get('work_dates')
 
+            status_code, choose_day_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=CHOOSE_DAY_OF_WEEK'
+            )
+
             msg = await message.answer(
-                MESSAGES['CHOOSE_DAY_OF_WEEK'],
+                choose_day_msg,
                 reply_markup=self.kb.day_of_week_btn(
                     work_days=work_days,
                     selected_day_of_week=data.get('selected_day_of_week')
@@ -202,8 +230,14 @@ class ScheduleHandler(Handler):
             """Отлавливаем не рабочий день для этого адреса"""
 
             await state.update_data(chat_id=callback.message.chat.id)
+
+            status_code, no_day_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=UNAVAILABLE_DAY'
+            )
+
             await callback.answer(
-                MESSAGES['UNAVAILABLE_DAY'],
+                no_day_msg,
                 show_alert=True
             )
 
@@ -231,12 +265,22 @@ class ScheduleHandler(Handler):
             )
             # запрос в бэк на сохранение расписания для текущего пользователя с address_id
 
-            await callback.message.answer(
-                MESSAGES['SAVE_SCHEDULE']
+            status_code, save_schedule_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=SAVE_SCHEDULE'
+            )
+
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=MENU'
             )
 
             await callback.message.answer(
-                MESSAGES['MENU'],
+                save_schedule_msg
+            )
+
+            await callback.message.answer(
+                menu_msg,
                 reply_markup=self.kb.start_menu_btn()
             )
 

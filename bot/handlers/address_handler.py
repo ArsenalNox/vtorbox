@@ -10,10 +10,10 @@ from bot.keyboards.address_kb import AddressKeyboard
 from bot.keyboards.order import OrderKeyboard
 
 from bot.settings import settings
-from bot.states.states import AddAddressState, CreateOrder
+from bot.states.states import AddAddressState, CreateOrder, ConfirmAddress
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn, format_addresses
-from bot.utils.handle_data import HEADERS, show_address_list, show_address_date
+from bot.utils.handle_data import show_address_list, show_address_date
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
@@ -54,8 +54,13 @@ class AddressHandler(Handler):
                 self=self
             )
 
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=MENU'
+            )
+
             await message.answer(
-                MESSAGES['MENU'],
+                menu_msg,
                 reply_markup=self.kb.menu_btn()
             )
 
@@ -72,8 +77,13 @@ class AddressHandler(Handler):
             # флаг для возврата к созданию заказа(после того как во время заказа пользователь нажмет 'Добавить адрес')
             self.flag_to_return = callback.data.split('_')[-1]
 
+            status_code, address_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=ADD_NEW_ADDRESS'
+            )
+
             await callback.message.answer(
-                MESSAGES['ADD_NEW_ADDRESS'],
+                address_msg,
                 reply_markup=self.kb.send_geo_btn()
             )
 
@@ -91,39 +101,58 @@ class AddressHandler(Handler):
                 src=message
             )
 
-            data = await state.get_data()
-            await delete_messages_with_btn(
-                state=state,
-                data=data,
-                src=message
-            )
-
             longitude = str(message.location.longitude)
             latitude = str(message.location.latitude)
-            status_code, address = await req_to_api(
+            status_code, address_data = await req_to_api(
                 method='get',
                 url=f'bot/address/check?lat={latitude}&long={longitude}'
             )
+            address = address_data.get('address')
             if address:
                 await state.update_data(longitude=longitude)
                 await state.update_data(latitude=latitude)
 
+                status_code, address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=YOUR_ADD_ADDRESS'
+                )
+
                 await message.answer(
-                    MESSAGES['YOUR_ADD_ADDRESS'].format(
+                    address_msg.format(
                         address
                     )
                 )
+
+                status_code, detail_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRITE_YOUR_DETAIL_ADDRESS'
+                )
+
                 await message.answer(
-                    MESSAGES['WRITE_YOUR_DETAIL_ADDRESS']
+                    detail_address_msg
                 )
                 await state.set_state(AddAddressState.detail)
 
             else:
-                await message.answer(
-                    MESSAGES['WRONG_ADDRESS'],
-                    reply_markup=self.kb.settings_btn()
+
+                status_code, wrong_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRONG_ADDRESS'
                 )
-                await state.set_state(state=None)
+
+                await message.answer(
+                    wrong_address_msg
+                )
+
+                status_code, address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ADD_NEW_ADDRESS'
+                )
+
+                await message.answer(
+                    address_msg,
+                    reply_markup=self.kb.send_geo_btn()
+                )
 
         @self.router.message(F.text, AddAddressState.detail)
         async def get_detail_address(message: Message, state: FSMContext):
@@ -140,8 +169,13 @@ class AddressHandler(Handler):
             detail = message.text
             await state.update_data(detail=detail)
 
+            status_code, comment_address_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=WRITE_COMMENT_ADDRESS'
+            )
+
             await message.answer(
-                MESSAGES['WRITE_COMMENT_ADDRESS'],
+                comment_address_msg,
                 reply_markup=self.kb.empty_comment_btn()
             )
 
@@ -162,6 +196,7 @@ class AddressHandler(Handler):
                     "detail": data.get('detail'),
                     "latitude": data.get("latitude"),
                     "longitude": data.get("longitude"),
+                    "comment": message.text
                 }
             )
 
@@ -174,10 +209,18 @@ class AddressHandler(Handler):
 
             # если не удалось найти такой адрес, то выводим сообщение
             if response.get('message'):
-                await message.answer(
-                    MESSAGES['WRONG_ADDRESS'],
-                    reply_markup=self.kb.settings_btn()
+
+                status_code, wrong_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRONG_ADDRESS'
                 )
+
+                msg = await message.answer(
+                    wrong_address_msg,
+                    reply_markup=self.kb.add_address_btn(self.flag_to_return)
+                )
+
+                await state.update_data(msg=msg.message_id)
 
             elif eval(self.flag_to_return):
                 address = response
@@ -209,30 +252,139 @@ class AddressHandler(Handler):
                 src=message
             )
 
-            status_code, address = await req_to_api(
+            status_code, address_data = await req_to_api(
                 method='get',
                 url=f'bot/address/check/text?text={message.text}'
             )
-            if address:
+            address = address_data.get('address')
+            error = address_data.get('message')
+
+            if address and not error:
+
+                status_code, yandex_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ADDRESS_FOUND_BY_YANDEX'
+                )
 
                 msg = await message.answer(
-                    MESSAGES['ADDRESS_FOUND_BY_YANDEX'].format(
+                    yandex_address_msg.format(
                         address
                     ),
                     reply_markup=self.kb.yes_or_no_btn()
                 )
-                await state.update_data(address=message.text)
+                await state.update_data(address=address)
+                await state.update_data(msg=msg.message_id)
+                await state.set_state(ConfirmAddress.confirm)
+
+            elif message.text == BUTTONS['MENU']:
+                await state.set_state(state=None)
+
+                status_code, menu_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=MENU'
+                )
+
+                await message.answer(
+                    menu_msg,
+                    reply_markup=self.kb.start_menu_btn()
+                )
+
+            elif error == 'В расписании региона отсутствуют рабочие дни' and address:
+                await state.set_state(state=ConfirmAddress.confirm)
+
+                status_code, no_work_day_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=NO_WORK_DAYS'
+                )
+
+                msg = await message.answer(
+                    no_work_day_msg.format(
+                        address
+                    ),
+                    reply_markup=self.kb.yes1_or_no1_btn()
+                )
+                await state.update_data(address=address)
+                await state.update_data(msg=msg.message_id)
+
+            elif 'на данный момент не принимаются заявки' in error and address:
+                await state.set_state(state=ConfirmAddress.confirm)
+
+                status_code, no_work_area_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=NO_WORK_AREA'
+                )
+
+                msg = await message.answer(
+                    no_work_area_msg,
+                    reply_markup=self.kb.yes1_or_no1_btn()
+                )
+                await state.update_data(address=address)
                 await state.update_data(msg=msg.message_id)
 
             else:
-                await message.answer(
-                    MESSAGES['WRONG_ADDRESS'],
-                    reply_markup=self.kb.settings_btn()
+
+                status_code, wrong_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRONG_ADDRESS'
                 )
-                await state.set_state(state=None)
+
+                status_code, new_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ADD_NEW_ADDRESS'
+                )
+
+                await message.answer(
+                    wrong_address_msg
+                )
+                await message.answer(
+                    new_address_msg,
+                    reply_markup=self.kb.send_geo_btn()
+                )
+
+        @self.router.message(ConfirmAddress.confirm)
+        async def confirm_address(message: Message):
+            pass
+
+        @self.router.callback_query(F.data.startswith('save_address'))
+        async def save_address(callback: CallbackQuery, state: FSMContext):
+            
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=callback.message
+            )
+
+            is_save_address = callback.data.split('_')[-1]
+
+            if is_save_address == 'yes':
+                await state.set_state(AddAddressState.comment)
+
+                status_code, comment_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRITE_COMMENT_ADDRESS'
+                )
+
+                await callback.message.answer(
+                    comment_address_msg,
+                    reply_markup=self.kb.empty_comment_btn()
+                )
+
+            else:
+                status_code, add_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ADD_NEW_ADDRESS'
+                )
+
+                await callback.message.answer(
+                    add_address_msg,
+                    reply_markup=self.kb.send_geo_btn()
+                )
+                await state.set_state(AddAddressState.address)
 
         @self.router.callback_query(F.data.startswith('found_address'))
         async def check_found_address_by_yandex(callback: CallbackQuery, state: FSMContext):
+            await state.set_state(state=None)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -240,29 +392,32 @@ class AddressHandler(Handler):
                 src=callback.message
             )
             is_correct_address = callback.data.split('_')[-1]
-            print(await state.get_state())
 
             if is_correct_address == 'yes':
 
                 await state.set_state(AddAddressState.comment)
 
+                status_code, comment_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRITE_COMMENT_ADDRESS'
+                )
+
                 await callback.message.answer(
-                    MESSAGES['WRITE_COMMENT_ADDRESS'],
+                    comment_address_msg,
                     reply_markup=self.kb.empty_comment_btn()
                 )
-
             else:
-                await callback.message.answer(
-                    MESSAGES['MENU'],
-                    reply_markup=self.kb.start_menu_btn()
+
+                status_code, add_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ADD_NEW_ADDRESS'
                 )
 
-                msg = await callback.message.answer(
-                    MESSAGES['TRY_AGAIN_ADD_ADDRESS'],
-                    reply_markup=self.kb.add_address_btn(self.flag_to_return)
+                await callback.message.answer(
+                    add_address_msg,
+                    reply_markup=self.kb.send_geo_btn()
                 )
-                await state.set_state(state=None)
-                await state.update_data(msg=msg.message_id)
+                await state.set_state(AddAddressState.address)
 
         @self.router.callback_query(F.data.startswith('delete_address'))
         async def delete_address(callback: CallbackQuery, state: FSMContext):
@@ -298,8 +453,13 @@ class AddressHandler(Handler):
                 url=f'bot/user/addresses/all?tg_id={callback.message.chat.id}',
             )
 
+            status_code, add_address_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=ADD_ADDRESS'
+            )
+
             msg = await callback.message.answer(
-                MESSAGES['ADD_ADDRESS'],
+                add_address_msg,
                 reply_markup=self.kb.add_address_btn(self.flag_to_return)
             )
             await state.update_data(msg=msg.message_id)

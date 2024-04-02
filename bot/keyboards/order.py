@@ -50,7 +50,7 @@ class OrderKeyboard(BaseKeyboard):
         except IndexError:
             pass
         else:
-            builder.add(
+            builder.row(
                 InlineKeyboardButton(
                     text=BUTTONS['PREVIOUS'],
                     callback_data=f'previous_{order_id}'
@@ -74,7 +74,7 @@ class OrderKeyboard(BaseKeyboard):
         # --------------------------------------------КОНЕЦ----------------------------------------------------
 
         if order.get('status_data', {}).get('status_name') == 'ожидается оплата':
-            builder.add(
+            builder.row(
                 InlineKeyboardButton(
                     text='Оплатить',
                     callback_data=f'payment_{order_id}'
@@ -82,13 +82,11 @@ class OrderKeyboard(BaseKeyboard):
             )
 
         if order.get('status_data', {}).get('status_name') == 'ожидается подтверждение':
-            builder.add(
+            builder.row(
                 InlineKeyboardButton(
                     text='Подтвердить',
                     callback_data=f'approve_{order_id}'
-                )
-            )
-            builder.add(
+                ),
                 InlineKeyboardButton(
                     text='Отказаться',
                     callback_data=f'refuse_{order_id}'
@@ -96,7 +94,7 @@ class OrderKeyboard(BaseKeyboard):
             )
 
         if order.get('status_data', {}).get('status_name') in ('ожидается подтверждение', 'подтверждена'):
-            builder.add(
+            builder.row(
                 InlineKeyboardButton(
                     text='Изменить адрес',
                     callback_data=f'changeaddress_{order_id}'
@@ -104,30 +102,27 @@ class OrderKeyboard(BaseKeyboard):
             )
 
         if order.get('status_data', {}).get('status_name') in ('создана', 'в работе', 'ожидается подтверждение', 'подтверждена', 'передана курьеру', 'ожидается оплата', 'оплаченна'):
-            builder.add(
+            builder.row(
                 InlineKeyboardButton(
                     text='Отменить',
                     callback_data=f'cancel_{order_id}',
                     url=f'tg://user?id=851230989'
-                )
+                ),
+            InlineKeyboardButton(
+                text='Связаться с менеджером',
+                callback_data=f'manager_{order_id}',
+                url=f'tg://user?id=851230989'
+            ),
             )
 
-        builder.add(
+        builder.row(
             InlineKeyboardButton(
                 text='История изменения заявки',
                 callback_data=f'history_{order_id}_{order_num}'
             ),
         )
 
-        builder.add(
-            InlineKeyboardButton(
-                text='Связаться с менеджером',
-                callback_data=f'manager_{order_id}',
-                url=f'tg://user?id=851230989'
-            ),
-        )
 
-        builder.adjust(2)
 
         return builder.as_markup(
             resize_keyboard=True,
