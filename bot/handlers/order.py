@@ -7,6 +7,7 @@ from aiogram import Bot, Router, F
 from aiogram.filters import or_f
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
+from loguru import logger
 
 from bot.handlers.base_handler import Handler
 from bot.keyboards.order import OrderKeyboard
@@ -24,7 +25,7 @@ class OrderHandler(Handler):
         super().__init__(bot)
         self.router = Router()
         self.kb = OrderKeyboard()
-        self.orders_list = None
+        self.orders_list = []
         self.index = 0
 
     def handle(self):
@@ -40,24 +41,35 @@ class OrderHandler(Handler):
                 src=message
             )
 
-            await message.answer(
-                MESSAGES['MENU'],
-                reply_markup=self.kb.menu_btn()
-            )
-
             # запрос на получение всех адресов данного юзера
             status_code, address_list = await req_to_api(
                 method='get',
-                url=f'bot/user/addresses/all?tg_id={message.from_user.id}',
+                url=f'bot/user/addresses/all?tg_id={message.chat.id}',
             )
 
             # флаг для возврата к созданию заказа(после того как во время создания заказа пользователь нажмет 'Добавить адрес')
             flag_to_return = True
+
+            status_code, choose_address_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=CHOOSE_ADDRESS_ORDER'
+            )
+
             msg = await message.answer(
-                MESSAGES['CHOOSE_ADDRESS_ORDER'],
+                choose_address_msg,
                 reply_markup=self.kb.address_list_btn(address_list, flag_to_return)
             )
             await state.update_data(msg=msg.message_id)
+
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=GO_TO_MENU'
+            )
+
+            await message.answer(
+                menu_msg,
+                reply_markup=self.kb.menu_btn()
+            )
 
         @self.router.callback_query(F.data.startswith('getaddress'))
         async def get_order_address(callback: CallbackQuery, state: FSMContext):
@@ -118,16 +130,38 @@ class OrderHandler(Handler):
 
         @self.router.message(CreateOrder.date)
         async def catch_order_date(message: Message, state: FSMContext):
-            await state.update_data(chat_id=message.chat.id)
-            _date = message.text.split('(')[0]
-            date = datetime.datetime.strptime(_date, '%d-%m-%Y').strftime('%Y-%m-%d')
-            await state.update_data(order_date=date)
-            await message.answer(
-                MESSAGES['WRITE_COMMENT_ORDER'],
-                reply_markup=self.kb.empty_comment_btn()
-            )
 
-            await state.set_state(CreateOrder.comment)
+            if message.text == BUTTONS['MENU']:
+                await state.set_state(state=None)
+
+                status_code, menu_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=MENU'
+                )
+
+                await message.answer(
+                    menu_msg,
+                    reply_markup=self.kb.start_menu_btn()
+                )
+
+            else:
+
+                await state.update_data(chat_id=message.chat.id)
+                _date = message.text.split('(')[0]
+                date = datetime.datetime.strptime(_date, '%d-%m-%Y').strftime('%Y-%m-%d')
+                await state.update_data(order_date=date)
+
+                status_code, comment_order_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=WRITE_COMMENT_ORDER'
+                )
+
+                await message.answer(
+                    comment_order_msg,
+                    reply_markup=self.kb.empty_comment_btn()
+                )
+
+                await state.set_state(CreateOrder.comment)
 
         @self.router.message(CreateOrder.comment)
         async def get_comment_order(message: Message, state: FSMContext):
@@ -153,8 +187,13 @@ class OrderHandler(Handler):
                 data=create_order_data,
             )
 
+            status_code, created_order_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=ORDER_WAS_CREATED'
+            )
+
             await message.answer(
-                MESSAGES['ORDER_WAS_CREATED'],
+                created_order_msg,
                 reply_markup=self.kb.start_menu_btn()
             )
 
@@ -191,31 +230,55 @@ class OrderHandler(Handler):
 
                 self.orders_list = orders
                 self.index = len(self.orders_list) - 1
+                logger.debug(f'История заявок:::Список заявок у {message.chat.id} = {[i.get("order_num") for i in self.orders_list]}(index={self.index})')
 
-                if len(orders) <= 1:
+                if len(orders) <= 5:
+
+                    status_code, orders_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=YOUR_ORDERS'
+                    )
+
                     msg = await message.answer(
-                        MESSAGES['YOUR_ORDERS'],
+                        orders_msg,
                         reply_markup=self.kb.order_list(orders)
                     )
-                    await state.update_data(msg_order_history=msg.message_id)
+                    await state.update_data(msg=msg.message_id)
 
                 else:
                     result = await group_orders_by_month(self.orders_list)
+
+                    status_code, orders_by_month_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=YOUR_ORDERS_BY_MONTH'
+                    )
+
                     msg = await message.answer(
-                        MESSAGES['YOUR_ORDERS_BY_MONTH'],
+                        orders_by_month_msg,
                         reply_markup=self.kb.order_list_by_month(result)
                     )
 
                     await state.update_data(msg=msg.message_id)
 
             else:
+
+                status_code, no_order_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=NO_ORDER'
+                )
+
                 await message.answer(
-                    MESSAGES['NO_ORDER'],
+                    no_order_msg,
                     reply_markup=self.kb.start_menu_btn()
                 )
 
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=MENU'
+            )
+
             await message.answer(
-                MESSAGES['MENU'],
+                menu_msg,
                 reply_markup=self.kb.start_menu_btn()
             )
 
@@ -244,11 +307,16 @@ class OrderHandler(Handler):
                 url=f'users/orders/?tg_id={callback.message.chat.id}&{params}',
             )
 
+            status_code, orders_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=YOUR_ORDERS'
+            )
+
             msg = await callback.message.answer(
-                MESSAGES['YOUR_ORDERS'],
+                orders_msg,
                 reply_markup=self.kb.order_list(orders)
             )
-            await state.update_data(msg_order_history=msg.message_id)
+            await state.update_data(msg=msg.message_id)
 
         @self.router.callback_query(F.data.startswith('show'))
         async def show_active_order(callback: CallbackQuery, state: FSMContext):
@@ -267,6 +335,7 @@ class OrderHandler(Handler):
                 url=f'users/orders/?tg_id={callback.message.chat.id}',
             )
             self.orders_list = orders
+            logger.debug(f'Активные заявки:::Список заявок у {callback.message.chat.id} = {[i.get("order_num") for i in self.orders_list]}(index={self.index})')
             self.index = len(self.orders_list) - 1
 
             order = self.orders_list[self.index]
@@ -276,8 +345,14 @@ class OrderHandler(Handler):
                 order=order,
                 self=self
             )
+
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=MENU'
+            )
+
             await callback.message.answer(
-                MESSAGES['MENU'],
+                menu_msg,
                 reply_markup=self.kb.start_menu_btn()
             )
 
@@ -300,6 +375,7 @@ class OrderHandler(Handler):
 
                 # выводим данные о заказе
                 order = self.orders_list[self.index]
+                logger.debug(f'Стрелочки:::Список заявок у {callback.message.chat.id} = {self.orders_list}(index={self.index})')
 
                 await show_order_info(
                     state=state,
@@ -311,8 +387,13 @@ class OrderHandler(Handler):
             except IndexError:
                 self.index = None
 
+                status_code, menu_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=GO_TO_MENU'
+                )
+
                 await callback.message.answer(
-                    MESSAGES['GO_TO_MENU'],
+                    menu_msg,
                     reply_markup=self.kb.menu_btn()
                 )
 
@@ -322,15 +403,26 @@ class OrderHandler(Handler):
             await state.update_data(chat_id=callback.message.chat.id)
             order_id = callback.data.split('_')[-1]
             link = 'https://google.com'
+
+            status_code, payment_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=PAYMENT_ORDER'
+            )
+
             await callback.message.answer(
-                MESSAGES['PAYMENT_ORDER'].format(
+                payment_msg.format(
                     order_id,
                     link
                 )
             )
 
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=GO_TO_MENU'
+            )
+
             await callback.message.answer(
-                MESSAGES['GO_TO_MENU'],
+                menu_msg,
                 reply_markup=self.kb.menu_btn()
             )
 
@@ -354,11 +446,17 @@ class OrderHandler(Handler):
                 method='get',
                 url=f'orders/{order_id}/history?tg_id={callback.message.chat.id}',
             )
+            orders_statuses.reverse()
 
             order_text = format_orders_statuses_text(orders_statuses)
 
+            status_code, history_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=ORDER_HISTORY'
+            )
+
             msg = await callback.message.answer(
-                MESSAGES['ORDER_HISTORY'].format(
+                history_msg.format(
                     order_num,
                     order_text
                 ),
@@ -367,8 +465,13 @@ class OrderHandler(Handler):
 
             await state.update_data(msg=msg.message_id)
 
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=MENU'
+            )
+
             await callback.message.answer(
-                MESSAGES['MENU'],
+                menu_msg,
                 reply_markup=self.kb.start_menu_btn()
             )
 
@@ -399,8 +502,13 @@ class OrderHandler(Handler):
                 self=self
             )
 
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=MENU'
+            )
+
             await callback.message.answer(
-                MESSAGES['MENU'],
+                menu_msg,
                 reply_markup=self.kb.start_menu_btn()
             )
 
@@ -416,8 +524,13 @@ class OrderHandler(Handler):
             await state.update_data(action=action)
             await state.update_data(order_id=order_id)
 
+            status_code, yes_or_no_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=QUESTION_YES_NO'
+            )
+
             msg = await callback.message.answer(
-                MESSAGES['QUESTION_YES_NO'],
+                yes_or_no_msg,
                 reply_markup=self.kb.yes_or_no_btn()
             )
             await state.set_state(YesOrNo.question)
@@ -459,6 +572,13 @@ class OrderHandler(Handler):
         @self.router.callback_query(F.data.startswith('order'))
         async def get_order(callback: CallbackQuery, state: FSMContext):
 
+            data = await state.get_data()
+
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=callback.message
+            )
             await state.update_data(chat_id=callback.message.chat.id)
             order_id = callback.data.split('_')[-1]
 
@@ -501,8 +621,13 @@ class OrderHandler(Handler):
                 url=f'bot/user/addresses/all?tg_id={callback.message.chat.id}',
             )
 
+            status_code, choose_address_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=CHOOSE_ADDRESS_ORDER'
+            )
+
             msg = await callback.message.answer(
-                MESSAGES['CHOOSE_ADDRESS_ORDER'],
+                choose_address_msg,
                 reply_markup=self.kb.address_list_btn(address_list, is_container_switch_over=False)
             )
             await state.update_data(msg=msg.message_id)

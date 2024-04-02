@@ -16,7 +16,6 @@ from bot.settings import settings
 from bot.states.states import RegistrationUser
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
-from bot.utils.handle_data import HEADERS
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
@@ -66,14 +65,28 @@ class CommandHandler(Handler):
                     data=user_data,
                 )
 
+                status_code, start_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=START'
+                )
+                status_code, about_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ABOUT'
+                )
+
+                status_code, menu_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=MENU'
+                )
+
                 await message.answer(
-                    MESSAGES['START']
+                    start_msg
                 )
                 await message.answer(
-                    MESSAGES['ABOUT']
+                    about_msg
                 )
                 await message.answer(
-                    MESSAGES['MENU'],
+                    menu_msg,
                     reply_markup=self.kb.start_menu_btn()
                 )
 
@@ -103,22 +116,27 @@ class CommandHandler(Handler):
                     )
 
                 if user.get('roles'):
+                    status_code, courier_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=COURIER'
+                    )
+
                     if 'courier' in user.get('roles'):
                         await message.answer(
-                            MESSAGES['COURIER'],
+                            courier_msg,
                             reply_markup=self.kb.courier_btn()
                         )
 
                     else:
+                        status_code, register_msg = await req_to_api(
+                            method='get',
+                            url='bot/messages?message_key=REGISTRATION_MENU'
+                        )
                         await message.answer(
-                            MESSAGES['REGISTRATION_MENU'],
+                            register_msg,
                             reply_markup=self.kb.registration_btn()
                         )
                         await state.set_state(RegistrationUser.phone)
 
                 # сохраняем в состояние chat_id
                 await state.update_data(chat_id=message.chat.id)
-
-        @self.router.callback_query(F.data.startswith('123'))
-        async def test(callback: CallbackQuery):
-            print(callback.data)

@@ -97,3 +97,23 @@ class AddressKeyboard(BaseKeyboard):
             resize_keyboard=True,
             one_time_keyboard=True
         )
+
+    def yes1_or_no1_btn(self) -> InlineKeyboardMarkup:
+        builder = InlineKeyboardBuilder()
+        builder.add(
+            InlineKeyboardButton(
+                text='Да',
+                callback_data='save_address_yes'
+            )
+        )
+        builder.add(
+            InlineKeyboardButton(
+                text='Нет',
+                callback_data='save_address_no'
+            )
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )

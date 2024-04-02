@@ -1,8 +1,11 @@
+import pprint
+
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
 from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.utils.buttons import BUTTONS
+from bot.utils.requests_to_api import req_to_api
 
 
 class CourierKeyboard(BaseKeyboard):
@@ -26,34 +29,61 @@ class CourierKeyboard(BaseKeyboard):
             one_time_keyboard=True
         )
 
-    def points_btn(self, routes: list[dict]) -> InlineKeyboardMarkup:
+    async def points_btn(self, routes: dict) -> InlineKeyboardMarkup:
         """Кпопки с точками маршрута"""
 
         builder = InlineKeyboardBuilder()
-        point_id = 1
-        for route in routes:
-            builder.row(
-                InlineKeyboardButton(text=route.get('name'),
-                                     callback_data=f'point_{point_id}')
+        orders = routes.get('orders')
+
+        for order in orders:
+            order_id = order.get('order_id')
+            status_code, order = await req_to_api(
+                method='get',
+                url=f'orders/{order_id}',
             )
+
+            order_address = order.get('address_data', {}).get('address')
+            order_comment = order.get('address_data', {}).get('comment') if order.get('address_data', {}).get('comment') else ' '
+            status = order.get('status_data', {}).get('status_name')
+            if status == 'передана курьеру':
+                builder.row(
+                    InlineKeyboardButton(text=f"⏳ {order_address} {order_comment}",
+                                         callback_data=f'point_{order_id}')
+                )
+            elif status == 'отменена':
+                builder.row(
+                    InlineKeyboardButton(text=f"🔴 {order_address} {order_comment}",
+                                         callback_data=f'point_{order_id}')
+                )
+
+            elif status == 'обработанна':
+                builder.row(
+                    InlineKeyboardButton(text=f"🟢 {order_address} {order_comment}",
+                                         callback_data=f'point_{order_id}')
+                )
+
 
         return builder.as_markup(
             resize_keyboard=True,
             one_time_keyboard=True
         )
 
-    def points_menu_btn(self) -> InlineKeyboardMarkup:
+    def points_menu_btn(self, point_id: str) -> InlineKeyboardMarkup:
         """Отметка точки как обработана/не обработана"""
 
         builder = InlineKeyboardBuilder()
 
         builder.row(
             InlineKeyboardButton(text='Обработан',
-                                 callback_data='finished')
+                                 callback_data=f'finished_{point_id}')
         )
         builder.row(
             InlineKeyboardButton(text='Не обработан',
-                                 callback_data='not_finished')
+                                 callback_data=f'not_finished_{point_id}')
+        )
+        builder.row(
+            InlineKeyboardButton(text='Назад к списку заявок',
+                                 callback_data=f'back_order_list')
         )
 
         return builder.as_markup(

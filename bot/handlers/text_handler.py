@@ -44,11 +44,18 @@ class TextHandler(Handler):
                 src=message
             )
 
-            await message.answer(
-                MESSAGES['START']
+            status_code, start_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=START'
             )
+
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=MENU'
+            )
+
             await message.answer(
-                MESSAGES['ABOUT']
+                start_msg
             )
             # отправка приветственного видео
             # await message.answer_video(
@@ -71,7 +78,7 @@ class TextHandler(Handler):
                 )
 
             await message.answer(
-                MESSAGES['MENU'],
+                menu_msg,
                 reply_markup=self.kb.start_menu_btn()
             )
 
@@ -95,15 +102,26 @@ class TextHandler(Handler):
 
             if user and status_code == http.HTTPStatus.OK:
                 await state.set_state(state=None)
-                # логика отправки смс кода
+
+                status_code, sms_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=SEND_SMS'
+                )
+
                 await message.answer(
-                    MESSAGES['SEND_SMS']
+                    sms_msg
                 )
                 await state.set_state(SMSEmail.code)
 
             else:
+
+                status_code, no_phone_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=PHONE_NOT_FOUND'
+                )
+
                 await message.answer(
-                    MESSAGES['PHONE_NOT_FOUND'],
+                    no_phone_msg,
                     reply_markup=self.kb.registration_btn()
                 )
                 await state.set_state(RegistrationUser.phone)
@@ -161,15 +179,26 @@ class TextHandler(Handler):
 
                 if user and status_code == http.HTTPStatus.OK:
                     await state.set_state(state=None)
-                    # логика отправки смс кода
+
+                    status_code, sms_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=SEND_SMS'
+                    )
+
                     await message.answer(
-                        MESSAGES['SEND_SMS']
+                        sms_msg
                     )
                     await state.set_state(SMSEmail.code)
 
                 else:
+
+                    status_code, no_phone_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=PHONE_NOT_FOUND'
+                    )
+
                     await message.answer(
-                        MESSAGES['PHONE_NOT_FOUND'],
+                        no_phone_msg,
                         reply_markup=self.kb.registration_btn()
                     )
 
@@ -194,12 +223,22 @@ class TextHandler(Handler):
                         data=user_data,
                     )
 
+                    status_code, start_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=START'
+                    )
+
+                    status_code, about_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=ABOUT'
+                    )
+
                     await message.answer(
-                        MESSAGES['START'],
+                        start_msg,
                         reply_markup=self.kb.start_menu_btn()
                     )
                     await message.answer(
-                        MESSAGES['ABOUT'],
+                        about_msg,
                         reply_markup=self.kb.start_menu_btn()
                     )
                     # отправляем видео о работе сервисе
@@ -208,8 +247,14 @@ class TextHandler(Handler):
                     # )
 
                 else:
+
+                    status_code, no_promocode_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=PROMOCODE_NOT_FOUND'
+                    )
+
                     await message.answer(
-                        MESSAGES['PROMOCODE_NOT_FOUND'],
+                        no_promocode_msg,
                         reply_markup=self.kb.registration_btn()
                     )
 
@@ -225,8 +270,13 @@ class TextHandler(Handler):
                 src=message
             )
 
+            status_code, settings_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=SETTINGS'
+            )
+
             await message.answer(
-                MESSAGES['SETTINGS'],
+                settings_msg,
                 reply_markup=self.kb.settings_btn()
             )
 
@@ -242,8 +292,13 @@ class TextHandler(Handler):
                 src=message
             )
 
+            status_code, about_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=ABOUT'
+            )
+
             await message.answer(
-                MESSAGES['ABOUT'],
+                about_msg,
                 reply_markup=self.kb.start_menu_btn()
             )
 
@@ -277,14 +332,25 @@ class TextHandler(Handler):
             await state.update_data(selected_day_of_month=[])
             await state.set_state(state=None)
 
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=MENU'
+            )
+
             await message.answer(
-                MESSAGES['MENU'],
+                menu_msg,
                 reply_markup=self.kb.start_menu_btn()
             )
 
         @self.router.message(F.text)
         async def any_text(message: Message):
+
+            status_code, text_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=ANY_TEXT'
+            )
+
             await message.answer(
-                MESSAGES['ANY_TEXT'],
+                text_msg,
                 reply_markup=self.kb.start_menu_btn()
             )
