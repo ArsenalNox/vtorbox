@@ -1225,9 +1225,79 @@ def add_default_messages_bot():
         print('Done adding messages')
 
 
-# if __name__ == "__main__":
-init_role_table()
-init_boxtype_table()
-init_status_table()
-create_admin_user()
-add_default_messages_bot()
+def add_default_settings():
+    TYPES_SYSTEM = [
+        'буловый',
+        'целочисленный',
+        'строка',
+        'система'
+    ]
+
+
+    DEFAULT_SETTINGS = [
+        {
+            "KEY": "POLL_GENERATION_ACTIVE",
+            "VALUE": "1",
+            "NAME": "автоматическая генерация пула",
+            "DETAIL": "Вкл/выкл автоматическую генерацию пула",
+            "TYPE": TYPES_SYSTEM[0]
+        },
+        {
+            "KEY": "ACCEPT_NEW_ORDERS_FROM_BOT",
+            "VALUE": "1", 
+            "NAME": "принятие заявок через бота",
+            "DETAIL": "Вкл/выкл возможность создавать заявки через тг бота",
+            "TYPE": TYPES_SYSTEM[0]
+        },
+        {
+            "KEY": "ROUTE_GENERATION_ACTIVE",
+            "VALUE": "1", 
+            "NAME": "автоматическая генарация маршрутов",
+            "DETAIL": "Вкл/выкл автоматическую генерацию маршрутов",
+            "TYPE": TYPES_SYSTEM[0]
+        }
+    ]
+
+    with Session(engine, expire_on_commit=False) as session:
+        #Проверить тэг для типа сообщений
+        for type_setting in TYPES_SYSTEM:
+            print(type_setting)
+            type_query = session.query(SettingsTypes).filter(SettingsTypes.name==type_setting).first()
+            if not type_query:
+                type_query = SettingsTypes(name=type_setting)
+                session.add(type_query)
+            session.commit()
+
+        for setting in DEFAULT_SETTINGS:
+            message_key_query = session.query(BotSettings).\
+                filter(BotSettings.key == setting['KEY']).first()
+
+            if message_key_query:
+                continue
+            print(f"adding setting {setting}")
+
+            new_message = BotSettings(
+                key = setting["KEY"],
+                value = setting["VALUE"],
+                name = setting["NAME"],
+                detail = setting["DETAIL"]
+            )               
+            new_message.types = session.query(SettingsTypes).\
+                filter(SettingsTypes.name.in_(
+                    [TYPES_SYSTEM[3], setting["TYPE"]]
+            )).all()
+
+            session.add(new_message)
+
+        session.commit()
+        print('Done adding settings')
+
+
+if __name__ == "__main__":
+    init_role_table()
+    init_boxtype_table()
+    init_status_table()
+    create_admin_user()
+    add_default_messages_bot()
+
+add_default_settings()
