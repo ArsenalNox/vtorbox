@@ -165,3 +165,10 @@ def get_result_by_id(request_id):
             return yamaps_url
     
     return None
+
+
+def set_timed_func(func_type, resource_id, time):
+
+    request = requests.get(f'http://127.0.0.1:8081/add_timer/{resource_id}/{time}?job_type={func_type}')
+    
+    return request.status_code
