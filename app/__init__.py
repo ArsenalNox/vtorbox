@@ -19,7 +19,10 @@ COURIER_API_ROOT_ENDPOINT = 'https://courier.yandex.ru/vrs/api/v1'
 
 T_BOT_URL="https://t.me/VtorBoxRuBot"
 
-TIKOFF_API_URL_TEST="https://rest-api-test.tinkoff.ru/v2"
+TIKOFF_API_URL_TEST="https://securepay.tinkoff.ru/v2"
+# TIKOFF_API_URL_TEST="https://rest-api-test.tinkoff.ru/v2"
+SCHEDULER_HOST=os.getenv('SCHEDULER_HOST')
+SCHEDULER_PORT=os.getenv('SCHEDULER_PORT')
 
 class Tags(Enum):
     users = "users"
