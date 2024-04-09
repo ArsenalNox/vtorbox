@@ -104,7 +104,7 @@ async def update_box_data(
             },status_code=404)
 
         for attr, value in box_data.model_dump().items():
-            if attr == 'regional_prices':
+            if attr == 'regional_prices' and not(value == None):
                 prices_query = session.query(RegionalBoxPrices).filter(RegionalBoxPrices.box == box_query.id).delete()
                 for price in value:
                     region_query = session.query(Regions).\
