@@ -2,7 +2,7 @@
 Модели + функции инита данных, персистные данные
 """
 
-import uuid, re, json, copy
+import uuid, re, json, copy, hashlib, requests
 from sqlalchemy import (
     create_engine, Column, Integer, String, 
     DateTime, Text, ForeignKey, Float, 
@@ -27,6 +27,8 @@ from shapely.geometry import Point, shape
 
 from app.validators import OrderOut, RegionOut
 from app.utils import send_message_through_bot
+from app import T_BOT_URL
+from app import TIKOFF_API_URL_TEST as TINKOFF_API_URL
 
 load_dotenv()
 connection_url = URL.create(
@@ -80,6 +82,8 @@ class Orders(Base):
     from_user = Column(UUID(as_uuid=True), ForeignKey('users.id'))
     address_id = Column(UUID(as_uuid=True), ForeignKey('address.id'))
 
+    user = relationship("Users", backref='orders', lazy='joined', foreign_keys=[from_user])
+
     day = Column(DateTime(), nullable=True)
 
     #От юр. лица или нет
@@ -87,8 +91,9 @@ class Orders(Base):
     
     box_type_id = Column(UUID(as_uuid=True), ForeignKey('boxtypes.id'), nullable=True)
     box_count = Column(Integer(), nullable=True)
+    box = relationship('BoxTypes', backref='orders', lazy='joined')
 
-    order_num = Column(Integer(), default=order_order_num)
+    order_num = Column(Integer(), unique=True, default=order_order_num)
     user_order_num = Column(Integer())
 
     status = Column(UUID(as_uuid=True), ForeignKey('order_statuses.id'))
@@ -364,6 +369,7 @@ class UserRefreshTokens(Base):
     token = Column(String(), nullable=False)
     date_created = Column(DateTime(), default=default_time)
 
+
 class Address(Base):
     """Модель для адреса"""
 
@@ -377,6 +383,7 @@ class Address(Base):
     main = Column(Boolean(), default=False)
 
     region_id = Column(UUID(as_uuid=True), ForeignKey('regions.id'), nullable=False)
+    # region = relationship('Regions', backref='address', lazy=True)
 
     distance_from_mkad = Column(String())
     point_on_map = Column(String())
@@ -627,6 +634,8 @@ class BoxTypes(Base):
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
+    regional_pricing = relationship('RegionalBoxPrices', backref='boxtypes', lazy='joined')
+
     @staticmethod
     def test_type():
         with Session(engine, expire_on_commit=False) as session:
@@ -638,12 +647,310 @@ class Payments(Base):
     """
     Платежи
     """
+    __tablename__ = "payments"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    deleted_at = Column(DateTime(), default=None, nullable=True)
+    tinkoff_id = Column(String()) #Айди платежа в системе тинькофф
+    order_id = Column(Integer(), ForeignKey('orders.order_num'), nullable=False) #Айди платежа в нашей системе (не уникален для тинькофф)
+    order = relationship('Orders', backref='payments', lazy='joined')
 
-    __tablename__ = "payments"
+    status = Column(String()) #сатус оплаты
+    is_reocurring = Column(Boolean(), default=True) #рекуррентный ли платёж
+
+    rebill_id = Column(String(), nullable=True) #Айди платежа, если он был оплачен, по которому можно провести списание рекуррентного
+    payment_url = Column(String(), nullable=True)
+
+    terminal_id = Column(UUID(as_uuid=True), ForeignKey('payment_terminals.id'), nullable=False) #Через какой платёжный шлюз
+
+    deleted_at = Column(DateTime(), default=None, nullable=True)
+    
+    date_created = Column(DateTime(), default=default_time)
+
+    def get_order_payments(order, filter_status=None):
+        with Session(engine, expire_on_commit=False) as session:
+            
+            order_payments = session.query(Payments).filter_by(order_id=order.id)
+            if filter_status:
+                order_payments = order_payments.filter_by(status=filter_status)
+
+            order_payments = order_payments.all()
+            return 
+    
+    def create_new_payment(terminal: 'PaymentTerminals', order: 'Orders') -> 'Payments':
+        """
+        Создаёт новый рекуррентный платёж пользователю
+        """
+        pass
+        # Define the payment information as a dictionary
+        terminal_key = terminal.terminal
+        secret_key = terminal.password
+
+        print(f"using terminal {terminal.terminal}")
+        print(f"order box: {order.box.box_name}")
+        print(f"order box count: {order.box_count}")
+        print(f"order address: {order.address.id}, {order.address.address}")
+        print(f"order region: {order.address.region.name_full}")
+
+        box_price = None
+        print(len(order.box.regional_pricing))
+
+        if len(order.box.regional_pricing) > 0:
+            for regional_price in order.box.regional_pricing:
+                print(regional_price.region.id)
+                print(order.address.id)
+                if regional_price.region.id == order.address.id:
+                    print("USING REGIONAL PRICING FOR BOX")
+                    box_price = regional_price.price
+        
+        if box_price == None:
+            print("USING DEFAULT PRICING FOR BOX")
+            box_price = order.box.pricing_default
+        
+        box_count = order.box_count
+        if not box_count:
+            box_count = 1
+
+        print('---')
+        print(order.user.__dict__)
+
+        values = {
+                'Amount': f'{int(box_price*box_count*100)}.00', #*100 потому что указывается сумма в копейках/ и в других методах почему то идёт  сразу с .00 а здесь без. глюк матрицы тинькофф...
+                'Description': str(order.box.box_name)+' ('+str(order.box_count)+') шт.', # The order description
+                'OrderId': str(order.order_num),
+                'Password': secret_key,
+                'TerminalKey': terminal_key
+        }
+        # Concatenate all values in the correct order
+        concatenated_values = ''.join([values[key] for key in (values.keys())])
+
+        # Calculate the hash using SHA-256 algorithm
+        hash_object = hashlib.sha256(concatenated_values.encode('utf-8'))
+        token = hash_object.hexdigest()
+        print(values)
+        print(token)
+
+        payment_data = {
+                'TerminalKey':terminal_key,
+                'OrderId': str(order.order_num),
+                'Amount': str(int(box_price*box_count*100)),#*100 потому что указывается сумма в копейках
+                "Description": str(order.box.box_name)+' ('+str(order.box_count)+') шт.', # The order description
+                "Language": "ru", # The language code (ru or en)
+                "PayType": "O", # The payment type (O for one-time payment)
+                "Recurrent": "Y", # Indicates whether the payment is recurrent (N for no)
+                # "CustomerKey": "1234567890", # The customer key (optional)
+
+                'Token': token,
+                'DATA': {
+                        'Phone': order.user.phone_number,
+                        'Email': order.user.email,
+                },
+                'PaymentMethod': {
+                        'Type': 'Mobile',
+                        'Data': {},
+                },
+                # данные чека
+                'Receipt': {
+                        'Phone': str(order.user.phone_number),
+                        'Email': str(order.user.email),
+                        'Taxation':'usn_income',#упрощёнка
+                        'Items':[{  #https://www.tinkoff.ru/kassa/develop/api/receipt/#Items
+                                'Name':str(order.box.box_name),
+                                'Quantity':str(box_count),
+                                'Amount': str(int(box_price*box_count*100)),
+                                'Tax':'none',#без НДС
+                                'Price':str(int(box_price*100)),
+                        },]
+                        }, # your receipt data
+
+                "SuccessURL": f"{T_BOT_URL}/?payment=1", # The URL for successful payments
+                # "NotificationURL":request.scheme+'://'+request.get_host()+request.get_full_path()+'&CertId='+str(cert.pk), # The URL for payment notifications
+                "FailURL": f"{T_BOT_URL}/?payment=0"  #The URL for failed payments
+        }
+
+        #путь по которому мы отправляем свой запрос, прописан в документации банка
+        url = f"{TINKOFF_API_URL}/Init"
+
+        headers = {
+            'Content-Type': 'application/json'
+        }
+
+        print(url)
+
+        response = requests.post(
+            url, 
+            json=payment_data,
+            headers = headers
+            )
+
+        print(response.status_code)
+        print(response.text)
+
+        if response.json()['Success']:
+            r_data = response.json()
+            payment_url = response.json()['PaymentURL']
+
+            with Session(engine, expire_on_commit=False) as session:
+                new_payment = Payments(
+                    tinkoff_id = r_data['PaymentId'],
+                    order_id = r_data['OrderId'],
+                    status = r_data['Status'],
+                    is_reocurring = True,
+                    terminal_id = terminal.id,
+                    payment_url = payment_url
+                )
+
+                session.add(new_payment)
+                session.commit()
+
+            # Redirect the user to the payment form
+            # Certificate.objects.filter(id=cert.id).update(PaymentId=response.json()['PaymentId'])
+            # отправляем пользователя на платёжную форму
+
+            send_message_through_bot(
+                order.user.telegram_id,
+                message=f"От вас требуется оплата заявки ({order.order_num}) по адресу ({order.address.address})",
+                btn={
+                    "inline_keyboard" : [[{
+                    "text" : "Перейти к оплате",
+                    "url": payment_url,
+                }]]}
+            )
+
+            return new_payment
+
+        else:
+            message = response.json()['Message']+' '+response.json()['Details']
+            return message
+            
+
+    def check_order_status(payment_internal_id, order_id, terminal=None):
+        """
+        Проверяет статус рекуррентного платежа
+        """
+        with Session(engine, expire_on_commit=False) as session:
+            if not terminal:
+                terminal = session.query(PaymentTerminals).filter_by(default_terminal=True).first()
+
+            payment_query = session.query(Payments).filter_by(id=payment_internal_id).first()
+            if not payment_query:
+                return None
+            payment_id = payment_query.tinkoff_id
+
+            # url = "https://securepay.tinkoff.ru/v2/GetState"
+            url = f"{TINKOFF_API_URL}/CheckOrder"
+
+            headers = {
+                'Content-Type': 'application/json'
+            }
+
+            terminal_key = '1690270113071DEMO'
+            # Replace with your Tinkoff Merchant Secret Key
+            secret_key = '22vjtguawas9bqw6'
+
+            values = {
+                    'OrderId': payment_query.order_id,
+                    'Password': secret_key,
+                    'TerminalKey': terminal_key
+            }
+            # Concatenate all values in the correct order
+            concatenated_values = ''.join([values[key] for key in (values.keys())])
+
+            # Calculate the hash using SHA-256 algorithm
+            hash_object = hashlib.sha256(concatenated_values.encode('utf-8'))
+            token = hash_object.hexdigest()
+
+            payment_data = {
+                    'TerminalKey': terminal_key,
+                    'OrderId': payment_query.order_id,
+                    'Token': token,
+            }
+
+            response = requests.post(
+                url, 
+                json=payment_data,
+                headers=headers
+                )
+
+            print(response.status_code)
+            print(response.json())
+
+
+    def check_payment_status(payment_internal_id, terminal=None):
+        """
+        Проверяет статус единоразового платежа
+        """
+        with Session(engine, expire_on_commit=False) as session:
+            if not terminal:
+                terminal = session.query(PaymentTerminals).filter_by(default_terminal=True).first()
+
+            payment_query = session.query(Payments).filter_by(id=payment_internal_id).first()
+            if not payment_query:
+                return None
+            payment_id = payment_query.tinkoff_id
+
+            url = f"{TINKOFF_API_URL}/GetState"
+            # url = "https://securepay.tinkoff.ru/v2/CheckOrder"
+
+            headers = {
+                'Content-Type': 'application/json'
+            }
+
+            terminal_key = terminal.terminal
+            secret_key = terminal.password
+
+            values = {
+                    'Password': secret_key,
+                    'PaymentId': payment_id,
+                    'TerminalKey': terminal_key
+            }
+            # Concatenate all values in the correct order
+            concatenated_values = ''.join([values[key] for key in (values.keys())])
+
+            # Calculate the hash using SHA-256 algorithm
+            hash_object = hashlib.sha256(concatenated_values.encode('utf-8'))
+            token = hash_object.hexdigest()
+
+            payment_data = {
+                    'TerminalKey': terminal_key,
+                    'PaymentId': payment_id,
+                    'Token': token,
+            }
+
+            response = requests.post(
+                url, 
+                json=payment_data,
+                headers=headers
+                )
+
+            print(response.status_code)
+            if response.status_code == 200:
+                payment_query.status = response.json()['Status']
+                session.commit()
+            
+            return response.json()
+
+
+    def rebill_payment():
+        """
+        Провести автоплатёж
+        """
+        pass
+
+
+class PaymentTerminals(Base):
+    """
+    Платёжные шлюзы
+    """
+    __tablename__ = 'payment_terminals'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    terminal = Column(String(), unique=True, nullable=False) 
+    password = Column(String(), unique=True, nullable=False) 
+    default_terminal = Column(Boolean(), default=False)
+
+    payments = relationship('Payments', backref='terminal', lazy=True)
 
 
 class WeekDaysWork(Base):
@@ -838,6 +1145,7 @@ class RegionalBoxPrices(Base):
     region_id = Column(UUID(as_uuid=True), ForeignKey('regions.id'))
     box = Column(UUID(as_uuid=True), ForeignKey('boxtypes.id'))
     price = Column(Float())
+    region = relationship('Regions', backref='regionalboxprices', lazy='joined')
 
 
 # === персистные данные/конфигурации
@@ -1293,11 +1601,27 @@ def add_default_settings():
         print('Done adding settings')
 
 
+def create_demo_terminal():
+    with Session(engine, expire_on_commit=False) as session:
+        terminal_key = '1690270113071DEMO'
+        secret_key = '22vjtguawas9bqw6'
+
+        term_query = session.query(PaymentTerminals).filter(PaymentTerminals.terminal==terminal_key).first()
+        if term_query:
+            return
+        
+        new_terminal = PaymentTerminals(
+            terminal = terminal_key,
+            password = secret_key,
+            default_terminal = True
+        )
+        session.add(new_terminal)
+        session.commit()
+
 if __name__ == "__main__":
     init_role_table()
     init_boxtype_table()
     init_status_table()
     create_admin_user()
     add_default_messages_bot()
-
-add_default_settings()
+    add_default_settings()
