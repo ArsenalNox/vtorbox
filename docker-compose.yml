@@ -85,7 +85,7 @@ services:
 
     restart: always
 
-    container_name: aiogram_bot
+    container_name: project_scheduler
     command: sh -c "python3 main.py"
     env_file:
       - .env
