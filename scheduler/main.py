@@ -23,7 +23,7 @@ api_url = 'http://127.0.0.1:8000/api'
 def authorize():
     username = 'user3@example.com'
     password = 'string'
-    url = "http://127.0.0.1:8000/api/token"
+    url = f"{api_url}/token"
     headers = {
     'Content-Type': 'application/x-www-form-urlencoded',
     }
