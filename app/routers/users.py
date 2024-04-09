@@ -334,8 +334,7 @@ async def update_user_data(
                 }, status_code=404)
 
         for attr, value in new_user_data.model_dump().items():
-
-            print(attr)
+            # print(attr)
             if attr == 'password' and value:
                 setattr(user_query, attr, get_password_hash(value))
                 continue
@@ -370,34 +369,34 @@ async def update_user_data(
                 outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.from_user == user_query.id).order_by(asc(Orders.date_created)).all()
+        
+        # orders_out = []
+        # for order in orders:
+        #     order_data = OrderOut(**order[0].__dict__)
+        #     order_data.tg_id = user_query.telegram_id
 
-        orders_out = []
-        for order in orders:
-            order_data = OrderOut(**order[0].__dict__)
-            order_data.tg_id = user_query.telegram_id
+        #     try:
+        #         order_data.address_data = order[1]
+        #         order_data.interval = str(order[1].interval).split(', ')
+        #     except IndexError: 
+        #         order_data.address_data = None
 
-            try:
-                order_data.address_data = order[1]
-                order_data.interval = str(order[1].interval).split(', ')
-            except IndexError: 
-                order_data.address_data = None
+        #     try:
+        #         if not order[2] == None:
+        #             order_data.box_data = order[2]
+        #     except IndexError:
+        #         order_data.box_data = None
 
-            try:
-                if not order[2] == None:
-                    order_data.box_data = order[2]
-            except IndexError:
-                order_data.box_data = None
+        #     try:
+        #         order_data.status_data = order[3]
+        #     except IndexError:
+        #         order_data.status_data = None
 
-            try:
-                order_data.status_data = order[3]
-            except IndexError:
-                order_data.status_data = None
+        #     orders_out.append(order_data)
 
-            orders_out.append(order_data)
+        # user_data.orders = orders_out
 
-        user_data.orders = orders_out
-
-        return user_query
+        return user_data
 
 
 @router.put('/users', tags=[Tags.users])
