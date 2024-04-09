@@ -33,7 +33,7 @@ from app.models import (
     OrderStatuses, OrderStatusHistory,
     ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION,
     IntervalStatuses, ROLE_ADMIN_NAME, Regions, WeekDaysWork,
-    DaysWork
+    DaysWork, ORDER_STATUS_AWAITING_PAYMENT, Payments
     )
 
 from app.utils import send_message_through_bot
@@ -683,9 +683,18 @@ async def set_order_status(
         order_query = order_query.update_status(status_query.id)
 
         session.add(order_query)
-        session.commit()
+        result = session.commit()
+
+        if result and status_query.status_name == ORDER_STATUS_AWAITING_PAYMENT['status_name']: 
+            try:
+                new_payment = Payments.create_new_payment(
+                    order = order_query
+                )
+            finally:
+                pass
 
         return order_query
+
 
 @router.put('/orders/{order_id}/courier', tags=[Tags.orders, Tags.managers])
 async def set_order_courier():
@@ -757,8 +766,6 @@ async def update_order_data(
             where(Orders.id == order_id).\
             order_by(asc(Orders.date_created)).first()
         return_data = Orders.process_order_array([order_query])
-
-
 
 
         return return_data[0]
@@ -954,3 +961,5 @@ async def process_current_orders(
                     print(err)
 
         return order_list
+
+#TODO: повторная проверка подтверждения заявки
