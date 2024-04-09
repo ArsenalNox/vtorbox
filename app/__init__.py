@@ -17,6 +17,10 @@ CODER_SETTINGS = f"&format=json&lang=ru_RU&ll=37.618920,55.756994&spn=4.552069,4
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 COURIER_API_ROOT_ENDPOINT = 'https://courier.yandex.ru/vrs/api/v1'
 
+T_BOT_URL="https://t.me/VtorBoxRuBot"
+
+TIKOFF_API_URL_TEST="https://rest-api-test.tinkoff.ru/v2"
+
 class Tags(Enum):
     users = "users"
     admins = "admins"
@@ -30,6 +34,7 @@ class Tags(Enum):
     regions = "regions"
     routes = "routes"
     settings = "settings"
+    payments = "payments"
 
 class Scopes(Enum):
     bot = 'bot'
