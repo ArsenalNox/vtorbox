@@ -88,6 +88,9 @@ async def get_payment_info(
 )->List[PaymentOut]:
     """
     - **payment_id**: uuid - получить информацию по конкретной заявке, если пусто возвращаются все платежи
+    - **payment_tk_id**: int - по айди в тинькофф
+    - **payment_order_num**: int - по order_num заявки
+    - **payment_order_id**: UUID - по uuid заявки
     """
     with Session(engine, expire_on_commit=False) as session:
         payments_query = session.query(Payments)
@@ -141,6 +144,8 @@ async def create_new_payment(
 ):
     """
     Ручное создание оплаты
+    - **for_order** UUID заявки, для которой нужно создать оплату
+    - **terminal_id** UUID айти терминала, через который создастся оплата
     """
     with Session(engine, expire_on_commit=False) as session:
         terimnal = None
@@ -212,3 +217,11 @@ async def update_terminal_data(
         session.commit()
 
         return terminal_query
+
+
+@router.get("/payment-data/my-data")
+async def get_user_payment_information():
+    """
+    Получить данные оплаты пользователя после успешной оплаты
+    """
+    pass
