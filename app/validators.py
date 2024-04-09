@@ -28,7 +28,7 @@ class Order(BaseModel):
                 {
                     'from_user': '851230989',
                     'address_id': "1cac46a0-7635-4e01-aea4-e3b9f657ca79",
-                    'day': '07-04-2024',
+                    'day': '2024-04-07',
                     'box_name': "Пакет",
                     'box_count': 5
                 }
@@ -455,3 +455,29 @@ class BotSettingUpdate(BaseModel):
     name: Optional[str] = None
     detail: Optional[str] = None
     types: List[BotSettingType] = None
+
+
+class PaymentOut(BaseModel):
+    id: UUID4
+    tinkoff_id: int
+    order_id: int
+    # order = relationship('Orders', backref='payments', lazy='joined')
+
+    status: str
+    is_reocurring: bool
+
+    rebill_id: Optional[str] = None
+    payment_url: Optional[str] = None
+
+    terminal_id: UUID4
+
+    deleted_at: Optional[datetime] = None
+    
+    date_created: datetime
+
+
+class PaymentTerminal(BaseModel):
+
+    terminal: Optional[str] = None
+    password: Optional[str] = None
+    default_terminal: Optional[bool] = None
