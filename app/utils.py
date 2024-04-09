@@ -5,7 +5,8 @@ import datetime
 
 from app import (
     CODER_KEY, CODER_SETTINGS, BOT_TOKEN,
-    COURIER_API_ROOT_ENDPOINT as API_ROOT_ENDPOINT
+    COURIER_API_ROOT_ENDPOINT as API_ROOT_ENDPOINT,
+    SCHEDULER_HOST, SCHEDULER_PORT
     )
 
 token = BOT_TOKEN
@@ -169,6 +170,6 @@ def get_result_by_id(request_id):
 
 def set_timed_func(func_type, resource_id, time):
 
-    request = requests.get(f'http://127.0.0.1:8081/add_timer/{resource_id}/{time}?job_type={func_type}')
+    request = requests.get(f'{SCHEDULER_HOST}:{SCHEDULER_PORT}/add_timer/{resource_id}/{time}?job_type={func_type}')
     
     return request.status_code
