@@ -103,6 +103,7 @@ async def import_regions_from_geojson(
     найдены по названию
     """
     plain_regions = json.load(file.file)
+    #TODO: Проверка на пересечение областей
     
     with Session(engine, expire_on_commit=False) as session:
         added_count = 0
