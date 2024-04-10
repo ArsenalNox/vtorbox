@@ -481,3 +481,21 @@ class PaymentTerminal(BaseModel):
     terminal: Optional[str] = None
     password: Optional[str] = None
     default_terminal: Optional[bool] = None
+
+
+class PaymentNotification(BaseModel):
+    TerminalKey: Optional[str] = None
+    Amount: Optional[int] = None
+    OrderId: Optional[str] = None
+    Success: Optional[bool] = None
+    Status: Optional[str] = None
+    PaymentId: Optional[int] = None
+    ErrorCode: Optional[str] = None
+    Message: Optional[str] = None
+    Details: Optional[str] = None
+    RebillId: Optional[int] = None
+    CardId: Optional[str] = None
+    Pan: Optional[str] = None
+    ExpDate: Optional[str] = None
+    Token: Optional[str] = None
+    DATA: Optional[Any] = None
