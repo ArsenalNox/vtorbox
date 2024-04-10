@@ -1,7 +1,7 @@
 import uuid, os, requests
 import time
 import datetime
-
+import hashlib
 
 from app import (
     CODER_KEY, CODER_SETTINGS, BOT_TOKEN,
@@ -166,6 +166,32 @@ def get_result_by_id(request_id):
             return yamaps_url
     
     return None
+
+
+def create_tinkoff_token(data_dict: dict, terminal_key)->str:
+    """
+    Создать токен для запроса на апи тинькофф
+    """
+
+    values = {}
+
+    for payment_value in data_dict:
+        if (type(data_dict[payment_value]) == dict):
+            continue
+        values[payment_value] = data_dict[payment_value]
+
+    values['Password'] = terminal_key
+
+    # Concatenate all values in the correct order
+    keys = list(values.keys())
+    keys.sort()
+    values = {i: values[i] for i in keys}
+    
+    concatenated_values = ''.join([values[key] for key in (values.keys())])
+    hash_object = hashlib.sha256(concatenated_values.encode('utf-8'))
+    token = hash_object.hexdigest()
+
+    return token
 
 
 def set_timed_func(func_type, resource_id, time):
