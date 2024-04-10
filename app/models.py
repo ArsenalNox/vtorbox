@@ -26,7 +26,7 @@ from passlib.context import CryptContext
 from shapely.geometry import Point, shape
 
 from app.validators import OrderOut, RegionOut
-from app.utils import send_message_through_bot
+from app.utils import send_message_through_bot, create_tinkoff_token
 from app import T_BOT_URL
 from app import TIKOFF_API_URL_TEST as TINKOFF_API_URL
 
@@ -667,6 +667,35 @@ class Payments(Base):
     
     date_created = Column(DateTime(), default=default_time)
 
+
+    def query(id=None, tinkoff_id=None, terminal=None, terminal_id=None, mode='single'):
+        if mode not in ['single', 'multi']:
+            return None
+
+        with Session(engine, expire_on_commit=False) as session:
+            if terminal_id:
+                terminal = session.query(PaymentTerminals).filter_by(terminal=terminal_id).first()
+
+            if not terminal:
+                terminal = session.query(PaymentTerminals).filter_by(default_terminal=True).first()
+            
+            query = session.query(Payments).filter(Payments.terminal_id == terminal.id)
+            
+            if tinkoff_id:
+                query = query.filter(Payments.tinkoff_id == str(tinkoff_id))
+            
+            if id:
+                query = query.filter(Payments.id == id)
+            
+            if mode == 'single':
+                query = query.first()
+            
+            if mode == 'multi':
+                query = query.all()
+
+            return query
+
+
     def get_order_payments(order, filter_status=None):
         with Session(engine, expire_on_commit=False) as session:
             
@@ -681,12 +710,12 @@ class Payments(Base):
         """
         Создаёт новый рекуррентный платёж пользователю
         """
-        pass
         # Define the payment information as a dictionary
         terminal_key = terminal.terminal
         secret_key = terminal.password
 
         print(f"using terminal {terminal.terminal}")
+        print(f"terminal password {terminal.password}")
         print(f"order box: {order.box.box_name}")
         print(f"order box count: {order.box_count}")
         print(f"order address: {order.address.id}, {order.address.address}")
@@ -698,8 +727,8 @@ class Payments(Base):
         if len(order.box.regional_pricing) > 0:
             for regional_price in order.box.regional_pricing:
                 print(regional_price.region.id)
-                print(order.address.id)
-                if regional_price.region.id == order.address.id:
+                print(order.address.region.id)
+                if regional_price.region.id == order.address.region.id:
                     print("USING REGIONAL PRICING FOR BOX")
                     box_price = regional_price.price
         
@@ -712,23 +741,8 @@ class Payments(Base):
             box_count = 1
 
         print('---')
-        print(order.user.__dict__)
 
-        values = {
-                'Amount': f'{int(box_price*box_count*100)}.00', #*100 потому что указывается сумма в копейках/ и в других методах почему то идёт  сразу с .00 а здесь без. глюк матрицы тинькофф...
-                'Description': str(order.box.box_name)+' ('+str(order.box_count)+') шт.', # The order description
-                'OrderId': str(order.order_num),
-                'Password': secret_key,
-                'TerminalKey': terminal_key
-        }
-        # Concatenate all values in the correct order
-        concatenated_values = ''.join([values[key] for key in (values.keys())])
-
-        # Calculate the hash using SHA-256 algorithm
-        hash_object = hashlib.sha256(concatenated_values.encode('utf-8'))
-        token = hash_object.hexdigest()
-        print(values)
-        print(token)
+        notification_url = 'http://94.41.188.133:8000/api/payment/notify/auto'
 
         payment_data = {
                 'TerminalKey':terminal_key,
@@ -738,18 +752,11 @@ class Payments(Base):
                 "Language": "ru", # The language code (ru or en)
                 "PayType": "O", # The payment type (O for one-time payment)
                 "Recurrent": "Y", # Indicates whether the payment is recurrent (N for no)
-                # "CustomerKey": "1234567890", # The customer key (optional)
-
-                'Token': token,
+                "CustomerKey": f"{order.user.id}",
                 'DATA': {
                         'Phone': order.user.phone_number,
                         'Email': order.user.email,
                 },
-                'PaymentMethod': {
-                        'Type': 'Mobile',
-                        'Data': {},
-                },
-                # данные чека
                 'Receipt': {
                         'Phone': str(order.user.phone_number),
                         'Email': str(order.user.email),
@@ -761,10 +768,10 @@ class Payments(Base):
                                 'Tax':'none',#без НДС
                                 'Price':str(int(box_price*100)),
                         },]
-                        }, # your receipt data
+                        },
 
                 "SuccessURL": f"{T_BOT_URL}/?payment=1", # The URL for successful payments
-                # "NotificationURL":request.scheme+'://'+request.get_host()+request.get_full_path()+'&CertId='+str(cert.pk), # The URL for payment notifications
+                "NotificationURL": request.scheme+'://'+request.get_host()+request.get_full_path()+'&CertId='+str(cert.pk), # The URL for payment notifications
                 "FailURL": f"{T_BOT_URL}/?payment=0"  #The URL for failed payments
         }
 
@@ -775,16 +782,33 @@ class Payments(Base):
             'Content-Type': 'application/json'
         }
 
-        print(url)
+        values = {}
 
-        response = requests.post(
-            url, 
-            json=payment_data,
-            headers = headers
-            )
+        for payment_value in payment_data:
+            if (type(payment_data[payment_value]) == dict):
+                continue
+            values[payment_value] = payment_data[payment_value]
 
-        print(response.status_code)
-        print(response.text)
+        values['Password'] = secret_key
+
+        # Concatenate all values in the correct order
+        keys = list(values.keys())
+        keys.sort()
+        values = {i: values[i] for i in keys}
+        
+        concatenated_values = ''.join([values[key] for key in (values.keys())])
+        hash_object = hashlib.sha256(concatenated_values.encode('utf-8'))
+        token = hash_object.hexdigest()
+
+        payment_data['Token'] = token
+        
+        # print(values)
+        # print(token)
+
+        response = requests.post(url, json=payment_data, headers = headers)
+
+        # print(response.status_code)
+        # print(response.text)
 
         if response.json()['Success']:
             r_data = response.json()
@@ -802,10 +826,6 @@ class Payments(Base):
 
                 session.add(new_payment)
                 session.commit()
-
-            # Redirect the user to the payment form
-            # Certificate.objects.filter(id=cert.id).update(PaymentId=response.json()['PaymentId'])
-            # отправляем пользователя на платёжную форму
 
             send_message_through_bot(
                 order.user.telegram_id,
@@ -849,7 +869,7 @@ class Payments(Base):
             secret_key = '22vjtguawas9bqw6'
 
             values = {
-                    'OrderId': payment_query.order_id,
+                    'OrderId': str(payment_query.order_id),
                     'Password': secret_key,
                     'TerminalKey': terminal_key
             }
@@ -874,6 +894,8 @@ class Payments(Base):
 
             print(response.status_code)
             print(response.json())
+            
+            return response.json()
 
 
     def check_payment_status(payment_internal_id, terminal=None):
@@ -924,6 +946,7 @@ class Payments(Base):
                 )
 
             print(response.status_code)
+            print(response.json())
             if response.status_code == 200:
                 payment_query.status = response.json()['Status']
                 session.commit()
@@ -937,6 +960,59 @@ class Payments(Base):
         """
         pass
 
+
+class PaymentClientData(Base):
+    """
+    Данные оплаты клиента
+    """
+    __tablename__ = 'payment_client_data'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    card_id = Column(String())
+
+    pan = Column(String()) 
+    status = Column(String())
+    rebill_id = Column(String())
+    card_type = Column(String())
+    exp_date = Column(String())
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+
+    date_created = Column(DateTime(), default=default_time)
+
+    def get_client_data_from_api(user, terminal):
+        p_data = {
+            "TerminalKey": terminal.terminal,
+            "CustomerKey": f"{user.id}",
+            "SavedCard": "true",
+        }
+
+        token = create_tinkoff_token(p_data, terminal.password)
+        p_data['Token'] = token
+        url = f'{TINKOFF_API_URL}/GetCardList'
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(url, json=p_data, headers = headers)
+
+        if response.status_code == 200:
+            for card_data in response.json():
+                j_data = card_data
+                with Session(engine, expire_on_commit=False) as session:
+                    search_query = session.query(PaymentClientData).filter_by(card_id=j_data['CardId']).first()
+                    if search_query:
+                        return j_data
+
+                    new_payment_data = PaymentClientData(
+                        card_id = j_data['CardId'],
+                        pan = j_data['Pan'],
+                        status = j_data['Status'],
+                        rebill_id = j_data['RebillId'],
+                        card_type = j_data['CardType'],
+                        exp_date = j_data['ExpDate']
+                    )
+                    session.add(new_payment_data)
+                    session.commit()
+
+        return response.json()
 
 class PaymentTerminals(Base):
     """
@@ -1022,7 +1098,7 @@ class Regions(Base):
         # )
 
     work_days = Column(String(), nullable=True)
-    addresses = relationship('Address', backref='region', lazy='joined')
+    addresses = relationship('Address', backref='region', lazy=True)
     
 
     def contains(self, point:Point)->bool:
