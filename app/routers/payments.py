@@ -41,7 +41,7 @@ from app.validators import (
     UserLogin as UserLoginSchema,
     OrderOut,
     OrderUpdate, PaymentOut,
-    PaymentTerminal
+    PaymentTerminal, PaymentNotification
 )
 
 from app.auth import (
@@ -52,9 +52,8 @@ from app.models import (
     Users, Session, engine, UsersAddress, 
     Address, IntervalStatuses, Roles, 
     Permissions, Regions, WEEK_DAYS_WORK_STR_LIST,
-    Payments, PaymentTerminals
+    Payments, PaymentTerminals, PaymentClientData
     )
-
 
 from app.models import (
     engine, Orders, Users, Session, 
@@ -68,9 +67,9 @@ from app.models import (
 
 from app.utils import (
     send_message_through_bot, get_result_by_id, 
-    generate_y_courier_json, set_timed_func
+    generate_y_courier_json, set_timed_func,
+    create_tinkoff_token
     )
-
 
 router = APIRouter()
 
@@ -131,7 +130,10 @@ async def get_payment_order_status(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     payment_id: UUID
 ):
-    payment_status = Payments.check_order_status(payment_id)
+    with Session(engine, expire_on_commit=False) as session:
+        payment_query = session.query(Payments).filter_by(id=payment_id).first()
+
+        payment_status = Payments.check_order_status(payment_id, order_id=payment_query.order_id)
 
     return payment_status
 
@@ -145,12 +147,12 @@ async def create_new_payment(
     """
     Ручное создание оплаты
     - **for_order** UUID заявки, для которой нужно создать оплату
-    - **terminal_id** UUID айти терминала, через который создастся оплата
+    - **terminal_id** UUID айти терминала, через который создастся оплата. При None используется терминал по умолчанию
     """
     with Session(engine, expire_on_commit=False) as session:
         terimnal = None
         if not terminal_id:
-            terimnal = session.query(PaymentTerminals).first()
+            terimnal = session.query(PaymentTerminals).filter(PaymentTerminals.default_terminal==True).first()
         else: 
             terimnal = session.query(PaymentTerminals).filter(PaymentTerminals.id == terminal_id).first()
         
@@ -200,7 +202,9 @@ async def update_terminal_data(
     terminal_data: PaymentTerminal
 ):
     """
-    Обновить данные шлюза опталы
+    Обновить данные шлюза оплаты
+
+    - **terminal_id**: Айди терминала, данные которого требуется обновить
     """
     with Session(engine, expire_on_commit=False) as session:
         terminal_query = session.query(PaymentTerminals).filter_by(id=terminal_id).first()
@@ -210,6 +214,12 @@ async def update_terminal_data(
             }, status_code=404)
         
         for attr, value in terminal_data.model_dump().items():
+            if attr == 'default_terminal' and value==True:
+                terminal_update = session.query(PaymentTerminals).all()
+                for terminal in terminal_update: 
+                    terminal.default_terminal = False
+
+
             if value != None:
                 setattr(terminal_query, attr, value)
 
@@ -219,9 +229,52 @@ async def update_terminal_data(
         return terminal_query
 
 
-@router.get("/payment-data/my-data")
-async def get_user_payment_information():
+@router.get("/payment-data/saved-cards")
+async def get_user_payment_information(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    user_id: UUID|int,
+):
     """
     Получить данные оплаты пользователя после успешной оплаты
+    - **user_id**: UUID|int - айди пользователя (может быть как тг айди так и UUID)
+
+    Возвращает список сохранённых карт пользователя
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        terminal = session.query(PaymentTerminals).filter_by(default_terminal=True).first()
+
+        user = Users.get_user(str(user_id))
+        
+        data = PaymentClientData.get_client_data_from_api(user, terminal)
+
+        return data
+
+
+@router.post('/payment-data/customer-data/removeCard')
+async def remove_saved_card():
+    """
+    Удаление сохранённой карты пользователя
     """
     pass
+
+
+@router.post('/card')
+async def add_user_card(
+    user_id: UUID
+):
+    pass
+
+
+@router.post('/payment/notify/auto')
+async def process_notification_from_tinkoff(payment_data: PaymentNotification):
+    with Session(engine, expire_on_commit=False) as session:
+        print(payment_data)
+
+        payment = Payments.query(
+            tinkoff_id=payment_data.PaymentId,
+            terminal_id=payment_data.TerminalKey
+        )
+
+        print(payment)
+
+        return 'OK'
