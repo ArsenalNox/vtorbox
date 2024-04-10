@@ -18,7 +18,10 @@ app = FastAPI()
 
 s = requests.Session()
 
-api_url = 'http://127.0.0.1:8000/api'
+load_dotenv()
+backend_host = os.getenv('BACKEND_HOST')
+
+api_url = f'http://{backend_host}:8000/api'
 
 def authorize():
     username = 'user3@example.com'
