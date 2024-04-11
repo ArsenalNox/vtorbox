@@ -316,6 +316,26 @@ class UserOrderOutData(BaseModel):
     link_code: Optional[str] = None
 
 
+class PaymentOut(BaseModel):
+    id: UUID4
+    tinkoff_id: int
+    order_id: int
+    # order = relationship('Orders', backref='payments', lazy='joined')
+
+    status: str
+    is_reocurring: bool
+
+    rebill_id: Optional[str] = None
+    payment_url: Optional[str] = None
+
+    terminal_id: UUID4
+
+    deleted_at: Optional[datetime] = None
+    
+    date_created: datetime
+
+
+
 class OrderOut(BaseModel):
     id: UUID4
     order_num: Optional[int] = None
@@ -351,6 +371,7 @@ class OrderOut(BaseModel):
     status_data: Annotated[Optional[Status], Field(None)]
     deleted_at: Optional[datetime] = None
 
+    payments: Optional[List[PaymentOut]] = None
 
 
 class UserOut(BaseModel):
@@ -455,26 +476,6 @@ class BotSettingUpdate(BaseModel):
     name: Optional[str] = None
     detail: Optional[str] = None
     types: List[BotSettingType] = None
-
-
-class PaymentOut(BaseModel):
-    id: UUID4
-    tinkoff_id: int
-    order_id: int
-    # order = relationship('Orders', backref='payments', lazy='joined')
-
-    status: str
-    is_reocurring: bool
-
-    rebill_id: Optional[str] = None
-    payment_url: Optional[str] = None
-
-    terminal_id: UUID4
-
-    deleted_at: Optional[datetime] = None
-    
-    date_created: datetime
-
 
 class PaymentTerminal(BaseModel):
 
