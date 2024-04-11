@@ -28,7 +28,7 @@ from app.validators import (
 
 from app import Tags
 
-from fastapi import APIRouter, Body, Security, Query
+from fastapi import APIRouter, Body, Security, Query, Request
 from fastapi.responses import JSONResponse
 
 from calendar import monthrange
@@ -245,34 +245,67 @@ async def get_user_payment_information(
 
         user = Users.get_user(str(user_id))
         
+        #Обновить данные о картах пользвателя со стороны тиньки
         data = PaymentClientData.get_client_data_from_api(user, terminal)
 
-        return data
+        #Получить сохранённое в бд
+        return_data = session.query(PaymentClientData).filter(PaymentClientData.user_id == user.id).all()
+
+        return return_data
 
 
-@router.post('/payment-data/customer-data/removeCard')
-async def remove_saved_card():
-    """
-    Удаление сохранённой карты пользователя
-    """
-    pass
-
-
-@router.post('/card')
-async def add_user_card(
-    user_id: UUID
+@router.delete('/payment-data/customer-data/removeCard')
+async def remove_saved_card(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    id: UUID
 ):
-    pass
+    """
+    Удаление сохранённой карты пользователя. Удаляет как у нас так и у тинькофф
+    - **card_id**: UUID карты в нашей системе
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        card_query = session.query(PaymentClientData).filter(PaymentClientData.id==id).first()
+        if not card_query:
+            return JSONResponse({
+                "message": "not found"
+            }, status_code=404)
+
+        url = 'https://securepay.tinkoff.ru/v2/RemoveCard'
+        terminal = session.query(PaymentTerminals).filter(PaymentTerminals.default_terminal == True).first()
+        r_data = {
+            "TerminalKey": f"{terminal.terminal}",
+            "CustomerKey": f"{card_query.user.id}",
+            "CardId": f"{card_query.card_id}",
+        }
+        token = create_tinkoff_token(r_data, terminal.password)
+        r_data['Token'] = token
+
+        print(r_data)
+        
+        response = requests.post(url, json=r_data)
+        print(response.status_code)
+        if response.status_code == 200 and response.json()['Success'] == True:
+            delete_query = session.query(PaymentClientData).filter(PaymentClientData.id == id).delete()
+            session.commit()
+            return 'OK'
+        else:
+            return JSONResponse({
+                "response_data": response.json()
+            }, status_code=503)
 
 
 @router.post('/payment/notify/auto')
-async def process_notification_from_tinkoff(payment_data: PaymentNotification):
+async def process_notification_from_tinkoff(requestd_data: Request):
+    """
+    Служебный эндпоинт для тинькофф, не трогать
+    """
     with Session(engine, expire_on_commit=False) as session:
+        payment_data = await requestd_data.json()
         print(payment_data)
 
         payment = Payments.query(
-            tinkoff_id=payment_data.PaymentId,
-            terminal_id=payment_data.TerminalKey
+            tinkoff_id=payment_data['PaymentId'],
+            terminal_id=payment_data['TerminalKey']
         )
 
         print(payment)
