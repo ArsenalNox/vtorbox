@@ -668,6 +668,37 @@ class Payments(Base):
     date_created = Column(DateTime(), default=default_time)
 
 
+    def process_status_update(order):
+        #Если у пользователя есть карта с rebuill_id возвать init с charge
+        #Если нет, вызвать init 
+        
+        with Session(engine, expire_on_commit=False) as session:
+            terminal = session.query(PaymentTerminals).filter_by(default_terminal=True).first()
+            rebuill_query = session.query(PaymentClientData).filter_by(user_id=order.user.id).first()
+            print(rebuill_query)
+
+            if rebuill_query:
+                #TODO: Создать платёж и вызвать charge
+                new_payment = Payments.create_new_payment(
+                    terminal=terminal,
+                    order=order,
+                    without_r_c=True
+                )
+
+                print('Charging')
+                Payments.bill_payment(
+                    terminal,
+                    order,
+                    new_payment.tinkoff_id,
+                    rebuill_query.rebill_id,
+                )
+            else:
+                new_payment = Payments.create_new_payment(
+                    terminal=terminal,
+                    order=order,
+                )
+
+
     def query(id=None, tinkoff_id=None, terminal=None, terminal_id=None, mode='single'):
         if mode not in ['single', 'multi']:
             return None
@@ -706,7 +737,7 @@ class Payments(Base):
             order_payments = order_payments.all()
             return 
     
-    def create_new_payment(terminal: 'PaymentTerminals', order: 'Orders') -> 'Payments':
+    def create_new_payment(terminal: 'PaymentTerminals', order: 'Orders', without_r_c=False) -> 'Payments':
         """
         Создаёт новый рекуррентный платёж пользователю
         """
@@ -743,16 +774,16 @@ class Payments(Base):
         print('---')
 
         notification_url = 'http://94.41.188.133:8000/api/payment/notify/auto'
+        payment_data = {}
 
-        payment_data = {
+        if without_r_c:
+            payment_data = {
                 'TerminalKey':terminal_key,
                 'OrderId': str(order.order_num),
                 'Amount': str(int(box_price*box_count*100)),#*100 потому что указывается сумма в копейках
                 "Description": str(order.box.box_name)+' ('+str(order.box_count)+') шт.', # The order description
                 "Language": "ru", # The language code (ru or en)
                 "PayType": "O", # The payment type (O for one-time payment)
-                "Recurrent": "Y", # Indicates whether the payment is recurrent (N for no)
-                "CustomerKey": f"{order.user.id}",
                 'DATA': {
                         'Phone': order.user.phone_number,
                         'Email': order.user.email,
@@ -771,9 +802,40 @@ class Payments(Base):
                         },
 
                 "SuccessURL": f"{T_BOT_URL}/?payment=1", # The URL for successful payments
-                "NotificationURL": request.scheme+'://'+request.get_host()+request.get_full_path()+'&CertId='+str(cert.pk), # The URL for payment notifications
+                "NotificationURL": notification_url, # The URL for payment notifications
                 "FailURL": f"{T_BOT_URL}/?payment=0"  #The URL for failed payments
-        }
+            }
+        else:
+            payment_data = {
+                    'TerminalKey':terminal_key,
+                    'OrderId': str(order.order_num),
+                    'Amount': str(int(box_price*box_count*100)),#*100 потому что указывается сумма в копейках
+                    "Description": str(order.box.box_name)+' ('+str(order.box_count)+') шт.', # The order description
+                    "Language": "ru", # The language code (ru or en)
+                    "PayType": "O", # The payment type (O for one-time payment)
+                    "Recurrent": "Y", # Indicates whether the payment is recurrent (N for no)
+                    "CustomerKey": f"{order.user.id}",
+                    'DATA': {
+                            'Phone': order.user.phone_number,
+                            'Email': order.user.email,
+                    },
+                    'Receipt': {
+                            'Phone': str(order.user.phone_number),
+                            'Email': str(order.user.email),
+                            'Taxation':'usn_income',#упрощёнка
+                            'Items':[{  #https://www.tinkoff.ru/kassa/develop/api/receipt/#Items
+                                    'Name':str(order.box.box_name),
+                                    'Quantity':str(box_count),
+                                    'Amount': str(int(box_price*box_count*100)),
+                                    'Tax':'none',#без НДС
+                                    'Price':str(int(box_price*100)),
+                            },]
+                            },
+
+                    "SuccessURL": f"{T_BOT_URL}/?payment=1", # The URL for successful payments
+                    "NotificationURL": notification_url, # The URL for payment notifications
+                    "FailURL": f"{T_BOT_URL}/?payment=0"  #The URL for failed payments
+            }
 
         #путь по которому мы отправляем свой запрос, прописан в документации банка
         url = f"{TINKOFF_API_URL}/Init"
@@ -807,8 +869,8 @@ class Payments(Base):
 
         response = requests.post(url, json=payment_data, headers = headers)
 
-        # print(response.status_code)
-        # print(response.text)
+        print(response.status_code)
+        print(response.text)
 
         if response.json()['Success']:
             r_data = response.json()
@@ -947,18 +1009,46 @@ class Payments(Base):
 
             print(response.status_code)
             print(response.json())
+            r_data = response.json()
+
             if response.status_code == 200:
                 payment_query.status = response.json()['Status']
+
+                if r_data['Success'] and r_data['Status'] == "CONFIRMED":
+                    payment_query.order.update_status(OrderStatuses.status_payed().id)
+
                 session.commit()
             
             return response.json()
 
 
-    def rebill_payment():
+    def bill_payment(terminal, order, payment_id, rebill_id):
         """
         Провести автоплатёж
         """
-        pass
+
+        p_data = {
+            "TerminalKey": terminal.terminal,
+            "PaymentId": payment_id,
+            "RebillId": rebill_id,
+            "SendEmail": 'true',
+            "InfoEmail": order.user.email
+        }
+
+        url = f"{TINKOFF_API_URL}/Charge"
+
+        headers = {
+            'Content-Type': 'application/json'
+        }
+
+        token = create_tinkoff_token(p_data, terminal.password)
+        p_data['Token'] = token
+
+        response = requests.post(url, json=p_data, headers = headers)
+
+        print(p_data)
+        print(response.status_code)
+        print(response.text)
 
 
 class PaymentClientData(Base):
@@ -977,6 +1067,9 @@ class PaymentClientData(Base):
     card_type = Column(String())
     exp_date = Column(String())
     user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'))
+    user = relationship('Users', backref='payment_data', lazy='joined')
+
+    default_card = Column(Boolean(), default=False)
 
     date_created = Column(DateTime(), default=default_time)
 
@@ -1007,8 +1100,10 @@ class PaymentClientData(Base):
                         status = j_data['Status'],
                         rebill_id = j_data['RebillId'],
                         card_type = j_data['CardType'],
-                        exp_date = j_data['ExpDate']
+                        exp_date = j_data['ExpDate'],
+                        user_id = user.id
                     )
+
                     session.add(new_payment_data)
                     session.commit()
 
