@@ -7,6 +7,7 @@ import requests
 import os
 
 from dotenv import load_dotenv
+from os import getenv
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
@@ -15,6 +16,14 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 app = FastAPI()
+
+load_dotenv()
+
+username=getenv("POSTGRES_USER")
+host=getenv("POSTGRES_HOST")
+port=int(getenv("POSTGRES_PORT"))
+database=getenv("POSTGRES_DB")
+password=getenv("POSTGRES_PASSWORD")
 
 s = requests.Session()
 
@@ -166,7 +175,7 @@ if __name__ == '__main__':
     authorize()
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     jobstores = {
-        "default": SQLAlchemyJobStore('postgresql://postgres:admin@127.0.0.1:5432/my_app')
+        "default": SQLAlchemyJobStore(f'postgresql://{username}:{password}@{host}:{port}/my_app')
     }
     scheduler = BackgroundScheduler(jobstores=jobstores)
     scheduler.start()

@@ -1,6 +1,7 @@
 version: '3.4'
 
 services:
+
   db:
     container_name: project_db
     image: postgres
@@ -20,7 +21,6 @@ services:
     networks:
       - common-net
 
-    command: bash -c "alembic revision --autogenerate && alembic upgrade head &&  uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -84,9 +84,18 @@ services:
       dockerfile: scheduler/.dockerfile
 
     restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=my_app
+      - POSTGRES_HOST=project_db
+      - PGPORT=5433
+
+    depends_on:
+      - web
 
     container_name: project_scheduler
-    command: sh -c "python3 main.py"
+    command: sh -c "python3 scheduler/main.py"
     env_file:
       - .env
 
