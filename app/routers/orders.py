@@ -33,7 +33,7 @@ from app.models import (
     OrderStatuses, OrderStatusHistory,
     ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION,
     IntervalStatuses, ROLE_ADMIN_NAME, Regions, WeekDaysWork,
-    DaysWork, ORDER_STATUS_AWAITING_PAYMENT, Payments
+    DaysWork, ORDER_STATUS_AWAITING_PAYMENT, Payments, PaymentClientData
     )
 
 from app.utils import send_message_through_bot
@@ -297,7 +297,6 @@ async def get_order_by_id(
 
         order_data = OrderOut(**order[0].__dict__)
         order_data.interval = str(order[1].interval).split(', ')
-
         try:
             order_data.address_data = order[1]
             order_data.address_data.region = order[1].region
@@ -319,6 +318,8 @@ async def get_order_by_id(
             order_data.user_data = order[4]
         except IndexError:
             order_data.user_data = none
+
+        order_data.payments = order[0].payments
 
         return order_data
 
@@ -640,7 +641,7 @@ async def set_order_status(
     order_id: UUID,
     status_text: str = None,
     status_id: UUID = None,
-):
+)->OrderOut:
     """
     Обновление/Установка статуса заявки
     - **order_id**: UUID заявки
@@ -683,16 +684,17 @@ async def set_order_status(
         order_query = order_query.update_status(status_query.id)
 
         session.add(order_query)
-        result = session.commit()
+        session.commit()
 
-        if result and status_query.status_name == ORDER_STATUS_AWAITING_PAYMENT['status_name']: 
-            try:
-                new_payment = Payments.create_new_payment(
-                    order = order_query
-                )
-            finally:
-                pass
-
+        print("Checking for payment")
+        print(status_query.status_name)
+        if status_query.status_name == ORDER_STATUS_AWAITING_PAYMENT['status_name']: 
+            print("Creating payment")
+            new_payment = Payments.process_status_update(
+                order = order_query
+            )
+            
+        order_query.payments
         return order_query
 
 
