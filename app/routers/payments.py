@@ -167,7 +167,7 @@ async def create_new_payment(
                 "message": "No order found"
             }, 404)
 
-        if not order.box:
+        if not order_query.box:
             return JSONResponse({
                 "message": "No contaier set"
             })
