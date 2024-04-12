@@ -74,19 +74,29 @@ from app.models import (
 router = APIRouter()
 
 
+@router.get('/settings/types', tags=[Tags.settings])
+async def get_settings_types(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+):
+    with Session(engine, expire_on_commit=False) as session:
+        query = session.query(SettingsTypes).all()
+        return query
+
+
 @router.get('/bot/settings', tags=[Tags.settings])
 async def get_settings(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     setting_name: Optional[str] = None,
     setting_key: Optional[str] = None,
-    setting_id: Optional[UUID] = None
+    setting_id: Optional[UUID] = None,
+    setting_type: Optional[str] = None,
+    setting_type_id: Optional[str] = None
 )->List[BotSettingOut]:
     """
     Получить настройки проекта (и бота и бэкенда)
     """
     with Session(engine, expire_on_commit=False) as session:
         query = session.query(BotSettings)
-        print(setting_key)
         if setting_name:
             query = query.filter_by(name = setting_name)
         
@@ -96,7 +106,17 @@ async def get_settings(
         if setting_id:
             query = query.filter_by(id = setting_id)
 
-        print(setting_key)
+        if setting_type:
+            query = query.join(BotSettingsTypes, BotSettingsTypes.type_id==BotSettings.id).\
+                join(SettingsTypes, SettingsTypes.id == BotSettingsTypes.setting_id).\
+                filter(SettingsTypes.name == setting_type)
+                
+        if setting_type_id:
+            query = query.join(BotSettingsTypes, BotSettingsTypes.type_id==BotSettings.id).\
+                join(SettingsTypes, SettingsTypes.id == BotSettingsTypes.setting_id).\
+                filter(SettingsTypes.id == setting_type_id)
+
+
         query = query.all()
         return query
 
