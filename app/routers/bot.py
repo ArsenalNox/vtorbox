@@ -651,7 +651,11 @@ async def get_routes(
     with Session(engine, expire_on_commit=False) as session:
         user = Users.get_or_404(t_id = courier_id)
 
-        routes = session.query(Routes)
+        routes = session.query(Routes).options(
+            joinedload(Routes.orders).\
+            joinedload(RoutesOrders.order).\
+            joinedload(Orders.payments)
+            )
         routes = routes.filter(Routes.courier_id == user.id)
         
         if date:
