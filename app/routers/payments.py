@@ -101,7 +101,7 @@ async def get_payment_info(
             payments_query = payments_query.filter(Payments.payment_tk_id == payment_tk_id)
 
         if payment_order_num:
-            payments_query = payments_query.filter(Payments.order_id == payment_order_id)
+            payments_query = payments_query.filter(Payments.order_id == payment_order_num)
         
         if payment_order_id:
             payments_query = payments_query.join(Orders, Orders.order_num==Payments.order_id).\
