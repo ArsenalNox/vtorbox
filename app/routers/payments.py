@@ -167,6 +167,11 @@ async def create_new_payment(
                 "message": "No order found"
             }, 404)
 
+        if not order.box:
+            return JSONResponse({
+                "message": "No contaier set"
+            })
+
         new_payment = Payments.create_new_payment(
             terminal=terimnal,
             order=order_query
@@ -227,6 +232,29 @@ async def update_terminal_data(
         session.commit()
 
         return terminal_query
+
+
+@router.put('/payment-data/saved/cards/set-default')
+async def set_default_payment_card(
+    card_id: UUID
+):
+    with Session(engine, expire_on_commit=False) as session:
+        card_query = session.query(PaymentClientData).filter(PaymentClientData.id==cadr_id).first()
+
+        if not card_query:
+            return JSONResponse({
+                "message": "not found"
+            }, status_code=404)
+        
+        card_update = session.query(PaymentClientData).filter(PaymentClientData.user_id==card_query.user_id).all()
+        for card in card_update:
+            card.default_card = False
+        
+        card_query.default_card = True
+
+        session.commit()
+
+        return card_query
 
 
 @router.get("/payment-data/saved-cards")
