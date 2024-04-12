@@ -5,6 +5,7 @@
 import requests
 import os, uuid
 
+from sqlalchemy.orm import joinedload
 
 from typing import Annotated, List, Tuple, Dict, Optional
 from fastapi import APIRouter, Security
