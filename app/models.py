@@ -773,7 +773,9 @@ class Payments(Base):
 
         print('---')
 
-        notification_url = 'http://94.41.188.133:8000/api/payment/notify/auto'
+        # notification_url = 'http://94.41.188.133:8000/api/payment/notify/auto'
+        notification_url = 'http://5.253.62.213:8000/api/payment/notify/auto'
+
         payment_data = {}
 
         if without_r_c:
