@@ -1255,7 +1255,7 @@ class Routes(Base):
 
     #На какой день предназначен маршрут 
     date_created = Column(DateTime(), default=default_time)
-    orders = relationship('RoutesOrders', backref='routes', lazy='joined')
+    orders = relationship('RoutesOrders', backref='routes', lazy='subquery')
     
     @staticmethod
     def get_all_routes(today_only: bool = True):
@@ -1273,7 +1273,7 @@ class RoutesOrders(Base):
     order_id = Column(UUID(as_uuid=True), ForeignKey('orders.id'))
     route_id = Column(UUID(as_uuid=True), ForeignKey('routes.id'))
 
-    order = relationship('Orders', backref='routedorders', lazy='joined')
+    order = relationship('Orders', backref='routedorders', lazy='subquery')
 
 
 class BotSettingsTypes(Base):
