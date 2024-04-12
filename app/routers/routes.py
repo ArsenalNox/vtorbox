@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 
 import datetime as dt
 from datetime import datetime, timedelta
-
+from sqlalchemy.orm import joinedload
 
 from app import CODER_KEY, CODER_SETTINGS, COURIER_KEY
 
@@ -233,7 +233,11 @@ async def get_routes(
     - **date**: [datetime] - дата на получение маршрутов, по умолчанию получаются все маршруты
     """
     with Session(engine, expire_on_commit=False) as session:
-        routes = session.query(Routes)
+        routes = session.query(Routes).options(
+            joinedload(Routes.orders).\
+            joinedload(RoutesOrders.order).\
+            joinedload(Orders.payments)
+            )
 
         if date:
             date = date.replace(hour=0, minute=0)
@@ -255,6 +259,11 @@ async def get_routes(
             return JSONResponse({
                 "message": "Not found"
             }, 404)
+
+        # for route in routes:
+        #     route.orders
+        #     for routes_order in route.orders:
+        #         routes_order.order.payments
 
         return routes
     
@@ -280,7 +289,11 @@ async def update_route_orders(
 
         #TODO: Повторная генерация я.маршрута при изменении заявок маршрута
 
-        route_query = session.query(Routes).where(Routes.id==route_id).first()
+        route_query = session.query(Routes).options(
+            joinedload(Routes.orders).\
+            joinedload(RoutesOrders.order).\
+            joinedload(Orders.payments)
+            ).where(Routes.id==route_id).first()
         if not route_query:
             return JSONResponse({
                 "message": f"Route {route_id} not found"
@@ -392,7 +405,11 @@ async def get_route_y_map(
     """
 
     with Session(engine, expire_on_commit=False) as session:
-        route_query = session.query(Routes).filter(Routes.id==route_id).first()
+        route_query = session.query(Routes).options(
+            joinedload(Routes.orders).\
+            joinedload(RoutesOrders.order).\
+            joinedload(Orders.payments)
+            ).filter(Routes.id==route_id).first()
         if not route_query:
             return JSONResponse({
                 "message": "not found"
