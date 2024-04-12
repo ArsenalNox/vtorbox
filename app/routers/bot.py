@@ -648,7 +648,7 @@ async def get_routes(
     - **date**: [datetime] - дата на получение маршрутов, по умолчанию получаются все маршруты
     """
     with Session(engine, expire_on_commit=False) as session:
-        user = Users.get_or_404(t_id = courier_id)
+        user = session.query(Users).filter_by(telegram_id=courier_id).first()
 
         if not user:
             return JSONResponse({
