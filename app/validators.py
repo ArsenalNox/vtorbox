@@ -320,6 +320,7 @@ class PaymentOut(BaseModel):
     id: UUID4
     tinkoff_id: int
     order_id: int
+    amount: Optional[int] = None
     # order = relationship('Orders', backref='payments', lazy='joined')
 
     status: str
@@ -371,7 +372,7 @@ class OrderOut(BaseModel):
     status_data: Annotated[Optional[Status], Field(None)]
     deleted_at: Optional[datetime] = None
 
-    payments: Optional[List[PaymentOut]] = None
+    payments: Annotated[Optional[List[PaymentOut]], Field(None)]
 
 
 class UserOut(BaseModel):
