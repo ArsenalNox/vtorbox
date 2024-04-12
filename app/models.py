@@ -655,6 +655,8 @@ class Payments(Base):
     order_id = Column(Integer(), ForeignKey('orders.order_num'), nullable=False) #Айди платежа в нашей системе (не уникален для тинькофф)
     order = relationship('Orders', backref='payments', lazy='joined')
 
+    amount = Column(Integer(), nullable=True) #стоимость, в копейках
+
     status = Column(String()) #сатус оплаты
     is_reocurring = Column(Boolean(), default=True) #рекуррентный ли платёж
 
@@ -808,6 +810,7 @@ class Payments(Base):
                 "FailURL": f"{T_BOT_URL}/?payment=0"  #The URL for failed payments
             }
         else:
+            #TODO: Опциональное формирование чека
             payment_data = {
                     'TerminalKey':terminal_key,
                     'OrderId': str(order.order_num),
@@ -885,7 +888,8 @@ class Payments(Base):
                     status = r_data['Status'],
                     is_reocurring = True,
                     terminal_id = terminal.id,
-                    payment_url = payment_url
+                    payment_url = payment_url,
+                    amount = payment_data['Amount']
                 )
 
                 session.add(new_payment)
