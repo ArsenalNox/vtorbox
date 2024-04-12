@@ -21,8 +21,11 @@ T_BOT_URL="https://t.me/VtorBoxRuBot"
 
 TIKOFF_API_URL_TEST="https://securepay.tinkoff.ru/v2"
 # TIKOFF_API_URL_TEST="https://rest-api-test.tinkoff.ru/v2"
+
 SCHEDULER_HOST=os.getenv('SCHEDULER_HOST')
 SCHEDULER_PORT=os.getenv('SCHEDULER_PORT')
+
+BASE_HOST_URL_NOTIFY='http://5.253.62.213:8000/api/payment/notify/auto'
 
 class Tags(Enum):
     users = "users"
