@@ -20,7 +20,7 @@ from sqlalchemy import JSON
 from app.models import (
     Users, Session, engine, UsersAddress, 
     Address, IntervalStatuses, Roles, Permissions, Regions, WEEK_DAYS_WORK_STR_LIST,
-    Routes, RoutesOrders
+    Routes, RoutesOrders, Orders
     )
 
 from app import CODER_KEY, CODER_SETTINGS, Tags
@@ -78,7 +78,6 @@ async def create_user(
         session.commit()
 
         return new_user
-
 
 @router.put('/users/botclient/link', tags=["users", "bot"])
 async def create_bot_client_from_link(
@@ -650,6 +649,11 @@ async def get_routes(
     """
     with Session(engine, expire_on_commit=False) as session:
         user = Users.get_or_404(t_id = courier_id)
+
+        if not user:
+            return JSONResponse({
+                "message": "user not found"
+            }, status_code=404)
 
         routes = session.query(Routes).options(
             joinedload(Routes.orders).\
