@@ -215,11 +215,7 @@ async def get_addresses(
 
     with Session(engine, expire_on_commit=False) as session:
         
-        user = None
-        if not(tg_id == None):
-            user = Users.get_or_404(t_id=tg_id)
-        elif not(user_id == None): 
-            user = Users.get_or_404(internal_id=user_id)
+        user = Users.get_or_404(t_id=tg_id, internal_id=user_id)
         
         if not user:
             return JSONResponse({
