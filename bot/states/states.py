@@ -51,6 +51,8 @@ class Courier(StatesGroup):
     """Отлов комментария к необработанной точке маршрута"""
 
     point = State()
+    container_type = State()
+    container_count = State()
 
 
 class SMSEmail(StatesGroup):

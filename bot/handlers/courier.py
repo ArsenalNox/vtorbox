@@ -13,6 +13,7 @@ from bot.keyboards.courier_kb import CourierKeyboard
 from bot.states.states import Courier
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
+from bot.utils.handle_data import show_courier_order
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
@@ -117,17 +118,13 @@ class CourierHandler(Handler):
             )
             await state.update_data(order_id=order_id)
 
-            # получаем информацию по точке
-            msg = await callback.message.answer(
-                MESSAGES['ROUTE_INFO'].format(
-                    order.get('order_num'),
-                    order.get('address_data', {}).get('address'),
-                    order.get('user_data', {}).get('firstname') + ' ' + order.get('user_data', {}).get('secondname'),
-                    order.get('user_data', {}).get('phone_number') if order.get('user_data', {}).get('phone_number') else 'Не указан'
-                ),
-                reply_markup=self.kb.points_menu_btn(order_id)
+            await show_courier_order(
+                order_id=order_id,
+                order=order,
+                state=state,
+                message=callback.message,
+                self=self
             )
-            await state.update_data(msg=msg.message_id)
 
         @self.router.callback_query(F.data.startswith('finished'))
         async def mark_point_like_finished(callback: CallbackQuery, state: FSMContext):
@@ -188,6 +185,129 @@ class CourierHandler(Handler):
             )
 
             await state.set_state(Courier.point)
+
+        @self.router.callback_query(F.data.startswith('container_type'))
+        async def change_container_type(callback: CallbackQuery, state: FSMContext):
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=callback.message
+            )
+
+            status_code, box_types = await req_to_api(
+                method='get',
+                url='boxes'
+            )
+
+            await callback.message.answer(
+                MESSAGES['CHOOSE_BOX_TYPE'],
+                reply_markup=self.kb.choose_box_type(box_types)
+            )
+            await state.set_state(state=Courier.container_type)
+
+        @self.router.message(Courier.container_type)
+        async def set_container_type(message: Message, state: FSMContext):
+            data = await state.get_data()
+            status_code, _box_types = await req_to_api(
+                method='get',
+                url='boxes'
+            )
+
+            box_type = [i.get('box_name') for i in _box_types]
+            container_type = message.text
+
+            if container_type in box_type:
+                await state.set_state(state=None)
+
+                order_id = data.get('order_id')
+
+                order_update_data = json.dumps(
+                    {
+                        'box_name': container_type
+                    }
+                )
+                await req_to_api(
+                    method='put',
+                    url=f'orders/{order_id}',
+                    data=order_update_data
+                )
+
+                status_code, order = await req_to_api(
+                    method='get',
+                    url=f'orders/{order_id}',
+                )
+
+                await show_courier_order(
+                    order_id=order_id,
+                    order=order,
+                    state=state,
+                    message=message,
+                    self=self
+                )
+
+            else:
+                await message.answer(
+                    MESSAGES['WRONG_CONTAINER_TYPE'],
+                    reply_markup=self.kb.choose_box_type(_box_types)
+                )
+
+        @self.router.callback_query(F.data.startswith('container_count'))
+        async def change_container_count(callback: CallbackQuery, state: FSMContext):
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=callback.message
+            )
+
+            await callback.message.answer(
+                MESSAGES['CHOOSE_BOX_COUNT'],
+                reply_markup=self.kb.choose_box_count()
+            )
+            await state.set_state(state=Courier.container_count)
+
+        @self.router.message(Courier.container_count)
+        async def set_container_count(message: Message, state: FSMContext):
+            data = await state.get_data()
+
+            available_container_count = [str(num) for num in range(1, 11)]
+            container_count = message.text
+
+            if container_count in available_container_count:
+                await state.set_state(state=None)
+
+                order_id = data.get('order_id')
+
+                order_update_data = json.dumps(
+                    {
+                        'box_count': container_count
+                    }
+                )
+                await req_to_api(
+                    method='put',
+                    url=f'orders/{order_id}',
+                    data=order_update_data
+                )
+
+                status_code, order = await req_to_api(
+                    method='get',
+                    url=f'orders/{order_id}',
+                )
+
+                await show_courier_order(
+                    order_id=order_id,
+                    order=order,
+                    state=state,
+                    message=message,
+                    self=self
+                )
+
+            else:
+                await message.answer(
+                    MESSAGES['WRONG_CONTAINER_COUNT'],
+                    reply_markup=self.kb.choose_box_count()
+                )
 
         @self.router.message(Courier.point)
         async def get_comment_to_not_finished_point(message: Message, state: FSMContext):

@@ -402,7 +402,6 @@ class OrderHandler(Handler):
 
             await state.update_data(chat_id=callback.message.chat.id)
             order_id = callback.data.split('_')[-1]
-            link = 'https://google.com'
 
             status_code, payment_msg = await req_to_api(
                 method='get',
@@ -410,11 +409,26 @@ class OrderHandler(Handler):
             )
 
             await callback.message.answer(
-                payment_msg.format(
-                    order_id,
-                    link
-                )
+                MESSAGES['PAYMENT_ORDER']
             )
+
+            status_code, response = await req_to_api(
+                method='post',
+                url=f'payment?for_order={order_id}'
+            )
+            print(response)
+
+            if isinstance(response[0], dict):
+                await callback.message.answer(
+                    MESSAGES['YOUR_LINK_PAYMENT'].format(
+                        response[0].get('payment_url')
+                    )
+                )
+
+            else:
+                await callback.message.answer(
+                    MESSAGES['PLEASE_ADD_NUMBER_OR_EMAIL']
+                )
 
             status_code, menu_msg = await req_to_api(
                 method='get',

@@ -73,6 +73,15 @@ class CourierKeyboard(BaseKeyboard):
 
         builder = InlineKeyboardBuilder()
 
+        builder.add(
+            InlineKeyboardButton(text='Тип',
+                                 callback_data=f'container_type_{point_id}')
+        )
+        builder.add(
+            InlineKeyboardButton(text='Количество',
+                                 callback_data=f'container_count_{point_id}')
+        )
+
         builder.row(
             InlineKeyboardButton(text='Обработан',
                                  callback_data=f'finished_{point_id}')
@@ -99,6 +108,35 @@ class CourierKeyboard(BaseKeyboard):
         builder.row(
             KeyboardButton(text=BUTTONS['BACK_ROUTE'])
         )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
+    def choose_box_type(self, box_types: list[dict]) -> ReplyKeyboardMarkup:
+
+        builder = ReplyKeyboardBuilder()
+
+        for box in box_types:
+            builder.row(
+                KeyboardButton(text=box.get('box_name'))
+            )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
+    def choose_box_count(self) -> ReplyKeyboardMarkup:
+        builder = ReplyKeyboardBuilder()
+
+        for number in range(1, 11):
+            builder.row(
+                KeyboardButton(text=str(number))
+            )
+
+        builder.adjust(4)
 
         return builder.as_markup(
             resize_keyboard=True,

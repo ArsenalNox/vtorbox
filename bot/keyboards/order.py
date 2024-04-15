@@ -106,12 +106,12 @@ class OrderKeyboard(BaseKeyboard):
                 InlineKeyboardButton(
                     text='Отменить',
                     callback_data=f'cancel_{order_id}',
-                    url=f'tg://user?id=851230989'
+                    url=f'tg://user?id=398488929'
                 ),
             InlineKeyboardButton(
                 text='Связаться с менеджером',
                 callback_data=f'manager_{order_id}',
-                url=f'tg://user?id=851230989'
+                url=f'tg://user?id=398488929'
             ),
             )
 
