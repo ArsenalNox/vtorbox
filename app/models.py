@@ -1092,9 +1092,10 @@ class PaymentClientData(Base):
         headers = {'Content-Type': 'application/json'}
         response = requests.post(url, json=p_data, headers = headers)
 
-        if response.status_code == 200:
+        if response.status_code == 200 and response.json()['Success']:
             for card_data in response.json():
                 j_data = card_data
+                print(j_data)
                 with Session(engine, expire_on_commit=False) as session:
                     search_query = session.query(PaymentClientData).filter_by(card_id=j_data['CardId']).first()
                     if search_query:
