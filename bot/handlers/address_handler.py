@@ -44,7 +44,7 @@ class AddressHandler(Handler):
 
             status_code, address_list = await req_to_api(
                 method='get',
-                url=f'bot/user/addresses/all?tg_id={message.from_user.id}',
+                url=f'bot/user/addresses/all?tg_id={message.chat.id}',
             )
 
             await show_address_list(
