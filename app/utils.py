@@ -196,6 +196,6 @@ def create_tinkoff_token(data_dict: dict, terminal_key)->str:
 
 def set_timed_func(func_type, resource_id, time):
 
-    request = requests.get(f'{SCHEDULER_HOST}:{SCHEDULER_PORT}/add_timer/{resource_id}/{time}?job_type={func_type}')
+    request = requests.get(f'http://{SCHEDULER_HOST}:{SCHEDULER_PORT}/add_timer/{resource_id}/{time}?job_type={func_type}')
     
     return request.status_code

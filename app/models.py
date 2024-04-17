@@ -26,7 +26,7 @@ from passlib.context import CryptContext
 from shapely.geometry import Point, shape
 
 from app.validators import OrderOut, RegionOut
-from app.utils import send_message_through_bot, create_tinkoff_token
+from app.utils import send_message_through_bot, create_tinkoff_token, set_timed_func
 from app import T_BOT_URL
 from app import TIKOFF_API_URL_TEST as TINKOFF_API_URL
 
@@ -904,6 +904,10 @@ class Payments(Base):
                     "url": payment_url,
                 }]]}
             )
+            try:
+                set_timed_func('p', new_payment.id, 'M:01')
+            except Exception as err:
+                print(err)
 
             return new_payment
 
@@ -1091,13 +1095,19 @@ class PaymentClientData(Base):
         url = f'{TINKOFF_API_URL}/GetCardList'
         headers = {'Content-Type': 'application/json'}
         response = requests.post(url, json=p_data, headers = headers)
-
-        if response.status_code == 200 and response.json()['Success']:
+        print(len(response.json()))
+        print(response.json())
+        if response.status_code == 200:
             for card_data in response.json():
                 j_data = card_data
                 print(j_data)
                 with Session(engine, expire_on_commit=False) as session:
-                    search_query = session.query(PaymentClientData).filter_by(card_id=j_data['CardId']).first()
+                    try:
+                        search_query = session.query(PaymentClientData).filter_by(card_id=j_data['CardId']).first()
+                    except Exception as err:
+                        print(err)
+                        continue
+
                     if search_query:
                         return j_data
 
