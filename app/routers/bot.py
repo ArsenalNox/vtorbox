@@ -285,7 +285,13 @@ async def add_user_address(
     Создание адреса пользователя
     """
 
-    user = Users.get_or_404(t_id=tg_id, internal_id=user_id)
+    user = None
+
+    if tg_id:
+        user = Users.get_user(str(tg_id))
+    elif user_id:
+        user = Users.get_user(str(user_id))
+
     if not user:
         return JSONResponse({
             "message": "User not found"
@@ -522,7 +528,7 @@ async def get_address_information_by_id(
     with Session(engine, expire_on_commit=False) as session:
         user_query = None
         if user_id:
-            user_query = Users.get_or_404(internal_id = user_id)
+            user_query = Users.get_user(str(user_id))
         else:
             user_query = Users.get_user(str(tg_id))
 

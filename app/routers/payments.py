@@ -239,7 +239,7 @@ async def set_default_payment_card(
     card_id: UUID
 ):
     with Session(engine, expire_on_commit=False) as session:
-        card_query = session.query(PaymentClientData).filter(PaymentClientData.id==cadr_id).first()
+        card_query = session.query(PaymentClientData).filter(PaymentClientData.id==card_id).first()
 
         if not card_query:
             return JSONResponse({
