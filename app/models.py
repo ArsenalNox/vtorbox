@@ -1082,6 +1082,7 @@ class PaymentClientData(Base):
     default_card = Column(Boolean(), default=False)
 
     date_created = Column(DateTime(), default=default_time)
+    deleted_at = Column(DateTime(), default=None, nullable=True)
 
     def get_client_data_from_api(user, terminal):
         p_data = {
