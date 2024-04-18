@@ -890,6 +890,7 @@ async def import_clients(file: UploadFile):
                 address_id=new_address.id,
             )
 
+            session.add(user_address)
             session.add(status_update)
             session.add(new_order)
 
