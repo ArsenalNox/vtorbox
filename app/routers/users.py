@@ -129,6 +129,20 @@ async def get_all_users(
                 join(Orders, Orders.from_user == Users.id).subquery()
             query = query.filter(Users.id.in_(only_users_with_orders_query))
 
+        if with_active_orders:
+            only_users_with_active_orders_query = session.query(Users.id).\
+                join(Orders, Orders.from_user == Users.id).filter(or_(
+                Orders.status == OrderStatuses.status_accepted_by_courier().id,
+                Orders.status == OrderStatuses.status_default().id,
+                Orders.status == OrderStatuses.status_processing().id,
+                Orders.status == OrderStatuses.status_awating_confirmation().id,
+                Orders.status == OrderStatuses.status_confirmed().id,
+                Orders.status == OrderStatuses.status_awaiting_payment().id,
+                Orders.status == OrderStatuses.status_payed().id
+            )).subquery()
+            query = query.filter(Users.id.in_(only_users_with_active_orders_query))
+        
+
         global_user_count = query.count()
         if limit == 0:
             users = query.order_by(asc(Users.date_created)).all()
@@ -145,14 +159,12 @@ async def get_all_users(
                 except Exception as err:
                     print(err)
 
-            user_data = UserOut(**user.__dict__)
+
 
             scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user.id).join(Roles).all()
-
-            user_data.roles = [role.role_name for role in scopes_query]
-
+            user.roles = [role.role_name for role in scopes_query]
+            user_data = UserOut(**user.__dict__)
          
-
             if with_orders:
                 orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
                     join(Address, Address.id == Orders.address_id).\
@@ -629,8 +641,8 @@ async def get_current_user_info(
         scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
         scopes = [role.role_name for role in scopes_query]
 
+        query.roles = scopes
         user_data = UserOut(**query.__dict__)
-        user_data.roles = scopes
         return {
             "user_data": user_data,
             "token_data": token_data
@@ -656,8 +668,8 @@ async def get_user_data(
         scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user_query.id).join(Roles).all()
         scopes = [role.role_name for role in scopes_query]
 
+        user_query.roles = scopes
         return_data = UserOut(**user_query.__dict__)
-        return_data.roles = scopes
 
         if with_orders:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
@@ -767,12 +779,15 @@ async def import_clients(file: UploadFile):
             #print(sheet_obj.max_row, sheet_obj.max_column)
             cell_obj = sheet_obj.cell(row, 1)
 
+            #Считаем кол-во пустых ячеек подряд
             if cell_obj.value == None:
                 none_count +=1
             else:
                 none_count = 0
 
             if not re.match(r'[\d](.*)', str(cell_obj.value)):
+                #Если слишком много пустых ячеек - завершаем обработку, т.к.
+                #файл может иметь тысячи пустых строк
                 if none_count > 30:                
                     break
                 continue
@@ -783,12 +798,13 @@ async def import_clients(file: UploadFile):
             except Exception as err:
 
                 error_data.append({
-                    "message": "Not phone number detected",
+                    "message": "No phone number detected",
                     "row": row
                 })
 
                 continue
-
+            
+            #TODO: Обновление данных пользователя, если он уже существовал?
             new_user = session.query(Users).filter_by(phone_number = str(phone_number)).first()
             if not new_user:
                 new_user = Users(
@@ -800,6 +816,12 @@ async def import_clients(file: UploadFile):
                 session.add(new_user)
                 session.flush()
                 session.refresh(new_user)
+            else:
+                error_data.append({
+                    "message": f"Пользователь с номером {phone_number} уже существует",
+                    "row": row
+                })
+                continue
             
             new_address = session.query(Address).filter_by(address = sheet_obj.cell(row,7).value).first()
             if not new_address:
@@ -871,8 +893,10 @@ async def import_clients(file: UploadFile):
             session.add(status_update)
             session.add(new_order)
 
-            session.commit()
-            added_count+=1
+            try:
+                session.commit()
+            finally:
+                added_count+=1
 
     return JSONResponse({
         "added_count": added_count,
