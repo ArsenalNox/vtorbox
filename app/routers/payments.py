@@ -338,6 +338,8 @@ async def process_notification_from_tinkoff(requestd_data: Request):
 
         if not payment:
             print(f'PAYMENT not found {payment_data["RebillId"]}')
+            return 'NO'
+
         payment.rebill_id = payment_data["RebillId"]
         session.commit()
         print(payment)
