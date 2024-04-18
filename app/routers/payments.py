@@ -172,8 +172,7 @@ async def create_new_payment(
                 "message": "No contaier set"
             })
 
-        new_payment = Payments.create_new_payment(
-            terminal=terimnal,
+        new_payment = Payments.process_status_update(
             order=order_query
         )
 
@@ -312,6 +311,7 @@ async def remove_saved_card(
         
         response = requests.post(url, json=r_data)
         print(response.status_code)
+
         if response.status_code == 200 and response.json()['Success'] == True:
             delete_query = session.query(PaymentClientData).filter(PaymentClientData.id == id).delete()
             session.commit()
@@ -336,6 +336,8 @@ async def process_notification_from_tinkoff(requestd_data: Request):
             terminal_id=payment_data['TerminalKey']
         )
 
+        payment.rebill_id = payment_data["RebillId"]
+        session.commit()
         print(payment)
 
-        return 'OK'
+        return "OK"
