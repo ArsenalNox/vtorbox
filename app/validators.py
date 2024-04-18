@@ -238,7 +238,7 @@ class AddressOut(BaseModel):
     detail: Optional[str] = None 
     comment: Optional[str] = None
 
-    distance_from_mkad: int | None = None
+    distance_from_mkad: Optional[Any] = None
     point_on_map: str | None = None
 
     selected_day_of_week:  Optional[List[str]] = None
