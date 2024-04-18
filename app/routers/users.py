@@ -823,7 +823,12 @@ async def import_clients(file: UploadFile):
                 })
                 continue
             
-            new_address = session.query(Address).filter_by(address = sheet_obj.cell(row,7).value).first()
+            new_address = session.query(Address).filter_by(address = sheet_obj.cell(row,7).value).\
+                where(Address.deleted_at == None).\
+                join(UsersAddress, UsersAddress.address_id == Address.id).\
+                where(UsersAddress.user_id == new_user.id).\
+                first()
+
             if not new_address:
                 latitude, longitude = get_lang_long_from_text_addres(sheet_obj.cell(row,7).value)
                 if (latitude == None) or (longitude == None):
