@@ -405,6 +405,17 @@ class UserOut(BaseModel):
     additional_info: Optional[str] = None
     date_created: datetime
 
+    @validator('roles', pre=True, always=True)
+    def only_unique_roles(cls, v):
+        if (v != None):
+            set_v = set(v)
+            unique_roles = list(set_v)
+            return unique_roles
+        else:
+            return v
+
+
+
 
 class StatusOut(BaseModel):
     status_name: str
