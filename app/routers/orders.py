@@ -111,25 +111,26 @@ responses={
     }}}}}
 )
 async def get_filtered_orders(
-        by_date: bool = False, 
-        datetime_start: datetime = None,
-        datetime_end: datetime = None,
-        date_asc: bool = False,
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
+    by_date: bool = False, 
+    datetime_start: datetime = None,
+    datetime_end: datetime = None,
+    date_asc: bool = False,
 
-        state: str = None,
-        state_id: UUID = None,
-        
-        show_deleted: bool = False,
+    state: str = None,
+    state_id: UUID = None,
+    
+    show_deleted: bool = False,
 
-        filter_date: str = None,
+    filter_date: str = None,
 
-        limit: int = 5,
-        page: int = 0,
-        region_id: UUID = None,
-        
-        show_only_active: bool = False
-        #TODO: дистанции, курьеру итд
-        ):
+    limit: int = 5,
+    page: int = 0,
+    region_id: UUID = None,
+    
+    show_only_active: bool = False
+    #TODO: дистанции, курьеру итд
+):
     """
     Получение заявок по фильтру
     - **by_date**: показывать заявки на промежуток дат
@@ -273,6 +274,7 @@ async def get_filtered_orders(
     }
     )
 async def get_order_by_id(
+        current_user: Annotated[UserLoginSchema, Security(get_current_user)],
         order_id: UUID
     ) -> OrderOut:
     """
@@ -326,6 +328,7 @@ async def get_order_by_id(
 
 @router.get('/users/orders/', tags=[Tags.bot, Tags.orders], response_description="Список заявок пользователя")
 async def get_user_orders(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
     tg_id: int = None, 
     user_id: UUID = None, 
     order_id: UUID = None,
