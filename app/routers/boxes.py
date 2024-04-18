@@ -125,7 +125,7 @@ async def update_box_data(
             if value:
                 setattr(box_query, attr, value)
 
-        session.add(box_query)
+        # session.add(box_query)
         session.commit()
 
         box_data = BoxType(**box_query.__dict__)
