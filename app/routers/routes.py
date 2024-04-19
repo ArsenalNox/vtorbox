@@ -434,9 +434,10 @@ async def get_route_y_map(
 
         print(response.status_code)
         if response.status_code == 400:
-            set_timed_func('r', route_query.id, 'M:01')
-
             return response.json()
+
+        result = set_timed_func('r', route_query.id, 'M:01')
+        print(result)
 
         request_id = response.json()['id']
 
