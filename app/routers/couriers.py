@@ -131,8 +131,12 @@ async def get_courier_info_by_id(
 )->CourierOut:
 
     with Session(engine, expire_on_commit=False) as session:
-        query = Users.get_or_404(t_id=tg_id, internal_id=courier_id)
-        # query = session.query(Users).filter_by(telegram_id=tg_id).first()
+        query = None
+        if tg_id:
+            query = Users.get_user(str(tg_id))
+        elif courier_id:
+            query = Users.get_or_404(str(courier_id))
+        
         if not query:
             return JSONResponse({
                 "message": "Not found"
