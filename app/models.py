@@ -1375,8 +1375,8 @@ ORDER_STATUS_AWAITING_PAYMENT = {
     "description": "обработанно курьером, ожидается оплата"
     }
 ORDER_STATUS_PAYED = {
-    "status_name": "оплаченна",
-    "description": "заявка оплаченна"
+    "status_name": "оплачена",
+    "description": "заявка оплачена"
     }
 ORDER_STATUS_DONE = {
     "status_name": "обработанна",
