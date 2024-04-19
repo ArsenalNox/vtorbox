@@ -20,7 +20,7 @@ from app.validators import (
     Order as OrderValidator,
     UserLogin as UserLoginSchema,
     OrderOut,
-    OrderUpdate
+    OrderUpdate, FilteredOrderOut
 )
 
 from app.auth import (
@@ -41,75 +41,7 @@ from app.utils import send_message_through_bot
 router = APIRouter()
 
 
-@router.get('/orders/filter/', tags=[Tags.orders, Tags.admins],
-responses={
-    200: {
-        "description": "Заявка полученная по айди",
-        "content": {
-        "application/json": {
-            "example": {
-                "orders": [
-                    {
-      "id": "ead4e4e4-5735-46aa-bf34-bddeffbb27af",
-      "order_num": 1,
-      "user_order_num": 1,
-      "last_disposal": 'null',
-      "times_completed": 'null',
-      "day": "2024-02-23T00:00:00",
-      "date_created": "2024-02-16T13:39:16.346967",
-      "last_updated": "2024-02-16T13:39:16.347969",
-      "legal_entity": 'false',
-      "comment": "Без комментария",
-      "interval_type": 'null',
-      "interval": 'null',
-      "tg_id": 851230989,
-      "user_data": {
-        "telegram_id": 851230989,
-        "telegram_username": "romaha_57",
-        "firstname": "Тест",
-        "patronymic": 'null',
-        "link_code": 'null',
-        "email": "Test@test.com.ks",
-        "phone_number": "88888888888",
-        "secondname": "Тестов",
-        "deleted_at": 'null'
-      },
-      "address_id": "c2f2260e-156d-471f-ac82-ab04f55680a4",
-      "address_data": {
-        "detail": 'null',
-        "longitude": "37.549588",
-        "latitude": "55.756675",
-        "main": 'true',
-        "distance_from_mkad": 'null',
-        "interval": "friday",
-        "comment": 'null',
-        "address": "Сергеея Макеева 1",
-        "id": "c2f2260e-156d-471f-ac82-ab04f55680a4",
-        "region_id": "98f38e9f-8eca-43f7-b5c5-195333cfaaf4",
-        "point_on_map": 'null',
-        "interval_type": "week_day",
-        "region": {
-          "region_type": "district",
-          "id": "98f38e9f-8eca-43f7-b5c5-195333cfaaf4",
-          "is_active": 'true',
-          "name_short": 'null',
-          "name_full": "Пресненский район",
-          "work_days": "monday friday"
-        }
-      },
-      "box_type_id": 'null',
-      "box_count": 'null',
-      "box_data": 'null',
-      "status": "375432b2-0356-42aa-b4e7-8019a4a11338",
-      "status_data": {
-        "status_name": "ожидается подтверждение",
-        "description": "ожидается подтверждение от клиента"
-      }
-    }],
-    "global_count": 1,
-    "count": 1
-    }}}}}
-)
+@router.get('/orders/filter/', tags=[Tags.orders, Tags.admins])
 async def get_filtered_orders(
     current_user: Annotated[UserLoginSchema, Security(get_current_user)],
     by_date: bool = False, 
@@ -129,8 +61,7 @@ async def get_filtered_orders(
     region_id: UUID = None,
     
     show_only_active: bool = False
-    #TODO: дистанции, курьеру итд
-):
+)->FilteredOrderOut:
     """
     Получение заявок по фильтру
     - **by_date**: показывать заявки на промежуток дат
@@ -156,7 +87,6 @@ async def get_filtered_orders(
             join(Users, Users.id == Orders.from_user).\
             join(Regions, Regions.id == Address.region_id)
         
-
         if state:
             status_query = session.query(OrderStatuses).filter_by(status_name=state).first()
             orders = orders.filter(Orders.status == status_query.id)
