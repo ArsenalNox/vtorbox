@@ -313,7 +313,7 @@ class Users(Base):
 
 
     @staticmethod
-    def get_user(user_id: str):
+    def get_user(user_id: str, update_last_action: bool = False):
         """
         Получить пользователя по его uuid4 или telegram_id
         """
@@ -321,9 +321,12 @@ class Users(Base):
         with Session(engine, expire_on_commit=False) as session:
             if is_valid_uuid(user_id):
                 user_query = session.query(Users).filter_by(id=user_id).first()
-                return user_query
             elif re.match(r'^[\d]*$', user_id):
                 user_query = session.query(Users).filter_by(telegram_id=int(user_id)).first()
+
+            if user_query: 
+                user_query.last_action = datetime.now()
+                session.commit()
 
         return user_query
 
