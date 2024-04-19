@@ -69,8 +69,9 @@ from app.models import (
     )
 
 from app.utils import (
-    send_message_through_bot, get_result_by_id, 
-    generate_y_courier_json)
+        send_message_through_bot, get_result_by_id, 
+        generate_y_courier_json, set_timed_func
+    )
 
 
 router = APIRouter()
@@ -410,6 +411,7 @@ async def get_route_y_map(
             joinedload(RoutesOrders.order).\
             joinedload(Orders.payments)
             ).filter(Routes.id==route_id).first()
+
         if not route_query:
             return JSONResponse({
                 "message": "not found"
@@ -432,6 +434,8 @@ async def get_route_y_map(
 
         print(response.status_code)
         if response.status_code == 400:
+            set_timed_func('r', route_query.id, 'M:01')
+
             return response.json()
 
         request_id = response.json()['id']
