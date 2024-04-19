@@ -98,7 +98,7 @@ def generate_y_courier_json(route_data):
 
     payload = {
         "depot": {
-            "id": 1,
+            "id": 0,
             "point": {
                 "lat": 55.734157,
                 "lon": 37.589346
