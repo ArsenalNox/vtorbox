@@ -13,12 +13,14 @@ from app.validators import (
     Order as OrderValidator,
     UserLogin as UserLoginSchema,
     OrderOut, BoxUpdate,
-    BoxType, RegionalBoxPrice
+    BoxType, RegionalBoxPrice, BoxTypeCreate
 )
 
 from app.auth import (
     get_current_user
 )
+
+from app import Tags
 
 from app.models import (
     engine, Session, BoxTypes,
@@ -70,19 +72,63 @@ async def get_box_types(
         return None
 
 
-@router.post('/boxes', tags=["boxes", "admin"])
+@router.post('/boxes', tags=[Tags.boxes])
 async def create_new_box_type(
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
-    box_data: BoxType
-):
+    box_data: BoxTypeCreate
+)->BoxType:
     """
     Создание нового контейнера
     """
     with Session(engine, expire_on_commit=False) as session:
-        new_box = BoxTypes(**box_data.model_dump())
+        
+        check_query = session.query(BoxTypes).filter_by(box_name=box_data.box_name).first()
+        if check_query:
+            return JSONResponse({
+                "message": f"Контейнер с названием '{box_data.box_name}' уже существует"
+            }, 422)
+
+        new_box_data = box_data.model_dump()
+        regional_prices = new_box_data['regional_prices']
+        del new_box_data["regional_prices"]
+
+        new_box = BoxTypes(**new_box_data)
         session.add(new_box)
         session.commit()
-        return new_box
+
+        if regional_prices:
+            for price in regional_prices:
+                print(price)
+                region_query = session.query(Regions).\
+                    filter(Regions.name_full.ilike(f"%{price['region_name']}%")).first()
+                if not region_query:
+                    print(f"Region {price['region_name']} not found")
+                    continue
+
+                new_reg_price = RegionalBoxPrices(
+                    region_id = region_query.id,
+                    box = new_box.id,
+                    price = price['price']
+                ) 
+                session.add(new_reg_price)
+        else:
+            print(f'no regional pricing for box {new_box.box_name}')
+
+        session.commit()
+
+        box_data = BoxType(**new_box.__dict__)
+        new_box.regional_pricing
+
+        box_prices = []
+        for price in new_box.regional_pricing:
+            box_prices.append(RegionalBoxPrice(
+                region_name = str(price.region.name_full),
+                price = str(price.price)
+            ))
+
+        box_data.regional_prices = box_prices
+
+        return box_data
 
 
 @router.put('/boxes/{box_id}', tags=["boxes", "admin"])
