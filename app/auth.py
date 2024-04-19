@@ -20,6 +20,7 @@ from app.validators import (
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
+from datetime import datetime
 
 from .models import (
     engine, Users, Permissions, Roles, UserRefreshTokens,
@@ -118,9 +119,11 @@ def get_user(username: str = None, user_id: UUID4 = None):
             userdict["hashed_password"] = query.password
             userdict["roles"] = scopes
             userdict["refresh_tokens"] = [token.token for token in refresh_tokens]
-            
             if query.deleted_at:
                 userdict["disabled"] = True
+            else:
+                query.last_action = datetime.now()
+                session.commit()
 
     return UserInDB(**userdict)
 
