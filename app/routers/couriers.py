@@ -131,11 +131,7 @@ async def get_courier_info_by_id(
 )->CourierOut:
 
     with Session(engine, expire_on_commit=False) as session:
-        query = None
-        if tg_id:
-            query = Users.get_user(str(tg_id))
-        elif courier_id:
-            query = Users.get_or_404(str(courier_id))
+        query = Users.get_user(str(tg_id) or str(courier_id))
         
         if not query:
             return JSONResponse({
