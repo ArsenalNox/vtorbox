@@ -266,22 +266,24 @@ class AddressUpdate(Address):
     interval_type: str = None
 
 
-
 class RegionalBoxPrice(BaseModel):
     region_name: str
     price: float
     
 
-class BoxType(BaseModel):
-    """
-    Модель контейнера
-    """
-    id: UUID4
+class BoxTypeCreate(BaseModel):
     box_name: str
     pricing_default: float 
     volume: float
     weight_limit: float
     regional_prices: Optional[List[RegionalBoxPrice]] = None
+
+
+class BoxType(BoxTypeCreate):
+    """
+    Модель контейнера
+    """
+    id: UUID4
 
 
 class BoxUpdate(BaseModel):
@@ -512,3 +514,9 @@ class PaymentNotification(BaseModel):
     ExpDate: Optional[str] = None
     Token: Optional[str] = None
     DATA: Optional[Any] = None
+
+
+class FilteredOrderOut(BaseModel):
+    global_count: int
+    count: int
+    orders: List[OrderOut]
