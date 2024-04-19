@@ -45,6 +45,7 @@ router = APIRouter()
 @router.get('/couriers', tags=[Tags.couriers, Tags.admins])
 async def get_list_of_couriers(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin", "manager"])],
+    show_deleted: bool = False
 )->List[CourierOut]:
     """
     Получить список курьеров
@@ -59,7 +60,11 @@ async def get_list_of_couriers(
 
         query = query.filter(Users.id.in_(roles_user_query))
 
+        if not show_deleted:
+            query = query.filter(Users.deleted_at == None)
+
         query = query.all()
+
         return_data = []
         for user in query:
             
