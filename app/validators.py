@@ -304,6 +304,7 @@ class Status(BaseModel):
 
 class UserOrderOutData(BaseModel):
     id: UUID4
+    amount: Optional[int] = None
     email: Optional[EmailStr] 
     telegram_id: Optional[int]
     telegram_username: Optional[str]
