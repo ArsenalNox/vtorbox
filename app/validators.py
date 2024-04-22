@@ -50,6 +50,7 @@ class OrderUpdate(BaseModel):
     comment_courier: Optional[str] = None
     comment_manager: Optional[str] = None
     day: Optional[datetime] = None
+    manager_id: Optional[UUID4] = None
 
 
 class CourierCreationValidator(BaseModel):
@@ -57,13 +58,6 @@ class CourierCreationValidator(BaseModel):
     Валидатор на создание курьера
     """
     tg_id: int
-
-
-
-class OrderFilter(BaseModel):
-    """
-    Валидация фильтров на получение заявка
-    """
 
 
 class UserSignUp(BaseModel):
@@ -88,7 +82,7 @@ class UserCreationValidator(BaseModel):
 
     telegram_id: int | None = None
     telegram_username: str | None = None
-    phone_number: int | None = None
+    phone_number: str | None = None
 
     firstname: str | None = None
     secondname: str | None = None
@@ -108,7 +102,7 @@ class UserUpdateValidator(BaseModel):
     password: Optional[str] = None
     telegram_id: Optional[int] = None
     telegram_username: Optional[str] = None
-    phone_number: Optional[int] = None
+    phone_number: Optional[str] = None
     firstname: Optional[str] = None
     secondname: Optional[str] = None
     patronymic: Optional[str] = None
@@ -309,7 +303,7 @@ class UserOrderOutData(BaseModel):
     telegram_id: Optional[int]
     telegram_username: Optional[str]
 
-    phone_number: Optional[int]
+    phone_number: Optional[str]
 
     firstname: Optional[str]
     secondname: Optional[str]
@@ -353,6 +347,7 @@ class OrderOut(BaseModel):
     legal_entity: bool
     
     courier_id: Optional[UUID4] = None
+    manager_id: Optional[UUID4] = None
 
     comment: Optional[str] = None
     comment_manager: Optional[str] = None
@@ -388,7 +383,7 @@ class UserOut(BaseModel):
     telegram_id: Optional[int]
     telegram_username: Optional[str]
 
-    phone_number: Optional[int] = None
+    phone_number: Optional[str] = None
     password_plain: Optional[str] = None
 
     firstname: Optional[str] = None
@@ -464,6 +459,10 @@ class RouteOut(BaseModel):
 class CourierOut(UserOut):
     assigned_orders: Optional[List[OrderOut]] = None
     assigned_routes: Optional[List[RouteOut]] = None
+
+
+class ManagerOut(UserOut):
+    assigned_orders: Optional[List[OrderOut]] = None
 
 
 class BotSettingType(BaseModel):
