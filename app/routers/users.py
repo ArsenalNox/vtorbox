@@ -153,14 +153,6 @@ async def get_all_users(
         data = []
 
         for user in users:
-            if user.phone_number:
-                try:
-                    user.phone_number = int(user.phone_number)
-                except Exception as err:
-                    print(err)
-
-
-
             scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user.id).join(Roles).all()
             user.roles = [role.role_name for role in scopes_query]
             user_data = UserOut(**user.__dict__)
@@ -774,7 +766,7 @@ async def import_clients(file: UploadFile):
         added_count = 0
         error_data = []
 
-        for row in range(1, 100):
+        for row in range(1, 160):
             #3840 24
             #print(sheet_obj.max_row, sheet_obj.max_column)
             cell_obj = sheet_obj.cell(row, 1)
