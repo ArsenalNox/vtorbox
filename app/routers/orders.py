@@ -135,7 +135,7 @@ async def get_filtered_orders(
             ))
 
         global_orders_count = orders.count()
-
+        
         if limit == 0:
             orders = orders.all()
         else:
@@ -431,8 +431,10 @@ async def create_order(
             # box_count   = order_data.box_count,
             status      = OrderStatuses.status_default().id,
             date_created = datetime.now(),
-            user_order_num = count + 1
+            user_order_num = count + 1,
+            manager_id = Users.get_random_manager()
         )
+
         print("adding container")
         print(container)
         if container:
