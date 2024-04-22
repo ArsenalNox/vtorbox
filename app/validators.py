@@ -348,6 +348,7 @@ class OrderOut(BaseModel):
     
     courier_id: Optional[UUID4] = None
     manager_id: Optional[UUID4] = None
+    manager_info: Optional[UserOrderOutData] = None
 
     comment: Optional[str] = None
     comment_manager: Optional[str] = None

@@ -3,6 +3,8 @@
 """
 
 import uuid, re, json, copy, hashlib, requests
+import random
+
 from sqlalchemy import (
     create_engine, Column, Integer, String, 
     DateTime, Text, ForeignKey, Float, 
@@ -108,6 +110,10 @@ class Orders(Base):
     #айди курьера, если заявка принята курьером
     courier_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
 
+    #Айди менеджера
+    manager_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    manager_info = relationship('Users', backref='managed_orders', lazy=True, foreign_keys=[manager_id])
+
     #Комментарий к выполнению от менеджера
     #SUGGESTION: Перенести коммента в отдельную таблицу? 
     comment_manager = Column(Text(), nullable=True)
@@ -189,6 +195,9 @@ class Orders(Base):
             except IndexError:
                 order_data.user_data = None
 
+            if order_data.manager_id:
+                order_data.manager_info = order[0].manager_info
+
             return_data.append(order_data.model_dump())
 
         return return_data
@@ -225,6 +234,18 @@ class Orders(Base):
             )
 
             return __self__
+
+
+class OrderComments(Base):
+    __tablename__ = "order_comments"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    from_user = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    order_id = Column(UUID(as_uuid=True), ForeignKey('orders.id'), nullable=False)
+    content = Column(String(), nullable=False)
+
+    date_created = Column(DateTime(), default=default_time)
+    deleted_at = Column(DateTime(), default=None, nullable=True)
 
 
 class Users(Base):
@@ -311,9 +332,30 @@ class Users(Base):
             
             return user_query
 
+    @staticmethod
+    def get_random_manager():
+        """
+        Получить айди случайного менеджера
+        """
+        with Session(engine, expire_on_commit=False) as session:
+            query_manager = session.query(Users.id).\
+                join(Permissions, Permissions.user_id == Users.id).\
+                join(Roles, Roles.id == Permissions.role_id).\
+                where(Roles.role_name == ROLE_MANAGER_NAME).all()
+
+            try:
+                if len(query_manager) < 1:
+                    return None
+
+                return random.choice(query_manager)[0]
+            except Exception as err:
+                print(err)
+
+            return None
+
 
     @staticmethod
-    def get_user(user_id: str, update_last_action: bool = False):
+    def get_user(user_id, update_last_action: bool = False):
         """
         Получить пользователя по его uuid4 или telegram_id
         """
@@ -321,7 +363,7 @@ class Users(Base):
         with Session(engine, expire_on_commit=False) as session:
             if is_valid_uuid(user_id):
                 user_query = session.query(Users).filter_by(id=user_id).first()
-            elif re.match(r'^[\d]*$', user_id):
+            elif re.match(r'^[\d]*$', str(user_id)):
                 user_query = session.query(Users).filter_by(telegram_id=int(user_id)).first()
 
             if user_query: 
@@ -1317,7 +1359,12 @@ class BotSettings(Base):
     detail = Column(String(), nullable=True) #коммент
 
     #TODO: Добавить типы данных
-    types = relationship('SettingsTypes', secondary='bot_settings_types', backref='botsettings', lazy='joined')
+    types = relationship(
+        'SettingsTypes', 
+        secondary='bot_settings_types', 
+        backref='botsettings', 
+        lazy='joined', 
+        overlaps="botsettings,types")
     date_created = Column(DateTime(), default=default_time)
 
 
@@ -1327,7 +1374,12 @@ class SettingsTypes(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(), nullable=False)
 
-    settings = relationship('BotSettings', secondary='bot_settings_types', backref='settingstypes')
+    settings = relationship(
+        'BotSettings', 
+        secondary='bot_settings_types', 
+        backref='settingstypes', 
+        overlaps="botsettings,types"
+        )
     date_created = Column(DateTime(), default=default_time)
 
 

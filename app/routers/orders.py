@@ -213,47 +213,21 @@ async def get_order_by_id(
     with Session(engine, expire_on_commit=False) as session:
         #Получение конкретной заявки
 
-        order = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
+        order = session.query(Orders, Address, BoxTypes, OrderStatuses, Users, Regions).\
             join(Address, Address.id == Orders.address_id).\
             outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
             join(OrderStatuses, OrderStatuses.id == Orders.status).\
             join(Users, Users.id == Orders.from_user).\
             where(Orders.id == order_id).\
-            order_by(asc(Orders.date_created)).first()
-
+            join(Regions, Regions.id == Address.region_id).first()
+        
         if not order:
             return JSONResponse({
                 "message": "not found"
             },status_code=404)
 
-
-        order_data = OrderOut(**order[0].__dict__)
-        order_data.interval = str(order[1].interval).split(', ')
-        try:
-            order_data.address_data = order[1]
-            order_data.address_data.region = order[1].region
-            order_data.address_data.region.work_days = str(order[1].region.work_days).split(' ')
-        except IndexError: 
-            order_data.address_data = none
-
-        try:
-            order_data.box_data = order[2]
-        except IndexError:
-            order_data.box_data = none
-
-        try:
-            order_data.status_data = order[3]
-        except IndexError:
-            order_data.status_data = none
-        
-        try:
-            order_data.user_data = order[4]
-        except IndexError:
-            order_data.user_data = none
-
-        order_data.payments = order[0].payments
-
-        return order_data
+        return_data = Orders.process_order_array([order])
+        return return_data[0]
 
 
 @router.get('/users/orders/', tags=[Tags.bot, Tags.orders], response_description="Список заявок пользователя")
