@@ -9,7 +9,8 @@ from app.routers import (
     orders, users, couriers, 
     admins, bot, boxes, 
     regions, routes, notifications,
-    settings, payments, managers
+    settings, payments, managers,
+    stats
     )
 
 import os
@@ -123,6 +124,13 @@ app.include_router(
     managers.router,
     prefix='/api',
     tags=[Tags.managers]
+)
+
+
+app.include_router(
+    stats.router,
+    prefix='/api',
+    tags=[Tags.statistics]
 )
 
 
