@@ -9,7 +9,7 @@ from app.routers import (
     orders, users, couriers, 
     admins, bot, boxes, 
     regions, routes, notifications,
-    settings, payments
+    settings, payments, managers
     )
 
 import os
@@ -34,16 +34,20 @@ load_dotenv()
 #ВЕЧНО
 #TODO: подправить под soft delete'ы где не подправил 
 
-#TODO: Пул в сшеджулере
 #TODO: Убрать возможность удалять заявку из маршрута со статусом выполнена и выше
 #TODO: Поставить фильтр на даты в маршрутах 
 #TODO: Доработать настройки
+
 #TODO: настройка принятия заявок с бота
 #TODO: фикс дейттайма
 
-#TODO: Автоматическая генерация платежа при подтверждении 
-#TODO: Выдавать ссылку только после нажатия кноки оплатить
-#TODO: Сохранять ссылки и данные после оплаты
+#TODO: deleted_at в картах пользователя
+#TODO: Если день прошёл, а маршрут не утверждён, то расформировать маршрут -> требует внимания (создана)
+#TODO: История комментариев у заявки
+#TODO: Дата последнего действия на определённых эндпоинтах
+#TODO: Фикс медленного получения заявок с последней страницы (недостаточно озу + упростить возвращаемые данные)
+#TODO: Унификация формата ответа ошибок
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -112,6 +116,13 @@ app.include_router(
     payments.router,
     prefix='/api',
     tags=[Tags.payments]
+)
+
+
+app.include_router(
+    managers.router,
+    prefix='/api',
+    tags=[Tags.managers]
 )
 
 
