@@ -16,9 +16,9 @@ def is_valid_uuid(value):
     Проверить, является ли строка валидным UUID
     """
     try:
-        uuid.UUID(value)
+        uuid.UUID(str(value))
         return True
-    except ValueError:
+    except ValueError as err:
         return False
 
 
@@ -40,6 +40,36 @@ def get_lang_long_from_text_addres(address):
 
     except Exception as err: 
         return None, None
+
+
+def get_addresses_collection_from_text_address(address: str):
+    url = f"https://geocode-maps.yandex.ru/1.x/?apikey={CODER_KEY}&geocode={address}{CODER_SETTINGS}"
+    print(url)
+    data = requests.request("GET", url).json()
+    print(data)
+    # address_collection = data.get('response', {}). \
+        # get('GeoObjectCollection', {}). \
+        # get('featureMember')
+
+    address_collection = data['response']['GeoObjectCollection']['featureMember']
+
+    return_data = {}
+    print(len(address_collection))
+    for addr in address_collection:
+
+        obj_type = addr['GeoObject']['metaDataProperty']['GeocoderMetaData']['kind']
+        obj_text = addr['GeoObject']['metaDataProperty']['GeocoderMetaData']['text']
+        print(obj_type, obj_text)
+
+        if obj_type not in return_data:
+            return_data[obj_type] = []
+        
+        if len(return_data[obj_type]) >= 5:
+            continue
+
+        return_data[obj_type].append(obj_text)
+
+    return return_data
 
 
 def send_message_through_bot(receipient_id:int, message, btn=None):
@@ -159,9 +189,6 @@ def get_result_by_id(request_id):
                 point = waypoint['node']['value']['point']
                 yamaps_url += '{}%2c{}~'.format(point['lat'], point['lon'])
 
-            print ('')
-            print ('See route on Yandex.Maps:')
-            print (yamaps_url)
 
             return yamaps_url
     
