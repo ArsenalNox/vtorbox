@@ -39,6 +39,7 @@ from app.validators import (
     RegionOut, AddressDaysWork, UserOut, RouteOut
 )
 
+from app.utils import get_addresses_collection_from_text_address as get_addr_coll
 
 router = APIRouter()
 
@@ -214,12 +215,13 @@ async def get_addresses(
     """
 
     with Session(engine, expire_on_commit=False) as session:
-        
-        user = None
-        if tg_id:
-            user = Users.get_user(str(tg_id))
-        elif user_id:
-            user = Users.get_user(str(user_id))
+        flag_update_last_access = True if 'bot' in bot.roles else False
+        user = Users.get_user(tg_id or user_id, flag_update_last_access)
+
+        # if tg_id:
+        #     user = Users.get_user(str(tg_id))
+        # elif user_id:
+        #     user = Users.get_user(str(user_id))
         
         if not user:
             return JSONResponse({
@@ -792,7 +794,10 @@ async def check_given_address_by_text(
             "address": address,
         },status_code=422)
 
+    possible_addresses = get_addr_coll(text)
+
     return JSONResponse({
         "address": address,
-        "message": None
+        "message": None,
+        "addresses": possible_addresses
     })
