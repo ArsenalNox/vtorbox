@@ -13,7 +13,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')
 CODER_KEY = os.getenv("Y_GEOCODER_KEY")
 COURIER_KEY = os.getenv("Y_COURIER_KEY")
 
-CODER_SETTINGS = f"&format=json&lang=ru_RU&ll=37.618920,55.756994&spn=4.552069,4.400552&rspn=1"
+CODER_SETTINGS = f"&format=json&lang=ru_RU&ll=37.618920,55.756994&spn=4.552069,4.400552&rspn=1&kind=house"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 COURIER_API_ROOT_ENDPOINT = 'https://courier.yandex.ru/vrs/api/v1'
 
@@ -25,7 +25,8 @@ TIKOFF_API_URL_TEST="https://securepay.tinkoff.ru/v2"
 SCHEDULER_HOST=os.getenv('SCHEDULER_HOST')
 SCHEDULER_PORT=os.getenv('SCHEDULER_PORT')
 
-BASE_HOST_URL_NOTIFY='http://5.253.62.213:8000/api/payment/notify/auto'
+# BASE_HOST_URL_NOTIFY='http://5.253.62.213:8000/api/payment/notify/auto'
+BASE_HOST_URL_NOTIFY='http://94.41.188.133:8000/api/payment/notify/auto'
 
 class Tags(Enum):
     users = "users"
@@ -41,6 +42,7 @@ class Tags(Enum):
     routes = "routes"
     settings = "settings"
     payments = "payments"
+    statistics = 'statistics'
 
 class Scopes(Enum):
     bot = 'bot'

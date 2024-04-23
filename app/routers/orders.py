@@ -607,16 +607,9 @@ async def set_order_status(
         return order_query
 
 
-@router.put('/orders/{order_id}/courier', tags=[Tags.orders, Tags.managers])
-async def set_order_courier():
-    """
-    Установить курьера на заказ
-    """
-    pass
-
-
 @router.put('/orders/{order_id}', tags=[Tags.bot, Tags.orders])
 async def update_order_data(
+        current_user: Annotated[UserLoginSchema, Security(get_current_user)],
         order_id: UUID, 
         new_order_data: OrderUpdate
     )->OrderOut:
