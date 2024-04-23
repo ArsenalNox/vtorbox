@@ -13,7 +13,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')
 CODER_KEY = os.getenv("Y_GEOCODER_KEY")
 COURIER_KEY = os.getenv("Y_COURIER_KEY")
 
-CODER_SETTINGS = f"&format=json&lang=ru_RU&ll=37.618920,55.756994&spn=4.552069,4.400552&rspn=1&kind=house"
+CODER_SETTINGS = f"&format=json&lang=ru_RU&ll=37.618920,55.756994&spn=4.552069,4.400552&rspn=1"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 COURIER_API_ROOT_ENDPOINT = 'https://courier.yandex.ru/vrs/api/v1'
 
