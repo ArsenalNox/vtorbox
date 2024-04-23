@@ -133,8 +133,8 @@ async def generate_routes_today(
     - **write_after_generation** [bool] - записать ли результат сразу в бд
     """
     with Session(engine, expire_on_commit=False) as session:
-        date = datetime.now()
         #TODO: Статус отменена при удалении из маршрута
+        date = datetime.now()
         date = date.replace(hour=0, minute=0, second=0, microsecond=0)
         date_tommorrow = date + timedelta(days=1)
 
