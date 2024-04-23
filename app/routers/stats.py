@@ -25,7 +25,8 @@ from app.validators import (
     AddressUpdate as AddressUpdateValidator,
     UserLogin as UserLoginSchema,
     AddressSchedule, CreateUserData, UpdateUserDataFromTG, AddressOut,
-    RegionOut, AddressDaysWork, UserOut, RouteOut
+    RegionOut, AddressDaysWork, UserOut, RouteOut, UserRegistrationStat,
+    OrderStatusStatistic, OrderRegionStatistic
 )
 
 from app import Tags
@@ -77,7 +78,19 @@ router = APIRouter()
 @router.get('/stats/users/registration')
 async def get_user_registration_stats(
     year_month: Optional[datetime] = None
-):
+)->UserRegistrationStat:
+    """
+    Получить статистку пользователей за **year_month**
+    - **year_month**: [datetime] - Месяц, за который будет собираться статистика, по умолчанию текущий
+
+
+    Возвращает 
+    - **number**: [int] - Общее кол-во пользователей в системе, учитывая удалённых
+    - **deleted_count**: [int] - Кол-во удалённых пользователей
+    - **registered_in_month**: [int] - Сколько пользователей зарегестрировалось в этом месяце
+    - **percentage**: [float] - процент зарегестрированных пользователей от общего кол-ва пользователей
+    - **chart_data**: [dict] - кол-во зарегестрированных пользователей по датам месяца
+    """
     with Session(engine, expire_on_commit=False) as session:
         if not year_month:
             year_month = datetime.now()
@@ -111,14 +124,17 @@ async def get_user_registration_stats(
             "deleted_count": user_deleted_count_query,
             "registered_in_month": users_registered_this_month,
             "percentage": users_registered_this_month/(user_count_query+user_deleted_count_query),
-            "chardData": registration_dates_count
+            "chartData": registration_dates_count
         }
 
         return return_data
 
 
 @router.get('/stats/orders/statuses')
-async def get_user_registration_stats():
+async def get_order_statuses_stats()->List[OrderStatusStatistic]:
+    """
+    Получить статистику заявок по их статусам
+    """
     with Session(engine, expire_on_commit=False) as session:
         statuses_query = session.query(OrderStatuses).all()
         return_data = []
@@ -135,7 +151,10 @@ async def get_user_registration_stats():
 
 
 @router.get('/stats/orders/regions')
-async def get_user_registration_stats():
+async def get_order_region_stats()->List[OrderRegionStatistic]:
+    """
+    Получить кол-во заявок по регионам, сбор заявок не учитывает даты создания/вывоза
+    """
     with Session(engine, expire_on_commit=False) as session:
         regions_query = session.query(Regions).all()
         return_data = []
@@ -152,9 +171,16 @@ async def get_user_registration_stats():
 
 
 @router.get('/stats/orders/dynamic')
-async def get_user_registration_stats(
-    year_month: Optional[datetime] = None
+async def get_order_dynamics_stat(
+    year_month: Optional[datetime] = None,
+    by_creation_date: bool = True
 ):
+    """
+    Получить статистику динамики изменений заявок. Собирает заявки по месяцу, указанному в **year_month**
+    либо, если он не указан то с начала текущего
+
+    - **by_creation_date**: [bool] - собирать заявки по дате создания, а не дате вывоза. Если **False** собирает заявки по дате вывоза
+    """
     with Session(engine, expire_on_commit=False) as session:
         if not year_month:
             year_month = datetime.now()
@@ -186,3 +212,8 @@ async def get_user_registration_stats(
 
         return return_data
 
+@router.get('/stats/orders/latest-payed')
+async def get_latest_payed_orders(
+    limit: int = 5
+):
+    pass

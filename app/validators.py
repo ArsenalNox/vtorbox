@@ -521,3 +521,25 @@ class FilteredOrderOut(BaseModel):
     global_count: int
     count: int
     orders: List[OrderOut]
+
+
+class UserRegistrationStatChartData(BaseModel):
+    date: datetime
+    count: int
+
+
+class UserRegistrationStat(BaseModel):
+    number: int
+    deleted_count: int
+    registered_in_month: int
+    percentage: float
+    chartData: List[UserRegistrationStatChartData]
+
+
+class OrderStatusStatistic(BaseModel):
+    name: str
+    value: int
+
+
+class OrderRegionStatistic(OrderStatusStatistic):
+    pass
