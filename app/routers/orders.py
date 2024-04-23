@@ -592,20 +592,32 @@ async def set_order_status(
                 "message": "Status is identical, change not saved"
             }, 200)
 
+
         order_query = order_query.update_status(status_query.id)
 
         # session.add(order_query)
-        session.commit()
 
         print("Checking for payment")
         print(status_query.status_name)
+
         if status_query.status_name == ORDER_STATUS_AWAITING_PAYMENT['status_name']: 
             print("Creating payment")
             new_payment = Payments.process_status_update(
                 order = order_query
             )
+
+        session.commit()
+
+        print("Checking for manager id")
+        if order_query.manager_id:
+            print(f"has manager id {order_query.manager_id}")
+            print(order_query.manager_info)
+        else:
+            order_query.manager_info = None
             
+
         order_query.payments
+
         return order_query
 
 
@@ -671,8 +683,8 @@ async def update_order_data(
             join(Users, Users.id == Orders.from_user).\
             where(Orders.id == order_id).\
             order_by(asc(Orders.date_created)).first()
-        return_data = Orders.process_order_array([order_query])
 
+        return_data = Orders.process_order_array([order_query])
 
         return return_data[0]
 
