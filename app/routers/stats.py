@@ -249,15 +249,22 @@ async def get_order_dynamics_stat(
         date = year_month
         date = date.replace(hour=0, minute=0, second=0, microsecond=0)
         month_start_date = date + relativedelta(days=-before)
-        month_end_date   = date + relativedelta(days=after)
+        month_end_date   = date + relativedelta(days=after+1)
 
         print(month_start_date, month_end_date)
         statuses_query = session.query(OrderStatuses).all()
 
         return_data = []
 
-        for month_date in range(1,calendar.monthrange(date.year, date.month)[1]+1):
-            month_date_query_date_start = date.replace(hour=0, minute=0, second=0, microsecond=0, day=month_date)
+        
+        dates_list = []
+        for i in range(0, abs(month_start_date-month_end_date).days + 1):
+            dates_list.append(
+                month_start_date+relativedelta(days=i)
+            )
+
+        for month_date in dates_list:
+            month_date_query_date_start = month_date
             month_date_query_date_end = month_date_query_date_start + relativedelta(days=+1)
 
             date_order_data = {"name": month_date_query_date_start}
