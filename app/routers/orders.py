@@ -316,7 +316,6 @@ async def get_user_orders(
                 outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
-
         return_data = []
         for order in orders:
             order_data = OrderOut(**order[0].__dict__)
@@ -339,6 +338,9 @@ async def get_user_orders(
                 order_data.status_data = order[3]
             except IndexError:
                 order_data.status_data = None
+
+            if order_data.manager_id:
+                order_data.manager_info = order[0].manager_info
 
             return_data.append(order_data)
 
