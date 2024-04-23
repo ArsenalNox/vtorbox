@@ -594,7 +594,7 @@ async def set_order_status(
 
         order_query = order_query.update_status(status_query.id)
 
-        session.add(order_query)
+        # session.add(order_query)
         session.commit()
 
         print("Checking for payment")
