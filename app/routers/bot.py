@@ -282,7 +282,8 @@ async def add_user_address(
         address_data: AddressValidator, 
         bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
         tg_id: int = None,
-        user_id: UUID = None
+        user_id: UUID = None,
+        override_geocoder: bool = False
     ) -> AddressOut:
     """
     Создание адреса пользователя
@@ -368,15 +369,17 @@ async def add_user_address(
                     get('Point').get('pos')).split()
 
             except Exception as err: 
-                return JSONResponse({
-                    "message": "No such address in allowed area"
-                }, 422)
+                if not override_geocoder:
+                    return JSONResponse({
+                        "message": "No such address in allowed area"
+                    }, 422)
 
         else:
             #Если не предоставили ни коордов ни адреса
-            return JSONResponse({
-                "message": "Either field address or longtitude with lattitude are required"
-                },status_code=422)
+            if not override_geocoder:
+                return JSONResponse({
+                    "message": "Either field address or longtitude with lattitude are required"
+                    },status_code=422)
 
 
         if address_data.main:
@@ -390,7 +393,6 @@ async def add_user_address(
                 address.main = False
 
         #создаем новый адрес
-
         interval = None
         if address_data.selected_day_of_week:
             interval = ', '.join(address_data.selected_day_of_week)
@@ -431,6 +433,8 @@ async def add_user_address(
         address = Address(**address_data_dump)
         address.inteval = interval
         
+        address.comment = "Требуется проверить адрес"
+
         session.add(address)
         session.commit()
 
@@ -693,6 +697,7 @@ async def check_given_address(
     
     data = requests.request("GET", url).json()
     data = dict(data)
+    print(data)
 
     try:
         address = data.get('response', {}). \
@@ -732,9 +737,12 @@ async def check_given_address(
             "address": address,
         },status_code=422)
 
+    possible_addresses = get_addr_coll(f"{long},{lat}")
+
     return JSONResponse({
         "message": address,
         "address": None,
+        "addresses": possible_addresses
     })
 
 
@@ -769,6 +777,7 @@ async def check_given_address_by_text(
         return JSONResponse({
             "message": "Адрес находится вне рабочей области проекта",
             "address": text,
+            "addresses": None
         },status_code=422)
 
     region = Regions.get_by_coords(
@@ -781,18 +790,21 @@ async def check_given_address_by_text(
         return JSONResponse({
             "message": "Не найден регион",
             "address": address,
+            "addresses": None
         },status_code=422)
 
     if not region.work_days:
         return JSONResponse({
             "message": "В расписании региона отсутствуют рабочие дни",
             "address": address,
+            "addresses": None
         },status_code=422)
 
     if not region.is_active:
         return JSONResponse({
             "message": f"В регионе '{region.name}' на данный момент не принимаются заявки",
             "address": address,
+            "addresses": None
         },status_code=422)
 
     possible_addresses = get_addr_coll(text)
