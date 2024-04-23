@@ -258,7 +258,7 @@ async def get_order_dynamics_stat(
 
         
         dates_list = []
-        for i in range(0, abs(month_start_date-month_end_date).days + 1):
+        for i in range(0, abs(month_start_date-month_end_date).days):
             dates_list.append(
                 month_start_date+relativedelta(days=i)
             )
