@@ -130,6 +130,61 @@ async def get_user_registration_stats(
         return return_data
 
 
+@router.get('/stats/orders/creation')
+async def get_order_creation_stats(
+    year_month: Optional[datetime] = None
+)->UserRegistrationStat:
+    """
+    Получить статистку заявок за **year_month**
+    - **year_month**: [datetime] - Месяц, за который будет собираться статистика, по умолчанию текущий
+
+
+    Возвращает 
+    - **number**: [int] - Общее кол-во заявок в системе, учитывая удалённые
+    - **deleted_count**: [int] - Кол-во удалённых заявок
+    - **registered_in_month**: [int] - Сколько заявок зарегестрированно в этом месяце
+    - **percentage**: [float] - процент зарегестрированных заявок от общего кол-ва
+    - **chart_data**: [dict] - кол-во зарегестрированных заявок по датам месяца
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        if not year_month:
+            year_month = datetime.now()
+
+        date = year_month
+        month_start_date = date.replace(hour=0, minute=0, second=0, microsecond=0, day=1)
+        month_end_date   = month_start_date + relativedelta(months=1)
+
+
+        user_count_query = session.query(Orders).filter_by(deleted_at = None).count() 
+        user_deleted_count_query = session.query(Orders).filter(Orders.deleted_at != None).count()
+        users_registered_this_month = session.query(Orders).\
+            filter(Orders.date_created>=month_start_date, Orders.date_created<=month_end_date).count()
+
+        registration_dates_count = []
+
+        for month_date in range(1,calendar.monthrange(date.year, date.month)[1]+1):
+            month_date_query_date_start = date.replace(hour=0, minute=0, second=0, microsecond=0, day=month_date)
+            month_date_query_date_end = month_date_query_date_start + relativedelta(days=+1)
+            count_query = session.query(Orders).filter(
+                Orders.date_created>=month_date_query_date_start, Orders.date_created<=month_date_query_date_end
+            ).count()
+
+            registration_dates_count.append({
+                "date": month_date_query_date_start,
+                "count": count_query
+            })
+
+        return_data = {
+            "number": user_count_query+user_deleted_count_query,
+            "deleted_count": user_deleted_count_query,
+            "registered_in_month": users_registered_this_month,
+            "percentage": users_registered_this_month/(user_count_query+user_deleted_count_query),
+            "chartData": registration_dates_count
+        }
+
+        return return_data
+
+
 @router.get('/stats/orders/statuses')
 async def get_order_statuses_stats()->List[OrderStatusStatistic]:
     """
