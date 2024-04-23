@@ -62,7 +62,7 @@ from app.models import (
     OrderStatuses, OrderStatusHistory,
     ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION,
     ORDER_STATUS_CANCELED, IntervalStatuses, 
-    ROLE_ADMIN_NAME, ROLE_COURIER_NAME,
+    ROLE_ADMIN_NAME, ROLE_COURIER_NAME, ORDER_STATUS_DONE,
     Routes, RoutesOrders
     )
 
@@ -158,10 +158,14 @@ async def get_order_region_stats()->List[OrderRegionStatistic]:
     with Session(engine, expire_on_commit=False) as session:
         regions_query = session.query(Regions).all()
         return_data = []
-
+        
         for region in regions_query:
             order_count_by_region = session.query(Orders).join(Address).\
-                filter(Address.region_id == region.id).count()
+                filter(
+                    Address.region_id == region.id,
+                    Orders.status == OrderStatuses.status_done().id
+                    ).count()
+
             return_data.append({
                 "name": region.name_full,
                 "value": order_count_by_region
