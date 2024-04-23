@@ -249,7 +249,7 @@ async def get_order_dynamics_stat(
         date = year_month
         date = date.replace(hour=0, minute=0, second=0, microsecond=0)
         month_start_date = date + relativedelta(days=-before)
-        month_end_date   = date + relativedelta(days=after+1)
+        month_end_date   = date + relativedelta(days=after)
 
         print(month_start_date, month_end_date)
         statuses_query = session.query(OrderStatuses).all()
