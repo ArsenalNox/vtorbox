@@ -232,7 +232,9 @@ async def get_order_region_stats()->List[OrderRegionStatistic]:
 @router.get('/stats/orders/dynamic')
 async def get_order_dynamics_stat(
     year_month: Optional[datetime] = None,
-    by_creation_date: bool = True
+    by_creation_date: bool = True,
+    before: int = 30,
+    after: int = 30
 ):
     """
     Получить статистику динамики изменений заявок. Собирает заявки по месяцу, указанному в **year_month**
@@ -245,9 +247,11 @@ async def get_order_dynamics_stat(
             year_month = datetime.now()
 
         date = year_month
-        month_start_date = date.replace(hour=0, minute=0, second=0, microsecond=0, day=1)
-        month_end_date   = month_start_date + relativedelta(months=1)
+        date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+        month_start_date = date + relativedelta(days=-before)
+        month_end_date   = date + relativedelta(days=after)
 
+        print(month_start_date, month_end_date)
         statuses_query = session.query(OrderStatuses).all()
 
         return_data = []
