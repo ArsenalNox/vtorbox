@@ -22,6 +22,7 @@ class PaymentHandler(Handler):
             """Получение способов оплаты пользователя"""
 
             await state.update_data(chat_id=message.chat.id)
+            await state.update_data(menu_view='payment')
 
             data = await state.get_data()
             await delete_messages_with_btn(
@@ -35,21 +36,25 @@ class PaymentHandler(Handler):
                 url='bot/messages?message_key=PAYMENTS'
             )
 
+            status_code, card_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=CARD_INFO'
+            )
+
             status_code, cards = await req_to_api(
                 method='get',
                 url=f'payment-data/saved-cards?user_id={message.chat.id}'
             )
-            print(cards)
 
             if cards:
                 await message.answer(
-                    MESSAGES['PAYMENTS']
+                    payment_msg
                 )
 
                 msg_ids = {}
                 for card in cards:
                     msg = await message.answer(
-                        MESSAGES['CARD_INFO'].format(
+                        card_msg.format(
                             card.get('pan'),
                             card.get('user', {}).get('email'),
                             card.get('user', {}).get('phone_number')
@@ -71,8 +76,12 @@ class PaymentHandler(Handler):
                 )
 
             else:
+                status_code, empty_payments_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=EMPTY_PAYMENTS'
+                )
                 await message.answer(
-                    MESSAGES['EMPTY_PAYMENTS'],
+                    empty_payments_msg,
                     reply_markup=self.kb.settings_btn()
                 )
 
@@ -88,15 +97,17 @@ class PaymentHandler(Handler):
             )
             card_id = callback.data.split('_')[-1]
 
-            status_code, cards = await req_to_api(
+            await req_to_api(
                 method='delete',
                 url=f'payment-data/customer-data/removeCard?id={card_id}'
             )
 
-            await callback.message.answer(
-                MESSAGES['CARD_WAS_DELETED'],
-                reply_markup=self.kb.settings_btn()
+            status_code, card_deleted_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=CARD_WAS_DELETED'
             )
 
-
-
+            await callback.message.answer(
+                card_deleted_msg,
+                reply_markup=self.kb.settings_btn()
+            )

@@ -1,6 +1,5 @@
 import datetime
 import json
-import pprint
 from urllib.parse import quote
 
 from aiogram import Bot, Router, F
@@ -11,11 +10,11 @@ from loguru import logger
 
 from bot.handlers.base_handler import Handler
 from bot.keyboards.order import OrderKeyboard
-from bot.states.states import CreateOrder, YesOrNo, ChangeOrder
+from bot.states.states import CreateOrder, YesOrNo
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn, format_orders_statuses_text
-from bot.utils.handle_data import validate_date, get_order_data, show_order_info, group_orders_by_month, \
-    show_active_orders, translate_day_reverse, convert_date, show_address_date
+from bot.utils.handle_data import show_order_info, group_orders_by_month, \
+    show_active_orders, show_address_date
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
@@ -34,6 +33,7 @@ class OrderHandler(Handler):
             """Создание заявки"""
 
             await state.update_data(chat_id=message.chat.id)
+            await state.update_data(menu_view='menu')
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -215,6 +215,7 @@ class OrderHandler(Handler):
         async def order_history(message: Message, state: FSMContext):
 
             await state.update_data(chat_id=message.chat.id)
+            await state.update_data(menu_view='menu')
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -416,7 +417,6 @@ class OrderHandler(Handler):
                 method='post',
                 url=f'payment?for_order={order_id}'
             )
-            print(response)
 
             if isinstance(response[0], dict):
                 await callback.message.answer(

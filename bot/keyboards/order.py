@@ -43,6 +43,7 @@ class OrderKeyboard(BaseKeyboard):
         builder = InlineKeyboardBuilder()
         order_id = order.get('id')
         order_num = order.get('order_num')
+        manager_id = order.get('manager_info', {}).get('telegram_id')
 
         # ---------------------------Логика вывода стрелочек для переключения--------------------------------------
         try:
@@ -106,12 +107,12 @@ class OrderKeyboard(BaseKeyboard):
                 InlineKeyboardButton(
                     text='Отменить',
                     callback_data=f'cancel_{order_id}',
-                    url=f'tg://user?id=398488929'
+                    url=f'tg://user?id={manager_id}'
                 ),
             InlineKeyboardButton(
                 text='Связаться с менеджером',
                 callback_data=f'manager_{order_id}',
-                url=f'tg://user?id=398488929'
+                url=f'tg://user?id={manager_id}'
             ),
             )
 

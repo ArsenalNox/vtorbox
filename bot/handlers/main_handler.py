@@ -1,5 +1,3 @@
-import aiohttp
-
 from bot.handlers.command_handler import CommandHandler
 from bot.handlers.text_handler import TextHandler
 from bot.handlers.address_handler import AddressHandler
