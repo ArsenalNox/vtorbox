@@ -9,7 +9,7 @@ from typing import Annotated, List, Union, Optional
 
 from fastapi import APIRouter, Body, Security, Query
 from fastapi.responses import JSONResponse
-
+from fastapi.encoders import jsonable_encoder
 from calendar import monthrange
 from datetime import datetime, timedelta
 from uuid import UUID
@@ -316,9 +316,12 @@ async def get_user_orders(
                 outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                 join(OrderStatuses, OrderStatuses.id == Orders.status).\
                 where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
+
         return_data = []
         for order in orders:
-            order_data = OrderOut(**order[0].__dict__)
+            order_parent_data = jsonable_encoder(order[0])
+            order_data = OrderOut(**order_parent_data)
+
             order_data.tg_id = user.telegram_id
 
             try:
@@ -635,7 +638,6 @@ async def update_order_data(
 
         order_query = session.query(Orders).filter_by(id=order_id)\
             .where(Orders.deleted_at == None).first()
-
 
         if not order_query:
             return JSONResponse({
