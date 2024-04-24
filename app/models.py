@@ -112,7 +112,7 @@ class Orders(Base):
 
     #Айди менеджера
     manager_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
-    manager_info = relationship('Users', backref='managed_orders', lazy=True, foreign_keys=[manager_id])
+    manager_info = relationship('Users', backref='managed_orders', lazy='joined', foreign_keys=[manager_id])
 
     #Комментарий к выполнению от менеджера
     #SUGGESTION: Перенести коммента в отдельную таблицу? 
@@ -148,6 +148,9 @@ class Orders(Base):
         """
         return_data = []
         for order in orders:
+            manager_info = order[0].manager_info
+            order[0].manager_info = None
+
             order_data = OrderOut(**order[0].__dict__)
             order_data.tg_id = order[4].telegram_id
             
@@ -196,7 +199,7 @@ class Orders(Base):
                 order_data.user_data = None
 
             if order_data.manager_id:
-                order_data.manager_info = order[0].manager_info
+                order_data.manager_info = manager_info
 
             return_data.append(order_data.model_dump())
 
