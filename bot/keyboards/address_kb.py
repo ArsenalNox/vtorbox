@@ -92,6 +92,12 @@ class AddressKeyboard(BaseKeyboard):
                 callback_data='found_address_no'
             )
         )
+        builder.row(
+            InlineKeyboardButton(
+                text='Ввести адрес вручную',
+                callback_data='manually_address'
+            )
+        )
 
         return builder.as_markup(
             resize_keyboard=True,
@@ -110,6 +116,12 @@ class AddressKeyboard(BaseKeyboard):
             InlineKeyboardButton(
                 text='Нет',
                 callback_data='save_address_no'
+            )
+        )
+        builder.row(
+            InlineKeyboardButton(
+                text='Ввести адрес вручную',
+                callback_data='manually_address'
             )
         )
 

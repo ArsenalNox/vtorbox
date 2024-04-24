@@ -1,6 +1,6 @@
 import json
+import pprint
 
-import requests
 from aiogram import Bot, Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
@@ -9,10 +9,9 @@ from bot.handlers.base_handler import Handler
 from bot.keyboards.address_kb import AddressKeyboard
 from bot.keyboards.order import OrderKeyboard
 
-from bot.settings import settings
-from bot.states.states import AddAddressState, CreateOrder, ConfirmAddress
+from bot.states.states import AddAddressState, ConfirmAddress
 from bot.utils.buttons import BUTTONS
-from bot.utils.format_text import delete_messages_with_btn, format_addresses
+from bot.utils.format_text import delete_messages_with_btn
 from bot.utils.handle_data import show_address_list, show_address_date
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
@@ -32,6 +31,8 @@ class AddressHandler(Handler):
             """Получение всех адресов пользователя"""
 
             await state.update_data(chat_id=message.chat.id)
+            await state.update_data(menu_view='addresses')
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -381,6 +382,39 @@ class AddressHandler(Handler):
                     reply_markup=self.kb.send_geo_btn()
                 )
                 await state.set_state(AddAddressState.address)
+
+        @self.router.callback_query(F.data.startswith('manually_address'))
+        async def get_manually_address(callback: CallbackQuery, state: FSMContext):
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=callback.message
+            )
+
+            await callback.message.answer(
+                MESSAGES['ADD_MANUALLY_ADDRESS']
+            )
+            await state.set_state(AddAddressState.manually)
+
+        @self.router.message(AddAddressState.manually)
+        async def save_manually_address(message: Message, state: FSMContext):
+            await state.set_state(state=None)
+
+            address = message.text
+            await state.update_data(address=address)
+
+            await state.set_state(AddAddressState.comment)
+
+            status_code, comment_address_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=WRITE_COMMENT_ADDRESS'
+            )
+
+            await message.answer(
+                comment_address_msg,
+                reply_markup=self.kb.empty_comment_btn()
+            )
 
         @self.router.callback_query(F.data.startswith('found_address'))
         async def check_found_address_by_yandex(callback: CallbackQuery, state: FSMContext):

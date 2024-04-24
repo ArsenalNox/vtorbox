@@ -1,22 +1,17 @@
 import http
 import json
-import time
 
-import aiohttp
-import requests
 from aiogram import Bot, Router, F
 from aiogram.filters import Command, or_f
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 
 from bot.handlers.base_handler import Handler
 from bot.keyboards.base_keyboards import BaseKeyboard
 
-from bot.settings import settings
 from bot.states.states import RegistrationUser
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
-from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
 
@@ -137,6 +132,7 @@ class CommandHandler(Handler):
                             reply_markup=self.kb.registration_btn()
                         )
                         await state.set_state(RegistrationUser.phone)
+                        await state.update_data(menu_view='registration')
 
                 # сохраняем в состояние chat_id
                 await state.update_data(chat_id=message.chat.id)
