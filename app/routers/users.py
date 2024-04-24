@@ -158,7 +158,8 @@ async def get_all_users(
         for user in users:
             scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=user.id).join(Roles).all()
             user.roles = [role.role_name for role in scopes_query]
-            user_data = UserOut(**user.__dict__)
+            user_parent_data = jsonable_encoder(user.__dict__)
+            user_data = UserOut(**user_parent_data)
          
             if with_orders:
                 orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
@@ -284,7 +285,8 @@ async def create_user(
         scopes = [role.role_name for role in scopes_query]
 
         #TODO: Отправка приглашения на почту
-        user_out_data = UserOut(**new_user.__dict__)
+        user_parent_data = jsonable_encoder(new_user.__dict__)
+        user_out_data = UserOut(**user_parent_data)
         user_out_data.roles = scopes
         user_out_data.password_plain = password_plain
 
@@ -366,7 +368,8 @@ async def update_user_data(
         session.add(user_query)
         session.commit()
 
-        user_data = UserOut(**user_query.__dict__)
+        user_parent_data = jsonable_encoder(user_query.__dict__)
+        user_data = UserOut(**user_parent_data)
         scopes_query = session.query(Permissions, Roles.role_name).\
                 filter_by(user_id=user_query.id).join(Roles).all()
         user_data.roles = [role.role_name for role in scopes_query]
@@ -637,7 +640,8 @@ async def get_current_user_info(
         scopes = [role.role_name for role in scopes_query]
 
         query.roles = scopes
-        user_data = UserOut(**query.__dict__)
+        user_parent_data = jsonable_encoder(query.__dict__)
+        user_data = UserOut(**user_parent_data)
         return {
             "user_data": user_data,
             "token_data": token_data
@@ -664,7 +668,8 @@ async def get_user_data(
         scopes = [role.role_name for role in scopes_query]
 
         user_query.roles = scopes
-        return_data = UserOut(**user_query.__dict__)
+        user_parent_data = jsonable_encoder(user_query.__dict__)
+        return_data = UserOut(**user_parent_data)
 
         if with_orders:
             orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
@@ -720,7 +725,8 @@ async def get_user_info(
         scopes_query = session.query(Permissions, Roles.role_name).filter_by(user_id=query.id).join(Roles).all()
         scopes = [role.role_name for role in scopes_query]
 
-        return_data = UserOut(**query.__dict__)
+        user_parent_data = jsonable_encoder(query.__dict__)
+        return_data = UserOut(**user_parent_data)
         return_data.roles = scopes
 
         return return_data
