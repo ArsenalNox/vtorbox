@@ -282,8 +282,12 @@ async def get_order_dynamics_stat(
 
         return return_data
 
-@router.get('/stats/orders/latest-payed')
-async def get_latest_payed_orders(
+@router.get('/stats/orders/latest')
+async def get_latest_orders(
     limit: int = 5
-):
-    pass
+)->List[OrderOut]:
+    with Session(engine, expire_on_commit=False) as session:
+        order_query = session.query(Orders).options(
+            joinedload(Orders.payments)
+        ).order_by(desc(Orders.date_created)).limit(limit).all()
+        return order_query
