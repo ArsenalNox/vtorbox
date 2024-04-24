@@ -18,6 +18,7 @@ from app.auth import (
     oauth2_scheme, 
     get_current_user
 )
+from fastapi.encoders import jsonable_encoder
 
 from app.validators import (
     LinkClientWithPromocodeFromTG as UserLinkData,
@@ -288,6 +289,14 @@ async def get_latest_orders(
 )->List[OrderOut]:
     with Session(engine, expire_on_commit=False) as session:
         order_query = session.query(Orders).options(
-            joinedload(Orders.payments)
+            joinedload(Orders.payments),
+            joinedload(Orders.address)
         ).order_by(desc(Orders.date_created)).limit(limit).all()
-        return order_query
+
+        return_data = []
+        for order in order_query:
+            parent_data = jsonable_encoder(order)
+            return_data.append(OrderOut(**parent_data))
+            return_data[-1].address_data = order.address
+        
+        return return_data
