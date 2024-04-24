@@ -6,8 +6,6 @@ from aiogram.types import CallbackQuery
 
 from bot.handlers.base_handler import Handler
 from bot.keyboards.base_keyboards import BaseKeyboard
-from bot.utils.handle_data import show_order_info
-from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
 
@@ -22,9 +20,6 @@ class NotificationHandler(Handler):
         async def approve_order(callback: CallbackQuery, state: FSMContext):
 
             data = await state.get_data()
-
-
-
             order_id = callback.data.split('_')[-1]
 
             status_code, order = await req_to_api(
@@ -50,4 +45,3 @@ class NotificationHandler(Handler):
                 method='put',
                 url=f'orders/{order_id}/status?status_text={status}',
             )
-

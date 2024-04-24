@@ -5,6 +5,7 @@ class AddAddressState(StatesGroup):
     """Состояния для создания адреса"""
 
     address = State()
+    manually = State()
     detail = State()
     comment = State()
 

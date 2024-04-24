@@ -66,8 +66,9 @@ async def show_active_orders(self: 'TextHandler', message: Message, orders: list
 async def show_order_info(self: 'OrderHandler', message: Message, order: dict, state: FSMContext):
     """Вывод 1 конкретной заявки"""
 
+
     data = await state.get_data()
-    pprint.pprint(order)
+
     if data.get('order_msg'):
         await message.bot.delete_message(
             chat_id=data.get('chat_id'),
@@ -90,7 +91,7 @@ async def show_order_info(self: 'OrderHandler', message: Message, order: dict, s
     if order.get('box_data') and order.get('box_count'):
         box_count = order.get('box_count', 'Не задано')
         box_name = order.get('box_data', {}).get('box_name', 'Не задано')
-        order_sum = int(order.get('box_data', {}).get('pricing_default')) * int(order.get('box_count'))
+        order_sum = f"{int(order.get('box_data', {}).get('pricing_default')) * int(order.get('box_count'))} руб."
     else:
         order_sum = 'Рассчитывается...'
         box_count = 'Не задано'
@@ -114,7 +115,7 @@ async def show_order_info(self: 'OrderHandler', message: Message, order: dict, s
             order.get('status_data', {}).get('status_name') + f'({order.get("status_data", {}).get("description", "")})',
             box_name,
             box_count,
-            f'{order_sum} руб.',
+            order_sum,
             created_at
 
         ),
@@ -132,9 +133,18 @@ async def show_courier_order(order_id, order: dict, message: Message, self: 'Cou
         box_count = 'Не задано'
         box_name = 'Не задано'
 
-        # получаем информацию по точке
+    status_code, route_info_msg = await req_to_api(
+        method='get',
+        url='bot/messages?message_key=ROUTE_INFO'
+    )
+
+    status_code, back_routes_msg = await req_to_api(
+        method='get',
+        url='bot/messages?message_key=BACK_TO_ROUTES'
+    )
+
     msg = await message.answer(
-        MESSAGES['ROUTE_INFO'].format(
+        route_info_msg.format(
             order.get('order_num'),
             order.get('address_data', {}).get('address'),
             order.get('user_data', {}).get('firstname') + ' ' + order.get('user_data', {}).get('secondname'),
@@ -148,7 +158,7 @@ async def show_courier_order(order_id, order: dict, message: Message, self: 'Cou
     await state.update_data(msg=msg.message_id)
 
     await message.answer(
-        MESSAGES['BACK_TO_ROUTES'],
+        back_routes_msg,
         reply_markup=self.kb.back_btn()
     )
 
@@ -260,7 +270,6 @@ async def show_address_list(self: 'AddressHandler', message: Message, state: FSM
     count = 1  # счетчик для порядкового номера адресов
     # отправляем все адреса пользователя с кнопками ('Удалить' и 'По умолчанию')
     # в зависимости от адреса выводим как дефолтный или обычный
-    print(address_list)
     for address in address_list:
         address_text = address.get('address') + address.get('detail', ' ') if address.get('detail') else address.get(
             'address')

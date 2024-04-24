@@ -1,20 +1,16 @@
 import json
 import re
 
-import requests
 from aiogram import Bot, Router, F
-from aiogram.filters import or_f
+from aiogram.filters import and_f
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 
 from bot.handlers.base_handler import Handler
-from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.keyboards.questionnaire_kb import QuestionnaireKeyboard
-from bot.settings import settings
 from bot.states.states import EditQuestionnaireState
 from bot.utils.buttons import BUTTONS
-from bot.utils.format_text import delete_messages_with_btn, format_questionnaire
-from bot.utils.handle_data import fullname_pattern, phone_pattern, email_pattern
+from bot.utils.handle_data import phone_pattern, email_pattern
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
@@ -30,8 +26,9 @@ class QuestionnaireHandler(Handler):
         async def get_questionnaire(message: Message, state: FSMContext):
             """Получение анкеты пользователя"""
 
-            # получаем анкету по tg_id
             await state.update_data(chat_id=message.chat.id)
+            await state.update_data(menu_view='questionnaire')
+
             status_code, user_data = await req_to_api(
                 method='get',
                 url=f'bot/users/telegram?tg_id={message.from_user.id}',
@@ -79,37 +76,49 @@ class QuestionnaireHandler(Handler):
                 url=f'bot/users/telegram?tg_id={message.from_user.id}',
             )
 
-            # запрос на изменение имени у пользователя
-            if message.text.isalpha():
-                new_user_data = json.dumps({
-                    'telegram_id': message.from_user.id,
-                    'firstname': message.text,
-                    'user_id': user_data.get('id')
-                })
-
-                await req_to_api(
-                    method='put',
-                    url='user',
-                    data=new_user_data,
+            if message.text == BUTTONS['MENU']:
+                status_code, menu_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=MENU'
                 )
-
+                await message.answer(
+                    menu_msg,
+                    reply_markup=self.kb.start_menu_btn()
+                )
                 await state.set_state(state=None)
-
-                # переходим к выводу анкеты
-                await get_questionnaire(
-                    message=message,
-                    state=state
-                )
             else:
 
-                status_code, wrong_firstname_msg = await req_to_api(
-                    method='get',
-                    url='bot/messages?message_key=WRONG_FIRSTNAME'
-                )
+                # запрос на изменение имени у пользователя
+                if message.text.isalpha():
+                    new_user_data = json.dumps({
+                        'telegram_id': message.from_user.id,
+                        'firstname': message.text,
+                        'user_id': user_data.get('id')
+                    })
 
-                await message.answer(
-                    wrong_firstname_msg
-                )
+                    await req_to_api(
+                        method='put',
+                        url='user',
+                        data=new_user_data,
+                    )
+
+                    await state.set_state(state=None)
+
+                    # переходим к выводу анкеты
+                    await get_questionnaire(
+                        message=message,
+                        state=state
+                    )
+                else:
+
+                    status_code, wrong_firstname_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=WRONG_FIRSTNAME'
+                    )
+
+                    await message.answer(
+                        wrong_firstname_msg
+                    )
 
         @self.router.message(F.text.startswith(BUTTONS['LAST_NAME']))
         async def get_lastname(message: Message, state: FSMContext):
@@ -138,37 +147,48 @@ class QuestionnaireHandler(Handler):
                 url=f'bot/users/telegram?tg_id={message.from_user.id}',
             )
 
-            # запрос на изменение имени у пользователя
-            if message.text.isalpha():
-                new_user_data = json.dumps({
-                    'telegram_id': message.from_user.id,
-                    'secondname': message.text,
-                    'user_id': user_data.get('id')
-                })
-
-                await req_to_api(
-                    method='put',
-                    url='user',
-                    data=new_user_data,
-                )
-
-                await state.set_state(state=None)
-
-                # переходим к выводу анкеты
-                await get_questionnaire(
-                    message=message,
-                    state=state
-                )
-            else:
-
-                status_code, wrong_lastname_msg = await req_to_api(
+            if message.text == BUTTONS['MENU']:
+                status_code, menu_msg = await req_to_api(
                     method='get',
-                    url='bot/messages?message_key=WRONG_LASTNAME'
+                    url='bot/messages?message_key=MENU'
                 )
-
                 await message.answer(
-                    wrong_lastname_msg
+                    menu_msg,
+                    reply_markup=self.kb.start_menu_btn()
                 )
+                await state.set_state(state=None)
+            else:
+                # запрос на изменение имени у пользователя
+                if message.text.isalpha():
+                    new_user_data = json.dumps({
+                        'telegram_id': message.from_user.id,
+                        'secondname': message.text,
+                        'user_id': user_data.get('id')
+                    })
+
+                    await req_to_api(
+                        method='put',
+                        url='user',
+                        data=new_user_data,
+                    )
+
+                    await state.set_state(state=None)
+
+                    # переходим к выводу анкеты
+                    await get_questionnaire(
+                        message=message,
+                        state=state
+                    )
+                else:
+
+                    status_code, wrong_lastname_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=WRONG_LASTNAME'
+                    )
+
+                    await message.answer(
+                        wrong_lastname_msg
+                    )
 
         @self.router.message(F.text.startswith(BUTTONS['PHONE_NUMBER']))
         async def get_phone_number(message: Message, state: FSMContext):
@@ -187,7 +207,7 @@ class QuestionnaireHandler(Handler):
                 reply_markup=self.kb.send_phone()
             )
 
-        @self.router.message(or_f(EditQuestionnaireState.phone_number, F.content_type.in_({'contact'})))
+        @self.router.message(and_f(EditQuestionnaireState.phone_number, F.content_type.in_({'contact'})))
         async def set_phone_number(message: Message, state: FSMContext):
             """Отлавливаем изменение номера телефона"""
 
