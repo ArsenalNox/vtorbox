@@ -290,7 +290,8 @@ async def get_latest_orders(
     with Session(engine, expire_on_commit=False) as session:
         order_query = session.query(Orders).options(
             joinedload(Orders.payments),
-            joinedload(Orders.address)
+            joinedload(Orders.address),
+            joinedload(Orders.user)
         ).order_by(desc(Orders.date_created)).limit(limit).all()
 
         return_data = []
@@ -298,5 +299,6 @@ async def get_latest_orders(
             parent_data = jsonable_encoder(order)
             return_data.append(OrderOut(**parent_data))
             return_data[-1].address_data = order.address
+            return_data[-1].user_data = order.user
         
         return return_data
