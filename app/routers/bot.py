@@ -433,7 +433,9 @@ async def add_user_address(
         address = Address(**address_data_dump)
         address.inteval = interval
         
-        address.comment = "Требуется проверить адрес"
+
+        if override_geocoder:
+            address.comment = "Требуется проверить адрес"
 
         session.add(address)
         session.commit()
@@ -442,6 +444,7 @@ async def add_user_address(
             user_id=user.id,
             address_id=address.id,
         )
+
         session.add(user_address)
         session.commit()
         
