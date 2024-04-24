@@ -1,7 +1,4 @@
-import datetime
 import json
-import pprint
-from calendar import monthrange
 
 from aiogram import Bot, Router, F
 from aiogram.fsm.context import FSMContext
@@ -11,7 +8,6 @@ from bot.handlers.base_handler import Handler
 from bot.keyboards.schedule_kb import ScheduleKeyboard
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn, format_schedule_text
-from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
 
@@ -27,6 +23,8 @@ class ScheduleHandler(Handler):
             """Получение расписаний вызова пользователя"""
 
             await state.update_data(chat_id=message.chat.id)
+            await state.update_data(menu_view='schedule')
+
             data = await state.get_data()
 
             await delete_messages_with_btn(
@@ -99,7 +97,7 @@ class ScheduleHandler(Handler):
 
             await message.answer(
                 menu_msg,
-                reply_markup=self.kb.start_menu_btn()
+                reply_markup=self.kb.menu_btn()
             )
 
         @self.router.callback_query(F.data.startswith('change_period'))

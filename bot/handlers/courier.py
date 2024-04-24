@@ -1,5 +1,4 @@
 import json
-import pprint
 from urllib.parse import quote
 
 from aiogram import Bot, Router, F
@@ -54,8 +53,13 @@ class CourierHandler(Handler):
                 if route_link is None:
                     route_link = 'https://yandex.ru/maps/'
 
+                status_code, route_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=CURRENT_ROUTE'
+                )
+
                 msg = await message.answer(
-                    MESSAGES['CURRENT_ROUTE'],
+                    route_msg,
                     reply_markup=self.kb.routes_menu(route_link)
                 )
                 await state.update_data(courier_msg=msg.message_id)
@@ -385,8 +389,3 @@ class CourierHandler(Handler):
                 reply_markup=await self.kb.points_btn(routes)
             )
             await state.update_data(msg=msg.message_id)
-
-
-
-
-

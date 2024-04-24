@@ -1,6 +1,5 @@
 import abc
 
-import aiohttp
 from aiogram import Bot
 
 

@@ -1,18 +1,18 @@
 import http
 import json
-import pprint
+
 import re
 
-import requests
+
 from aiogram import Bot, Router, F
 
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 
 from bot.handlers.base_handler import Handler
 from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.keyboards.order import OrderKeyboard
-from bot.settings import settings
+from bot.keyboards.questionnaire_kb import QuestionnaireKeyboard
 from bot.states.states import RegistrationUser, SMSEmail
 
 from bot.utils.buttons import BUTTONS
@@ -28,6 +28,7 @@ class TextHandler(Handler):
         self.router = Router()
         self.kb = BaseKeyboard()
         self.order_kb = OrderKeyboard()
+        self.questionnaire_kb = QuestionnaireKeyboard()
 
     def handle(self):
         @self.router.message(F.text.startswith(BUTTONS['START_BOT']))
@@ -36,6 +37,7 @@ class TextHandler(Handler):
 
             await state.set_state(state=None)
             await state.update_data(chat_id=message.chat.id)
+            await state.update_data(menu_view='main')
 
             data = await state.get_data()
             await delete_messages_with_btn(
@@ -263,6 +265,7 @@ class TextHandler(Handler):
             """Получение настроек бота"""
 
             await state.update_data(chat_id=message.chat.id)
+            await state.update_data(menu_view='settings')
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -343,14 +346,30 @@ class TextHandler(Handler):
             )
 
         @self.router.message(F.text)
-        async def any_text(message: Message):
+        async def any_text(message: Message, state: FSMContext):
+            data = await state.get_data()
+            menu_view = data.get('menu_view')
+            await state.update_data(menu_view='main')
 
-            status_code, text_msg = await req_to_api(
+            menus_buttons = {
+                'registration': self.kb.registration_btn,
+                'main': self.kb.start_menu_btn,
+                'settings': self.kb.settings_btn,
+                'questionnaire': self.questionnaire_kb.questionnaire_btn,
+                'addresses': self.kb.menu_btn,
+                'schedule': self.kb.menu_btn,
+                'payment': self.kb.menu_btn,
+                'menu': self.kb.menu_btn
+            }
+
+            buttons = menus_buttons.get(menu_view, self.kb.start_menu_btn)
+
+            status_code, menu_btn_msg = await req_to_api(
                 method='get',
-                url='bot/messages?message_key=ANY_TEXT'
+                url='bot/messages?message_key=PRESS_BUTTONS_MENU'
             )
 
             await message.answer(
-                text_msg,
-                reply_markup=self.kb.start_menu_btn()
+                menu_btn_msg,
+                reply_markup=buttons()
             )
