@@ -14,6 +14,9 @@ from fastapi import (
     APIRouter, Depends, HTTPException, status, 
     Security, File, UploadFile
     )
+
+from fastapi.encoders import jsonable_encoder
+
 from typing import Annotated, Dict
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
@@ -669,9 +672,12 @@ async def get_user_data(
                     outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
                     join(OrderStatuses, OrderStatuses.id == Orders.status).\
                     where(Orders.from_user == user_query.id).order_by(asc(Orders.date_created)).all()
+
             orders_out = []
             for order in orders:
-                order_data = OrderOut(**order[0].__dict__)
+                parent_data = jsonable_encoder(order[0])
+                order_data = OrderOut(**parent_data)
+
                 order_data.tg_id = user_query.telegram_id
 
                 try:
