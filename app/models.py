@@ -203,7 +203,12 @@ class Orders(Base):
                 order_data.box_data = order[2]
             except IndexError:
                 order_data.box_data = None
+            
+            if simple_load:
+                with Session(engine, expire_on_commit=False) as session:
+                    status_data = session.query(OrderStatuses).filter_by(id=order[0].status)
 
+            
             try:
                 order_data.status_data = order[3]
             except IndexError:
