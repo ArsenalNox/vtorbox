@@ -105,7 +105,7 @@ async def write_routes_to_db(routes):
                     order_update = order_update.update_status(OrderStatuses.status_accepted_by_courier().id)
 
                 session.add(new_route_order)
-                session.add(order_update)
+                # session.add(order_update)
                 
 
             courier_query = session.query(Users).filter(Users.id==route['courier']).first()
