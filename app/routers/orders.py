@@ -7,7 +7,7 @@ import re
 from app import Tags
 from typing import Annotated, List, Union, Optional
 
-from fastapi import APIRouter, Body, Security, Query
+from fastapi import APIRouter, Body, Security, Query, Depends
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from calendar import monthrange
@@ -20,7 +20,7 @@ from app.validators import (
     Order as OrderValidator,
     UserLogin as UserLoginSchema,
     OrderOut,
-    OrderUpdate, FilteredOrderOut
+    OrderUpdate, FilteredOrderOut, UserIdMultiple
 )
 
 from app.auth import (
@@ -33,10 +33,11 @@ from app.models import (
     OrderStatuses, OrderStatusHistory,
     ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION,
     IntervalStatuses, ROLE_ADMIN_NAME, Regions, WeekDaysWork,
-    DaysWork, ORDER_STATUS_AWAITING_PAYMENT, Payments, PaymentClientData
+    DaysWork, ORDER_STATUS_AWAITING_PAYMENT, Payments, PaymentClientData,
+    OrderComments, get_user_from_db_secondary
     )
 
-from app.utils import send_message_through_bot
+from app.utils import (send_message_through_bot)
 
 router = APIRouter()
 
@@ -331,7 +332,6 @@ async def get_user_orders(
                 order_data.address_data = None
 
             try:
-                print(order[2])
                 if not order[2] == None:
                     order_data.box_data = order[2]
             except IndexError:
@@ -628,7 +628,8 @@ async def set_order_status(
 async def update_order_data(
         current_user: Annotated[UserLoginSchema, Security(get_current_user)],
         order_id: UUID, 
-        new_order_data: OrderUpdate
+        new_order_data: OrderUpdate,
+        comment_from_user: Annotated[UserIdMultiple, Depends(get_user_from_db_secondary)]
     )->OrderOut:
     """
     Обновить данные заявки
@@ -673,6 +674,22 @@ async def update_order_data(
                 return JSONResponse({
                     "message": "Cannot set box_count below 1"
                 }, status_code=422)
+
+            comment_types = ["comment_manager", "comment_courier", "comment"]
+            if attr in comment_types and value:
+                print("Setting new comment to order")
+                from_user_id = None
+                if comment_from_user:
+                    print(f"comment from {comment_from_user.id}")
+                    from_user_id = comment_from_user.id
+
+                old_comment_to_history = OrderComments(
+                    order_id = order_query.id,
+                    from_user = from_user_id,
+                    content = getattr(order_query, attr),
+                    type = attr
+                )
+                session.add(old_comment_to_history)             
 
             setattr(order_query, attr, value)
 
