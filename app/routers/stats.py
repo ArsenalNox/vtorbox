@@ -241,7 +241,7 @@ async def get_order_dynamics_stat(
     Получить статистику динамики изменений заявок. Собирает заявки по месяцу, указанному в **year_month**
     либо, если он не указан то с начала текущего
 
-    - **by_creation_date**: [bool] - собирать заявки по дате создания, а не дате вывоза. Если **False** собирает заявки по дате вывоза
+    - **by_creation_date**: [bool] - собирать заявки по дате создания, а не дате вывоза. **False** собирает заявки по дате вывоза
     """
     with Session(engine, expire_on_commit=False) as session:
         if not year_month:
@@ -257,7 +257,6 @@ async def get_order_dynamics_stat(
 
         return_data = []
 
-        
         dates_list = []
         for i in range(0, abs(month_start_date-month_end_date).days):
             dates_list.append(
@@ -271,11 +270,20 @@ async def get_order_dynamics_stat(
             date_order_data = {"name": month_date_query_date_start}
 
             for status in statuses_query:
-                order_count_by_status = session.query(Orders).filter(
-                    Orders.status == status.id,
-                    Orders.date_created>=month_date_query_date_start, 
-                    Orders.date_created<=month_date_query_date_end
-                    ).count()
+                order_count_by_status = session.query(Orders).filter(Orders.status == status.id)
+                
+                if by_creation_date:
+                    order_count_by_status = order_count_by_status.filter(
+                        Orders.date_created>=month_date_query_date_start, 
+                        Orders.date_created<=month_date_query_date_end
+                    )
+                else:
+                    order_count_by_status = order_count_by_status.filter(
+                        Orders.day>=month_date_query_date_start, 
+                        Orders.day<=month_date_query_date_end
+                    )
+
+                order_count_by_status = order_count_by_status.count()
 
                 date_order_data[status.status_name] = order_count_by_status
 
