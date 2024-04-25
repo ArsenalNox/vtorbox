@@ -4,6 +4,7 @@
 
 import uuid, re, json, copy, hashlib, requests
 import random
+from uuid import UUID as m_uuid
 
 from sqlalchemy import (
     create_engine, Column, Integer, String, 
@@ -23,6 +24,7 @@ from app.exceptions import UserNoIdProvided
 from app.utils import is_valid_uuid
 from app.validators import UserCreationValidator
 
+from fastapi.encoders import jsonable_encoder
 from calendar import monthrange
 from passlib.context import CryptContext
 from shapely.geometry import Point, shape
@@ -123,6 +125,8 @@ class Orders(Base):
 
     address = relationship('Address', backref='orders', lazy='joined')
 
+    comment_history = relationship('OrderComments', backref='to_order', lazy=True)
+
     @staticmethod
     def get_all_orders():
         with Session(engine, expire_on_commit=False) as session: 
@@ -141,6 +145,13 @@ class Orders(Base):
 
             return order
 
+    
+    def update_order_comment(comment, type:str):
+        """
+        Обновить комментарий заявки с записью его в историю
+        """
+        pass
+
 
     @staticmethod
     def process_order_array(orders: List[any]):
@@ -149,10 +160,11 @@ class Orders(Base):
         """
         return_data = []
         for order in orders:
-            manager_info = order[0].manager_info
-            order[0].manager_info = None
+            order[0].manager_info
+            order[0].comment_history
 
-            order_data = OrderOut(**order[0].__dict__)
+            parent_data = jsonable_encoder(order[0])
+            order_data = OrderOut(**parent_data)
             order_data.tg_id = order[4].telegram_id
             
             if not(type(order[1].interval) == list):
@@ -173,7 +185,6 @@ class Orders(Base):
             try:
                 order_data.address_data.region = order[5]
                 if order[5].work_days != None:
-                    print(order[5].work_days)
                     work_days_str = copy.deepcopy(order[5].work_days)
                     if not (type(work_days_str) == list):
                         work_days_str = str(work_days_str).split(' ')
@@ -198,9 +209,6 @@ class Orders(Base):
                 order_data.user_data = order[4]
             except IndexError:
                 order_data.user_data = None
-
-            if order_data.manager_id:
-                order_data.manager_info = manager_info
 
             return_data.append(order_data.model_dump())
 
@@ -244,9 +252,10 @@ class OrderComments(Base):
     __tablename__ = "order_comments"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    from_user = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    from_user = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     order_id = Column(UUID(as_uuid=True), ForeignKey('orders.id'), nullable=False)
     content = Column(String(), nullable=False)
+    type = Column(String(), nullable=False)
 
     date_created = Column(DateTime(), default=default_time)
     deleted_at = Column(DateTime(), default=None, nullable=True)
@@ -1404,6 +1413,13 @@ class RegionalBoxPrices(Base):
     price = Column(Float())
     region = relationship('Regions', backref='regionalboxprices', lazy='joined')
 
+#TODO: Перенести?
+def get_user_from_db_secondary(user_id: m_uuid|int = None)->'Users':
+    if user_id:
+        user = Users.get_user(str(user_id), update_last_action=True)
+        return user
+    else:
+        return None
 
 # === персистные данные/конфигурации
 Base.metadata.create_all(engine)
