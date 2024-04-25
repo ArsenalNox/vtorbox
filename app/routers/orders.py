@@ -145,7 +145,10 @@ async def get_filtered_orders(
         total = len(orders)
 
         # return_data = Orders.process_order_array([orders], simple_load=True)
-        return_data = Orders.process_order_array([orders])
+        if total != 0:
+            return_data = Orders.process_order_array([orders])
+        else:
+            return_data = []
 
         return {
             "orders": jsonable_encoder(orders),
