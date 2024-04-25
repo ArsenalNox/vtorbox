@@ -184,19 +184,20 @@ class Orders(Base):
             except IndexError: 
                 order_data.address_data = None
 
-            try:
-                order_data.address_data.region = order[5]
-                if order[5].work_days != None:
-                    work_days_str = copy.deepcopy(order[5].work_days)
-                    if not (type(work_days_str) == list):
-                        work_days_str = str(work_days_str).split(' ')
+            if not simple_load:
+                try:
+                    order_data.address_data.region = order[5]
+                    if order[0].address.region.work_days != None:
+                        work_days_str = copy.deepcopy(order[0].address.region.work_days)
+                        if not (type(work_days_str) == list):
+                            work_days_str = str(work_days_str).split(' ')
 
-                    order_data.address_data.region.work_days = work_days_str
-                else:
-                    order_data.address_data.region.work_days = None
-            except IndexError:
-                if order_data.address_data:
-                    order_data.address_data.region = None
+                        order_data.address_data.region.work_days = work_days_str
+                    else:
+                        order_data.address_data.region.work_days = None
+                except IndexError:
+                    if order_data.address_data:
+                        order_data.address_data.region = None
 
             try:
                 order_data.box_data = order[2]
