@@ -151,7 +151,7 @@ async def get_filtered_orders(
             return_data = []
 
         return {
-            "orders": jsonable_encoder(orders),
+            "orders": return_data,
             "global_count": global_orders_count,
             "count": total
         }
