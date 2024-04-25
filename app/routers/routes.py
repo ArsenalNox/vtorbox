@@ -105,8 +105,9 @@ async def write_routes_to_db(routes):
                     order_update = order_update.update_status(OrderStatuses.status_accepted_by_courier().id)
 
                 session.add(new_route_order)
-                # session.add(order_update)
-                
+                session.commit()
+                session.add(order_update)
+                session.commit()
 
             courier_query = session.query(Users).filter(Users.id==route['courier']).first()
             if (not courier_query.allow_messages_from_bot) and (not courier_query.telegram_id):
