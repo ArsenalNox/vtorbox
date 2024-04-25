@@ -82,12 +82,12 @@ async def get_filtered_orders(
     """
     with Session(engine, expire_on_commit=False) as session:
 
-        orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users, Regions).\
+        orders = session.query(Orders).\
             join(Address, Address.id == Orders.address_id).\
             outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-            join(OrderStatuses, OrderStatuses.id == Orders.status).\
             join(Users, Users.id == Orders.from_user).\
-            join(Regions, Regions.id == Address.region_id)
+            join(Regions, Regions.id == Address.region_id).\
+            enable_eagerloads(False)
         
         if state:
             status_query = session.query(OrderStatuses).filter_by(status_name=state).first()
@@ -121,7 +121,6 @@ async def get_filtered_orders(
             orders = orders.filter(Orders.day >= date)
             orders = orders.filter(Orders.day <= date_tommorrow)
 
-
         if region_id:
             orders = orders.filter(Regions.id == region_id)
 
@@ -145,10 +144,11 @@ async def get_filtered_orders(
 
         total = len(orders)
 
-        return_data = Orders.process_order_array(orders)
+        # return_data = Orders.process_order_array([orders], simple_load=True)
+        return_data = Orders.process_order_array([orders])
 
         return {
-            "orders": return_data,
+            "orders": jsonable_encoder(orders),
             "global_count": global_orders_count,
             "count": total
         }
