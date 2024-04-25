@@ -175,7 +175,7 @@ class Orders(Base):
                     order_data.interval = order[0].address.interval
 
             try:
-                order_data.address_data = order[1]
+                order_data.address_data = order[0].address
                 if not(type(order[0].address.interval) == list):
                     order_data.address_data.interval = str(order[0].address.interval).split(', ')
                 else:
@@ -198,23 +198,24 @@ class Orders(Base):
                 except IndexError:
                     if order_data.address_data:
                         order_data.address_data.region = None
-
-            try:
-                order_data.box_data = order[2]
-            except IndexError:
-                order_data.box_data = None
+            
+            if not simple_load:
+                try:
+                    order_data.box_data = order[2]
+                except IndexError:
+                    order_data.box_data = None
             
             if simple_load:
                 with Session(engine, expire_on_commit=False) as session:
                     status_data = session.query(OrderStatuses).filter_by(id=order[0].status)
-
+            else:
+                try:
+                    order_data.status_data = order[3]
+                except IndexError:
+                    order_data.status_data = None
             
             try:
-                order_data.status_data = order[3]
-            except IndexError:
-                order_data.status_data = None
-            
-            try:
+                print(order[0].user)
                 order_data.user_data = order[0].user
             except IndexError:
                 order_data.user_data = None
