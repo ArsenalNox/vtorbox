@@ -146,7 +146,9 @@ async def get_filtered_orders(
 
         # return_data = Orders.process_order_array([orders], simple_load=True)
         if total != 0:
-            return_data = Orders.process_order_array([orders], simple_load=True)
+            return_data = []
+            for _order in orders:
+                return_data.append(Orders.process_order_array([[_order]], simple_load=True)[0])
         else:
             return_data = []
 
