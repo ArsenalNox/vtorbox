@@ -191,7 +191,7 @@ async def update_bot_setting(
         query = session.query(BotSettings).filter(BotSettings.id==setting_id).first()
         if not query:
             return JSONResponse({
-                "message": f"Setting with key {setting_data.key} does not exist"
+                "message": f"Setting with {setting_id} does not exist"
             }, 404)
         
         for attr, value in setting_data.model_dump().items():
