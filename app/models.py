@@ -207,7 +207,7 @@ class Orders(Base):
             
             if simple_load:
                 with Session(engine, expire_on_commit=False) as session:
-                    status_data = session.query(OrderStatuses).filter_by(id=order[0].status)
+                    order_data.status_data = session.query(OrderStatuses).filter_by(id=order[0].status).first()
             else:
                 try:
                     order_data.status_data = order[3]
