@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 from datetime import datetime
 
-from .models import (
+from app.models import (
     engine, Users, Permissions, Roles, UserRefreshTokens,
     ROLE_ADMIN_NAME
     )
