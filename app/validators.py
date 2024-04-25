@@ -13,6 +13,10 @@ from typing_extensions import TypedDict
 from datetime import datetime
 
 
+class UserIdMultiple(BaseModel):
+    user_id: Optional[UUID4|int] = None
+
+
 class Order(BaseModel):
     from_user: str
     address_id: UUID4
@@ -40,6 +44,8 @@ class Order(BaseModel):
 class OrderUpdate(BaseModel):
     """
     Валидация на обновление данных заявки
+
+
     Отдельная т.к множество полей опциональные
     """
     address_id: Optional[UUID4] = None
@@ -47,6 +53,7 @@ class OrderUpdate(BaseModel):
     box_name: Optional[str] = None
     box_count: Optional[int] = None
     box_type_id: Optional[UUID4] = None
+    comment: Optional[str] = None
     comment_courier: Optional[str] = None
     comment_manager: Optional[str] = None
     day: Optional[datetime] = None
@@ -353,6 +360,8 @@ class OrderOut(BaseModel):
     comment: Optional[str] = None
     comment_manager: Optional[str] = None
     comment_courier: Optional[str] = None
+
+    comment_history: Optional[Any] = None
 
     interval_type: Optional[str] = None
     interval: Optional[Any] = None
