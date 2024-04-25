@@ -210,7 +210,7 @@ class Orders(Base):
                 order_data.status_data = None
             
             try:
-                order_data.user_data = order[4]
+                order_data.user_data = order[0].user
             except IndexError:
                 order_data.user_data = None
 
