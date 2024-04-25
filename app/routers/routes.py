@@ -10,6 +10,7 @@ import math
 
 from typing import Annotated, List, Tuple, Dict, Optional
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 
 import datetime as dt
 from datetime import datetime, timedelta
@@ -266,7 +267,7 @@ async def get_routes(
         #     for routes_order in route.orders:
         #         routes_order.order.payments
 
-        return routes
+        return jsonable_encoder(routes)
     
 
 @router.patch("/routes/{route_id}", tags=[Tags.routes, Tags.admins, Tags.managers])
@@ -361,7 +362,7 @@ async def update_route_orders(
 
         session.refresh(route_query)
         # route_query = session.query(Routes).where(Routes.id==route_id).first()
-        return route_query
+        return jsonable_encoder(route_query)
 
 
 @router.post('/route', tags=[Tags.routes, Tags.admins, Tags.managers])
