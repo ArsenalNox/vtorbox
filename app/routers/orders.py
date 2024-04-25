@@ -7,6 +7,7 @@ import re
 from app import Tags
 from typing import Annotated, List, Union, Optional
 
+
 from fastapi import APIRouter, Body, Security, Query, Depends
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
@@ -621,7 +622,7 @@ async def set_order_status(
 
         order_query.payments
 
-        return order_query
+        return jsonable_encoder(order_query)
 
 
 @router.put('/orders/{order_id}', tags=[Tags.bot, Tags.orders])
