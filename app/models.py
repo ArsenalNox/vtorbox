@@ -154,30 +154,32 @@ class Orders(Base):
 
 
     @staticmethod
-    def process_order_array(orders: List[any]):
+    def process_order_array(orders: List[any], simple_load=False):
         """
         Обрабатывает лист заявок с query и формирует массив на выход по схеме OrderOut
         """
         return_data = []
         for order in orders:
-            order[0].manager_info
-            order[0].comment_history
+            if not simple_load:
+                order[0].manager_info
+                order[0].comment_history
 
             parent_data = jsonable_encoder(order[0])
             order_data = OrderOut(**parent_data)
-            order_data.tg_id = order[4].telegram_id
+            order_data.tg_id = order[0].user.telegram_id
             
-            if not(type(order[1].interval) == list):
-                order_data.interval = str(order[1].interval).split(', ')
-            else:
-                order_data.interval = order[1].interval
+            if not simple_load:
+                if not(type(order[0].address.interval) == list):
+                    order_data.interval = str(order[0].address.interval).split(', ')
+                else:
+                    order_data.interval = order[0].address.interval
 
             try:
                 order_data.address_data = order[1]
-                if not(type(order[1].interval) == list):
-                    order_data.address_data.interval = str(order[1].interval).split(', ')
+                if not(type(order[0].address.interval) == list):
+                    order_data.address_data.interval = str(order[0].address.interval).split(', ')
                 else:
-                    order_data.address_data.interval = order[1].interval
+                    order_data.address_data.interval = order[0].address.interval
 
             except IndexError: 
                 order_data.address_data = None
@@ -193,7 +195,8 @@ class Orders(Base):
                 else:
                     order_data.address_data.region.work_days = None
             except IndexError:
-                order_data.address_data.region = None
+                if order_data.address_data:
+                    order_data.address_data.region = None
 
             try:
                 order_data.box_data = order[2]
