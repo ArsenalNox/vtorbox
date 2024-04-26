@@ -170,7 +170,7 @@ async def generate_routes_today(
 
         order_pool_awaliable = []
         for _order in orders:
-            order_pool_awaliable.append(Orders.process_order_array([[_order]], simple_load=True)[0])
+            order_pool_awaliable.append(_order[0])
         
         couriers = session.query(Users)
         roles_user_query = session.query(Users.id).\
@@ -201,7 +201,7 @@ async def generate_routes_today(
 
             if len(order_for_route)==0:
                 break
-
+            print(order_pool_awaliable[i:step+i])
             routes.append({
                 "courier": courier.id,
                 "orders": order_for_route
