@@ -220,11 +220,10 @@ async def get_order_by_id(
     with Session(engine, expire_on_commit=False) as session:
         #Получение конкретной заявки
 
-        order = session.query(Orders, Address, BoxTypes, OrderStatuses, Users, Regions).\
+        order = session.query(Orders, Address, BoxTypes, OrderStatuses, Regions).\
             join(Address, Address.id == Orders.address_id).\
             outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
             join(OrderStatuses, OrderStatuses.id == Orders.status).\
-            join(Users, Users.id == Orders.from_user).\
             where(Orders.id == order_id).\
             join(Regions, Regions.id == Address.region_id).first()
         
