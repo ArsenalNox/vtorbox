@@ -1799,7 +1799,7 @@ def add_default_messages_bot():
     'CARD_WAS_DELETED': 'Карта успешно удалена',
     'PRESS_BUTTONS_MENU': 'Нажмите кнопку на клавиатуре',
     'ADD_MANUALLY_ADDRESS': 'Введите ваш адрес',
-    'BACK': 'Назад'
+    'BACK': 'Для возврата назад нажмите кнопку внизу'
 }
     with Session(engine, expire_on_commit=False) as session:
         #Проверить тэг для сообщений бота
