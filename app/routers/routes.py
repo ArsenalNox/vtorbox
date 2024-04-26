@@ -99,7 +99,10 @@ async def write_routes_to_db(routes):
                     order_id = order['id']
                 )
 
-                order_update = Orders.query_by_id(order['id'])[0]
+                # order_update = Orders.query_by_id(order['id'])[0]
+
+                order_update = session.query(Orders).enable_eagerloads(False).filter_by(id=order['id']).first()
+
                 order_update.courier_id = route['courier']
                 if not (order_update.status == OrderStatuses.status_accepted_by_courier().id):
                     order_update = order_update.update_status(OrderStatuses.status_accepted_by_courier().id)
@@ -144,7 +147,7 @@ async def generate_routes_today(
 
         print(date, date_tommorrow)
 
-        orders = session.query(Orders).\
+        orders = session.query(Orders.id, Address.id, Region.name_full).\
             join(Address, Address.id == Orders.address_id).\
             join(Regions, Regions.id == Address.region_id).\
             filter(Orders.deleted_at == None).\
@@ -154,7 +157,6 @@ async def generate_routes_today(
 
 
         if group_by == 'regions':
-            
             orders = orders.order_by(asc(Regions.name_full))
         else:
             orders = orders.order_by(asc(Orders.date_created))
