@@ -96,12 +96,12 @@ async def write_routes_to_db(routes):
             for order in route['orders']:
                 new_route_order = RoutesOrders(
                     route_id = new_route.id,
-                    order_id = order['id']
+                    order_id = order
                 )
 
                 # order_update = Orders.query_by_id(order['id'])[0]
 
-                order_update = session.query(Orders).enable_eagerloads(False).filter_by(id=order['id']).first()
+                order_update = session.query(Orders).enable_eagerloads(False).filter_by(id=order).first()
 
                 order_update.courier_id = route['courier']
                 if not (order_update.status == OrderStatuses.status_accepted_by_courier().id):
