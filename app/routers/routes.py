@@ -144,11 +144,8 @@ async def generate_routes_today(
 
         print(date, date_tommorrow)
 
-        orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users, Regions).\
+        orders = session.query(Orders).\
             join(Address, Address.id == Orders.address_id).\
-            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-            join(OrderStatuses, OrderStatuses.id == Orders.status).\
-            join(Users, Users.id == Orders.from_user).\
             join(Regions, Regions.id == Address.region_id).\
             filter(Orders.deleted_at == None).\
             filter(Orders.status == OrderStatuses.status_confirmed().id).\
@@ -157,10 +154,10 @@ async def generate_routes_today(
 
 
         if group_by == 'regions':
+            
             orders = orders.order_by(asc(Regions.name_full))
         else:
             orders = orders.order_by(asc(Orders.date_created))
-
 
         global_orders_count = orders.count()
 
@@ -168,7 +165,10 @@ async def generate_routes_today(
 
         total = len(orders)
 
-        order_pool_awaliable = Orders.process_order_array(orders)
+
+        order_pool_awaliable = []
+        for _order in orders:
+            order_pool_awaliable.append(Orders.process_order_array([[_order]], simple_load=True)[0])
         
         couriers = session.query(Users)
         roles_user_query = session.query(Users.id).\
@@ -182,8 +182,6 @@ async def generate_routes_today(
                 "message": "В бд отсутствуют курьеры"
             }, status_code=403)
 
-        print(couriers)
-        
         routes = []
 
         i=0 #номер начальной заявки
