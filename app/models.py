@@ -215,7 +215,6 @@ class Orders(Base):
                     order_data.status_data = None
             
             try:
-                print(order[0].user)
                 order_data.user_data = order[0].user
             except IndexError:
                 order_data.user_data = None
