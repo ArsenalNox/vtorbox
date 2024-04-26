@@ -347,8 +347,11 @@ async def update_route_orders(
                 session.add(new_route_order)
 
                 update_query = session.query(Orders).where(Orders.id == order_id).first()
+                
+                if not (update_query.status == OrderStatuses.status_accepted_by_courier().id):
+                    update_query = update_query.update_status(OrderStatuses.status_accepted_by_courier().id)
+
                 update_query.courier_id = route_query.courier_id
-                print(update_query.courier_id)
                 session.commit()
 
         if new_courier_id: 
