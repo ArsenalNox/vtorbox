@@ -186,7 +186,7 @@ class Orders(Base):
 
             if not simple_load:
                 try:
-                    order_data.address_data.region = order[5]
+                    order_data.address_data.region = order[0].address.region
                     if order[0].address.region.work_days != None:
                         work_days_str = copy.deepcopy(order[0].address.region.work_days)
                         if not (type(work_days_str) == list):
@@ -201,7 +201,7 @@ class Orders(Base):
             
             if not simple_load:
                 try:
-                    order_data.box_data = order[2]
+                    order_data.box_data = order[0].box
                 except IndexError:
                     order_data.box_data = None
             
