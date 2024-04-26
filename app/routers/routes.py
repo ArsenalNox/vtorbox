@@ -147,7 +147,7 @@ async def generate_routes_today(
 
         print(date, date_tommorrow)
 
-        orders = session.query(Orders.id, Address.id, Region.name_full).\
+        orders = session.query(Orders.id, Address.id, Regions.name_full).\
             join(Address, Address.id == Orders.address_id).\
             join(Regions, Regions.id == Address.region_id).\
             filter(Orders.deleted_at == None).\
