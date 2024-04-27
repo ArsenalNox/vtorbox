@@ -113,12 +113,11 @@ class CommandHandler(Handler):
                     )
 
                 if user.get('roles'):
-                    status_code, courier_msg = await req_to_api(
-                        method='get',
-                        url='bot/messages?message_key=COURIER'
-                    )
-
                     if 'courier' in user.get('roles'):
+                        status_code, courier_msg = await req_to_api(
+                            method='get',
+                            url='bot/messages?message_key=COURIER'
+                        )
                         await message.answer(
                             courier_msg,
                             reply_markup=self.kb.courier_btn()

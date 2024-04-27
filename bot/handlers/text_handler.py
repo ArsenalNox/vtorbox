@@ -318,6 +318,33 @@ class TextHandler(Handler):
                 src=message
             )
 
+            status_code, user = await req_to_api(
+                method='get',
+                url=f'user/me?tg_id={message.from_user.id}'
+            )
+
+            if user.get('roles'):
+                if 'courier' in user.get('roles'):
+                    status_code, courier_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=COURIER'
+                    )
+                    await message.answer(
+                        courier_msg,
+                        reply_markup=self.kb.courier_btn()
+                    )
+
+                else:
+                    status_code, menu_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=MENU'
+                    )
+
+                    await message.answer(
+                        menu_msg,
+                        reply_markup=self.kb.start_menu_btn()
+                    )
+
             status_code, orders = await req_to_api(
                 method='get',
                 url=f'users/orders/?tg_id={message.from_user.id}',
@@ -335,16 +362,6 @@ class TextHandler(Handler):
             await state.update_data(selected_day_of_week=[])
             await state.update_data(selected_day_of_month=[])
             await state.set_state(state=None)
-
-            status_code, menu_msg = await req_to_api(
-                method='get',
-                url='bot/messages?message_key=MENU'
-            )
-
-            await message.answer(
-                menu_msg,
-                reply_markup=self.kb.start_menu_btn()
-            )
 
         @self.router.message(F.text)
         async def any_text(message: Message, state: FSMContext):
