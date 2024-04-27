@@ -374,11 +374,11 @@ async def update_user_data(
                 filter_by(user_id=user_query.id).join(Roles).all()
         user_data.roles = [role.role_name for role in scopes_query]
         
-        orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
-                join(Address, Address.id == Orders.address_id).\
-                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-                join(OrderStatuses, OrderStatuses.id == Orders.status).\
-                where(Orders.from_user == user_query.id).order_by(asc(Orders.date_created)).all()
+        # orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
+        #         join(Address, Address.id == Orders.address_id).\
+        #         outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+        #         join(OrderStatuses, OrderStatuses.id == Orders.status).\
+        #         where(Orders.from_user == user_query.id).order_by(asc(Orders.date_created)).all()
         
         # orders_out = []
         # for order in orders:
