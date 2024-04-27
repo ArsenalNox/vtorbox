@@ -41,10 +41,11 @@ class OrderKeyboard(BaseKeyboard):
         """Меню для управление заказом"""
 
         builder = InlineKeyboardBuilder()
-        pprint.pprint(order)
         order_id = order.get('id')
         order_num = order.get('order_num')
         manager_id = order.get('manager_info', {}).get('telegram_id')
+        manager_username = order.get('manager_info', {}).get('telegram_username')
+        manager_link = f'https://t.me/{manager_username}' if manager_username else f'tg://user?id={manager_id}'
 
         # ---------------------------Логика вывода стрелочек для переключения--------------------------------------
         try:
@@ -108,12 +109,12 @@ class OrderKeyboard(BaseKeyboard):
                 InlineKeyboardButton(
                     text='Отменить',
                     callback_data=f'cancel_{order_id}',
-                    url=f'tg://user?id={manager_id}'
+                    url=manager_link
                 ),
             InlineKeyboardButton(
                 text='Связаться с менеджером',
                 callback_data=f'manager_{order_id}',
-                url=f'tg://user?id={manager_id}'
+                url=manager_link
             ),
             )
 
