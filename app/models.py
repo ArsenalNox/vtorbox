@@ -1096,6 +1096,9 @@ class Payments(Base):
             print(response.status_code)
             print(response.json())
             r_data = response.json()
+            if "Success" in r_data:
+                if not r_data["Success"]:
+                    return response.json()
 
             if response.status_code == 200:
                 payment_query.status = response.json()['Status']
