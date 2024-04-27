@@ -8,7 +8,7 @@ from app import Tags
 from typing import Annotated, List, Union, Optional
 
 
-from fastapi import APIRouter, Body, Security, Query, Depends
+from fastapi import APIRouter, Body, Security, Query, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from calendar import monthrange
@@ -570,9 +570,10 @@ async def set_order_status(
     в запросе обязательно нужно передать либо **status_text** либо **status_id**
     """
     if (not status_text) and (not status_id):
-        return JSONResponse({
-            "message": "status_text or status_id required"
-        },status_code=422)
+        raise HTTPException(
+            status_code=422,
+            detail="необходимо поле status_text или status_id"
+        )
     
     status_query = None
     with Session(engine, expire_on_commit=False) as session:
@@ -601,30 +602,29 @@ async def set_order_status(
             }, 200)
 
 
-        order_query = order_query.update_status(status_query.id)
-
-        # session.add(order_query)
 
         print("Checking for payment")
         print(status_query.status_name)
 
+        error_sending_message = False
+
         if status_query.status_name == ORDER_STATUS_AWAITING_PAYMENT['status_name']: 
-            print("Creating payment")
-            new_payment = Payments.process_status_update(
-                order = order_query
-            )
+            try:
+                print("Creating payment")
+                new_payment = Payments.process_status_update(
+                    order = order_query
+                )
+
+            except Exception as err:
+                error_sending_message = True
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Не удалось отправить сообщение пользователю: {err}"
+                )
+
+        order_query = order_query.update_status(status_query.id)
 
         session.commit()
-
-        print("Checking for manager id")
-        if order_query.manager_id:
-            print(f"has manager id {order_query.manager_id}")
-            print(order_query.manager_info)
-        else:
-            order_query.manager_info = None
-            
-
-        order_query.payments
 
         return jsonable_encoder(order_query)
 
