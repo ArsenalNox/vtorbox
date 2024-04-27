@@ -48,6 +48,7 @@ async def delete_messages_with_btn(data: dict, state: FSMContext, src: Message):
             chat_id=data.get('chat_id'),
             message_id=data.get('msg')
         )
+
         await state.update_data(msg=None)
 
     if data.get('msg_ids'):
@@ -59,10 +60,18 @@ async def delete_messages_with_btn(data: dict, state: FSMContext, src: Message):
         await state.update_data(msg_ids=[])
 
     if data.get('order_msg'):
-        await src.bot.delete_message(
-            chat_id=data.get('chat_id'),
-            message_id=data.get('order_msg')
-        )
+        try:
+            await src.bot.delete_message(
+                chat_id=data.get('chat_id'),
+                message_id=data.get('order_msg')
+            )
+        except Exception:
+            await src.bot.edit_message_text(
+                text='---',
+                chat_id=data.get('chat_id'),
+                message_id=data.get('order_msg'),
+                reply_markup=None
+            )
         await state.update_data(order_msg=None)
 
     if data.get('container_msg'):
