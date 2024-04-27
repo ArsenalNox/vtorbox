@@ -770,11 +770,13 @@ class Payments(Base):
                     new_payment.tinkoff_id,
                     rebuill_query.rebill_id,
                 )
+                return new_payment
             else:
                 new_payment = Payments.create_new_payment(
                     terminal=terminal,
                     order=order,
                 )
+                return new_payment
 
 
     def query(id=None, tinkoff_id=None, terminal=None, terminal_id=None, mode='single'):
