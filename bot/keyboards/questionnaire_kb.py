@@ -20,7 +20,7 @@ class QuestionnaireKeyboard(BaseKeyboard):
             KeyboardButton(text=BUTTONS['EMAIL'])
         )
         builder.row(
-            KeyboardButton(text=BUTTONS['MENU']),
+            KeyboardButton(text=BUTTONS['BACK_SETTINGS']),
         )
 
         return builder.as_markup(
@@ -37,7 +37,7 @@ class QuestionnaireKeyboard(BaseKeyboard):
         )
 
         builder.row(
-            KeyboardButton(text=BUTTONS['MENU']),
+            KeyboardButton(text=BUTTONS['BACK_QUESTIONNAIRE']),
         )
 
         return builder.as_markup(

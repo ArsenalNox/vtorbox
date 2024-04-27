@@ -2,6 +2,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
 from bot.keyboards.base_keyboards import BaseKeyboard
+from bot.utils.buttons import BUTTONS
 
 
 class ScheduleKeyboard(BaseKeyboard):
@@ -30,7 +31,7 @@ class ScheduleKeyboard(BaseKeyboard):
         )
 
         builder.row(
-            KeyboardButton(text='Назад'),
+            KeyboardButton(text=BUTTONS['BACK_SETTINGS']),
         )
 
         return builder.as_markup(
@@ -48,7 +49,7 @@ class ScheduleKeyboard(BaseKeyboard):
         )
 
         builder.row(
-            KeyboardButton(text='Назад'),
+            KeyboardButton(text=BUTTONS['BACK_SETTINGS']),
         )
 
         return builder.as_markup(

@@ -41,6 +41,7 @@ class OrderKeyboard(BaseKeyboard):
         """Меню для управление заказом"""
 
         builder = InlineKeyboardBuilder()
+        pprint.pprint(order)
         order_id = order.get('id')
         order_num = order.get('order_num')
         manager_id = order.get('manager_info', {}).get('telegram_id')

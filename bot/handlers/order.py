@@ -376,7 +376,7 @@ class OrderHandler(Handler):
 
                 # выводим данные о заказе
                 order = self.orders_list[self.index]
-                logger.debug(f'Стрелочки:::Список заявок у {callback.message.chat.id} = {self.orders_list}(index={self.index})')
+                logger.debug(f'Стрелочки:::Список заявок у {callback.message.chat.id} = {[i.get("id") for i in self.orders_list]}(index={self.index})')
 
                 await show_order_info(
                     state=state,
@@ -427,18 +427,9 @@ class OrderHandler(Handler):
 
             else:
                 await callback.message.answer(
-                    MESSAGES['PLEASE_ADD_NUMBER_OR_EMAIL']
+                    MESSAGES['PLEASE_ADD_NUMBER_OR_EMAIL'],
+                    reply_markup=self.kb.settings_btn()
                 )
-
-            status_code, menu_msg = await req_to_api(
-                method='get',
-                url='bot/messages?message_key=GO_TO_MENU'
-            )
-
-            await callback.message.answer(
-                menu_msg,
-                reply_markup=self.kb.menu_btn()
-            )
 
         @self.router.callback_query(F.data.startswith('history'))
         async def history_order(callback: CallbackQuery, state: FSMContext):

@@ -5,6 +5,7 @@ import re
 
 
 from aiogram import Bot, Router, F
+from aiogram.filters import or_f
 
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -260,7 +261,7 @@ class TextHandler(Handler):
                         reply_markup=self.kb.registration_btn()
                     )
 
-        @self.router.message(F.text.startswith(BUTTONS['SETTINGS']))
+        @self.router.message(or_f(F.text.startswith(BUTTONS['SETTINGS']), F.text.startswith(BUTTONS['BACK_SETTINGS'])))
         async def get_settings(message: Message, state: FSMContext):
             """Получение настроек бота"""
 
