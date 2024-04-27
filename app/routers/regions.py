@@ -181,8 +181,12 @@ async def update_region_data(
                         return JSONResponse({
                             "message": f"invalid weekday {day}"
                         }, status_code=422)
-
-                query.work_days = ' '.join(value)
+                
+                t_lower = []
+                for day in value: 
+                    t_lower.append(str(day).lower())
+                
+                query.work_days = ' '.join(t_lower)
                 continue
 
             setattr(query, attr, value)
