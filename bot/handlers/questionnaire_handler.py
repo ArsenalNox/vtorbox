@@ -2,7 +2,7 @@ import json
 import re
 
 from aiogram import Bot, Router, F
-from aiogram.filters import and_f
+from aiogram.filters import and_f, or_f
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
@@ -63,7 +63,7 @@ class QuestionnaireHandler(Handler):
 
             await message.answer(
                 firstname_msg,
-                reply_markup=self.kb.menu_btn()
+                reply_markup=self.kb.back_btn()
             )
 
         @self.router.message(EditQuestionnaireState.first_name)
@@ -76,14 +76,14 @@ class QuestionnaireHandler(Handler):
                 url=f'bot/users/telegram?tg_id={message.from_user.id}',
             )
 
-            if message.text == BUTTONS['MENU']:
-                status_code, menu_msg = await req_to_api(
+            if message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
+                status_code, back_msg = await req_to_api(
                     method='get',
-                    url='bot/messages?message_key=MENU'
+                    url='bot/messages?message_key=BACK'
                 )
                 await message.answer(
-                    menu_msg,
-                    reply_markup=self.kb.start_menu_btn()
+                    back_msg,
+                    reply_markup=self.kb.questionnaire_btn()
                 )
                 await state.set_state(state=None)
             else:
@@ -134,7 +134,7 @@ class QuestionnaireHandler(Handler):
 
             await message.answer(
                 lastname_msg,
-                reply_markup=self.kb.menu_btn()
+                reply_markup=self.kb.back_btn()
             )
 
         @self.router.message(EditQuestionnaireState.last_name)
@@ -147,14 +147,14 @@ class QuestionnaireHandler(Handler):
                 url=f'bot/users/telegram?tg_id={message.from_user.id}',
             )
 
-            if message.text == BUTTONS['MENU']:
-                status_code, menu_msg = await req_to_api(
+            if message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
+                status_code, back_msg = await req_to_api(
                     method='get',
-                    url='bot/messages?message_key=MENU'
+                    url='bot/messages?message_key=BACK'
                 )
                 await message.answer(
-                    menu_msg,
-                    reply_markup=self.kb.start_menu_btn()
+                    back_msg,
+                    reply_markup=self.kb.questionnaire_btn()
                 )
                 await state.set_state(state=None)
             else:
@@ -207,7 +207,12 @@ class QuestionnaireHandler(Handler):
                 reply_markup=self.kb.send_phone()
             )
 
-        @self.router.message(and_f(EditQuestionnaireState.phone_number, F.content_type.in_({'contact'})))
+        @self.router.message(or_f(
+            EditQuestionnaireState.phone_number,
+            and_f(
+                F.content_type.in_({'contact'}),
+            EditQuestionnaireState.phone_number))
+        )
         async def set_phone_number(message: Message, state: FSMContext):
             """Отлавливаем изменение номера телефона"""
 
@@ -238,6 +243,17 @@ class QuestionnaireHandler(Handler):
                 await state.update_data(phone_number=message.text)
                 await state.set_state(EditQuestionnaireState.approve_phone)
 
+            elif message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
+                status_code, back_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=BACK'
+
+                )
+                await message.answer(
+                    back_msg,
+                    reply_markup=self.kb.questionnaire_btn()
+                )
+                await state.set_state(state=None)
             else:
 
                 status_code, wrong_phone_msg = await req_to_api(
@@ -282,6 +298,19 @@ class QuestionnaireHandler(Handler):
                     message=message,
                     state=state
                 )
+
+            elif message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
+                status_code, back_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=BACK'
+
+                )
+                await message.answer(
+                    back_msg,
+                    reply_markup=self.kb.questionnaire_btn()
+                )
+                await state.set_state(state=None)
+
             else:
 
                 status_code, wrong_code_msg = await req_to_api(
@@ -297,16 +326,6 @@ class QuestionnaireHandler(Handler):
                     state=state
                 )
 
-            status_code, menu_msg = await req_to_api(
-                method='get',
-                url='bot/messages?message_key=MENU'
-            )
-
-            await message.answer(
-                menu_msg,
-                reply_markup=self.kb.questionnaire_btn()
-            )
-
         @self.router.message(F.text.startswith(BUTTONS['EMAIL']))
         async def get_email(message: Message, state: FSMContext):
             """Запрашиваем email у пользователя"""
@@ -321,7 +340,7 @@ class QuestionnaireHandler(Handler):
 
             await message.answer(
                 email_msg,
-                reply_markup=self.kb.menu_btn()
+                reply_markup=self.kb.back_btn()
             )
 
         @self.router.message(EditQuestionnaireState.email)
@@ -342,6 +361,17 @@ class QuestionnaireHandler(Handler):
                 )
                 await state.update_data(email=message.text)
                 await state.set_state(EditQuestionnaireState.approve_email)
+
+            elif message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
+                status_code, back_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=BACK'
+                )
+                await message.answer(
+                    back_msg,
+                    reply_markup=self.kb.questionnaire_btn()
+                )
+                await state.set_state(state=None)
 
             else:
 
@@ -386,6 +416,19 @@ class QuestionnaireHandler(Handler):
                     message=message,
                     state=state
                 )
+
+            elif message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
+                status_code, back_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=BACK'
+
+                )
+                await message.answer(
+                    back_msg,
+                    reply_markup=self.kb.questionnaire_btn()
+                )
+                await state.set_state(state=None)
+
             else:
 
                 status_code, wrong_code_msg = await req_to_api(
@@ -405,3 +448,5 @@ class QuestionnaireHandler(Handler):
                     menu_msg,
                     reply_markup=self.kb.start_menu_btn()
                 )
+
+

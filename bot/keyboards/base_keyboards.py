@@ -6,6 +6,19 @@ from bot.utils.buttons import BUTTONS
 
 class BaseKeyboard:
 
+    def back_settings_btn(self) -> ReplyKeyboardMarkup:
+        """Кпопка назад"""
+
+        builder = ReplyKeyboardBuilder()
+        builder.row(
+            KeyboardButton(text=BUTTONS['BACK_SETTINGS'])
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
     def start_menu_btn(self) -> ReplyKeyboardMarkup:
         """Меню управление заказами"""
 
@@ -32,6 +45,18 @@ class BaseKeyboard:
         builder = ReplyKeyboardBuilder()
         builder.row(
             KeyboardButton(text=BUTTONS['MENU']),
+        )
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
+    def back_btn(self) -> ReplyKeyboardMarkup:
+        """Кнопка НАЗАД """
+
+        builder = ReplyKeyboardBuilder()
+        builder.row(
+            KeyboardButton(text=BUTTONS['BACK_QUESTIONNAIRE']),
         )
         return builder.as_markup(
             resize_keyboard=True,

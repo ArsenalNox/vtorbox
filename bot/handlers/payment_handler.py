@@ -65,14 +65,14 @@ class PaymentHandler(Handler):
 
                 await state.update_data(msg_ids=msg_ids)
 
-                status_code, menu_msg = await req_to_api(
+                status_code, back_msg = await req_to_api(
                     method='get',
-                    url='bot/messages?message_key=MENU'
+                    url='bot/messages?message_key=BACK'
                 )
 
                 await message.answer(
-                    menu_msg,
-                    reply_markup=self.kb.menu_btn()
+                    back_msg,
+                    reply_markup=self.kb.back_settings_btn()
                 )
 
             else:

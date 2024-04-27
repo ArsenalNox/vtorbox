@@ -90,14 +90,14 @@ class ScheduleHandler(Handler):
                     no_schedule_msg
                 )
 
-            status_code, menu_msg = await req_to_api(
+            status_code, back_msg = await req_to_api(
                 method='get',
-                url='bot/messages?message_key=MENU'
+                url='bot/messages?message_key=BACK'
             )
 
             await message.answer(
-                menu_msg,
-                reply_markup=self.kb.menu_btn()
+                back_msg,
+                reply_markup=self.kb.back_settings_btn()
             )
 
         @self.router.callback_query(F.data.startswith('change_period'))
@@ -138,6 +138,27 @@ class ScheduleHandler(Handler):
                     address_text
                 ),
                 reply_markup=self.kb.change_schedule_btn()
+            )
+
+        @self.router.message(F.text.startswith(BUTTONS['BACK_SETTINGS']))
+        async def back_to_settings(message: Message, state: FSMContext):
+            await state.update_data(chat_id=message.chat.id)
+            await state.update_data(menu_view='settings')
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=message
+            )
+
+            status_code, settings_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=SETTINGS'
+            )
+
+            await message.answer(
+                settings_msg,
+                reply_markup=self.kb.settings_btn()
             )
 
         @self.router.message(F.text.startswith('По запросу'))
