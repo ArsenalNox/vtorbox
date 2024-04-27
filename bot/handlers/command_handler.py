@@ -49,7 +49,8 @@ class CommandHandler(Handler):
                 user_data = json.dumps({
                     'tg_id': message.from_user.id,
                     'username': message.from_user.username,
-                    'fullname': message.from_user.full_name,
+                    'firstname': message.from_user.first_name,
+                    'secondname': message.from_user.last_name,
                     'promocode': promocode_in_msg
                 })
 
@@ -95,7 +96,8 @@ class CommandHandler(Handler):
                     user_data = json.dumps({
                         'tg_id': message.from_user.id,
                         'username': message.from_user.username,
-                        'fullname': message.from_user.full_name
+                        'firstname': message.from_user.first_name,
+                        'secondname': message.from_user.last_name
                     })
 
                     # создаем пользователя
