@@ -10,6 +10,7 @@ from loguru import logger
 
 from bot.handlers.base_handler import Handler
 from bot.keyboards.order import OrderKeyboard
+from bot.keyboards.questionnaire_kb import QuestionnaireKeyboard
 from bot.states.states import CreateOrder, YesOrNo
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn, format_orders_statuses_text
@@ -24,6 +25,7 @@ class OrderHandler(Handler):
         super().__init__(bot)
         self.router = Router()
         self.kb = OrderKeyboard()
+        self.questionnaire_kb = QuestionnaireKeyboard()
         self.orders_list = []
         self.index = 0
 
@@ -402,6 +404,14 @@ class OrderHandler(Handler):
         async def payment_order(callback: CallbackQuery, state: FSMContext):
 
             await state.update_data(chat_id=callback.message.chat.id)
+            data = await state.get_data()
+            if data.get('order_msg'):
+                await callback.bot.edit_message_reply_markup(
+                    chat_id=data.get('chat_id'),
+                    message_id=data.get('order_msg'),
+                    reply_markup=None
+                )
+
             order_id = callback.data.split('_')[-1]
 
             status_code, payment_msg = await req_to_api(
@@ -410,19 +420,32 @@ class OrderHandler(Handler):
             )
 
             await callback.message.answer(
-                MESSAGES['PAYMENT_ORDER']
+                payment_msg
             )
-
             status_code, response = await req_to_api(
                 method='post',
                 url=f'payment?for_order={order_id}'
             )
+            print(response)
 
             if isinstance(response[0], dict):
+                status_code, link_payment_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=YOUR_LINK_PAYMENT'
+                )
                 await callback.message.answer(
-                    MESSAGES['YOUR_LINK_PAYMENT'].format(
+                    link_payment_msg.format(
                         response[0].get('payment_url')
                     )
+                )
+                status_code, menu_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=MENU'
+                )
+
+                await callback.message.answer(
+                    menu_msg,
+                    reply_markup=self.kb.start_menu_btn()
                 )
 
             else:
