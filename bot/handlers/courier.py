@@ -44,7 +44,7 @@ class CourierHandler(Handler):
             await state.update_data(chat_id=message.chat.id)
             status_code, routes = await req_to_api(
                 method='get',
-                url=f'bot/routes/?courier_id={5161155813}',
+                url=f'bot/routes/?courier_id={message.chat.id}',
             )
 
             if routes:
@@ -84,7 +84,7 @@ class CourierHandler(Handler):
 
             status_code, routes = await req_to_api(
                 method='get',
-                url=f'bot/routes/?courier_id={5161155813}',
+                url=f'bot/routes/?courier_id={callback.message.chat.id}',
             )
 
             if routes:
@@ -154,7 +154,7 @@ class CourierHandler(Handler):
 
             status_code, routes = await req_to_api(
                 method='get',
-                url=f'bot/routes/?courier_id={5161155813}',
+                url=f'bot/routes/?courier_id={callback.message.chat.id}',
             )
 
             if routes:
@@ -351,7 +351,7 @@ class CourierHandler(Handler):
 
             status_code, routes = await req_to_api(
                 method='get',
-                url=f'bot/routes/?courier_id={5161155813}',
+                url=f'bot/routes/?courier_id={message.chat.id}',
             )
 
             if routes:
@@ -379,7 +379,7 @@ class CourierHandler(Handler):
 
             status_code, routes = await req_to_api(
                 method='get',
-                url=f'bot/routes/?courier_id={5161155813}',
+                url=f'bot/routes/?courier_id={callback.message.chat.id}',
             )
 
             if routes:
