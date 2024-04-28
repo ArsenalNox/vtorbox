@@ -688,12 +688,14 @@ async def update_order_data(
                     print(f"comment from {comment_from_user.id}")
                     from_user_id = comment_from_user.id
 
-                old_comment_to_history = OrderComments(
-                    order_id = order_query.id,
-                    from_user = from_user_id,
-                    content = getattr(order_query, attr),
-                    type = attr
-                )
+                old_comment = getattr(order_query, attr)
+                if old_comment:
+                    old_comment_to_history = OrderComments(
+                        order_id = order_query.id,
+                        from_user = from_user_id,
+                        content = getattr(order_query, attr),
+                        type = attr
+                    )
                 session.add(old_comment_to_history)             
 
             setattr(order_query, attr, value)
