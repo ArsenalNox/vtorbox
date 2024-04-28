@@ -345,4 +345,4 @@ async def process_notification_from_tinkoff(requestd_data: Request):
         session.commit()
 
 
-        return Response(content='OK', media_type='text/html')
+        return Response(content='OK')
