@@ -329,7 +329,6 @@ async def process_notification_from_tinkoff(requestd_data: Request):
     """
     with Session(engine, expire_on_commit=False) as session:
         payment_data = await requestd_data.json()
-        print(payment_data)
 
         payment = Payments.query(
             tinkoff_id=payment_data['PaymentId'],
@@ -337,12 +336,14 @@ async def process_notification_from_tinkoff(requestd_data: Request):
         )
 
         if not payment:
-            print(f'PAYMENT not found {payment_data["RebillId"]}')
-            return 'NO'
+            return Response(content='NO', status_code=422)
 
-        payment.status = payment_data['Status']
-        payment.rebill_id = payment_data["RebillId"]
-        session.commit()
-
+        try:
+            payment.status = payment_data['Status']
+            payment.rebill_id = payment_data["RebillId"]
+            session.commit()
+        except Exception as err:
+            print(err)
+            return Response(content='NO', status_code=500)
 
         return Response(content='OK')
