@@ -46,6 +46,7 @@ class CourierHandler(Handler):
                 method='get',
                 url=f'bot/routes/?courier_id={message.chat.id}',
             )
+            pprint.pprint(routes)
 
             if routes:
                 routes = routes[0]
@@ -144,13 +145,13 @@ class CourierHandler(Handler):
             )
             order_id = callback.data.split('_')[-1]
 
-            status = quote("обработанна")
+            status = quote("ожидается оплата")
             await req_to_api(
                 method='put',
                 url=f'orders/{order_id}/status?status_text={status}',
             )
             logger.debug(
-                f'Пользователь: {callback.message.chat.id} отметил заявку: {order_id} как ОБРАБОТАНА')
+                f'Пользователь: {callback.message.chat.id} отметил заявку: {order_id} как Ожидается Оплата')
 
             status_code, routes = await req_to_api(
                 method='get',
