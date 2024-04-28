@@ -61,17 +61,29 @@ class CourierKeyboard(BaseKeyboard):
                     InlineKeyboardButton(text=f"🟢 {order_address} {order_comment}",
                                          callback_data=f'point_{order_id}')
                 )
+            elif status == 'ожидается оплата':
+                builder.row(
+                    InlineKeyboardButton(text=f"💸 {order_address} {order_comment}",
+                                         callback_data=f'point_{order_id}')
+                )
 
+            else:
+                builder.row(
+                    InlineKeyboardButton(text=f"{order_address} {order_comment}",
+                                         callback_data=f'point_{order_id}')
+                )
 
         return builder.as_markup(
             resize_keyboard=True,
             one_time_keyboard=True
         )
 
-    def points_menu_btn(self, point_id: str) -> InlineKeyboardMarkup:
+    def points_menu_btn(self, order: dict, point_id: str) -> InlineKeyboardMarkup:
         """Отметка точки как обработана/не обработана"""
 
         builder = InlineKeyboardBuilder()
+
+        status = order.get('status_data', {}).get('status_name')
 
         builder.add(
             InlineKeyboardButton(text='Тип',
@@ -82,14 +94,17 @@ class CourierKeyboard(BaseKeyboard):
                                  callback_data=f'container_count_{point_id}')
         )
 
-        builder.row(
-            InlineKeyboardButton(text='Обработан',
-                                 callback_data=f'finished_{point_id}')
-        )
-        builder.row(
-            InlineKeyboardButton(text='Не обработан',
-                                 callback_data=f'not_finished_{point_id}')
-        )
+        if status != 'ожидается оплата':
+            builder.row(
+                InlineKeyboardButton(text='Обработан',
+                                     callback_data=f'finished_{point_id}')
+            )
+            if status != 'отменена':
+                builder.row(
+                    InlineKeyboardButton(text='Не обработан',
+                                         callback_data=f'not_finished_{point_id}')
+                )
+
         builder.row(
             InlineKeyboardButton(text='Назад к списку заявок',
                                  callback_data=f'back_order_list')
