@@ -28,7 +28,7 @@ from app.validators import (
 
 from app import Tags
 
-from fastapi import APIRouter, Body, Security, Query, Request
+from fastapi import APIRouter, Body, Security, Query, Request, Response
 from fastapi.responses import JSONResponse
 
 from calendar import monthrange
@@ -175,7 +175,7 @@ async def create_new_payment(
         new_payment = Payments.process_status_update(
             order=order_query
         )
-
+        print(new_payment)
         if not new_payment:
             return [new_payment, False]
 
@@ -342,6 +342,6 @@ async def process_notification_from_tinkoff(requestd_data: Request):
 
         payment.rebill_id = payment_data["RebillId"]
         session.commit()
-        print(payment)
 
-        return "OK"
+
+        return Response(content='OK', media_type='text/html')
