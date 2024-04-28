@@ -89,7 +89,7 @@ class CommandHandler(Handler):
             else:
                 status_code, user = await req_to_api(
                     method='get',
-                    url=f'user/me?tg_id={message.chat.id}'
+                    url=f'user/me?tg_id={5161155813}'
                 )
 
                 if not user or user == {'message': 'Not found'}:
@@ -109,7 +109,7 @@ class CommandHandler(Handler):
 
                     status_code, user = await req_to_api(
                         method='get',
-                        url=f'user/me?tg_id={message.chat.id}'
+                        url=f'user/me?tg_id={5161155813}'
                     )
 
                 if user.get('roles'):

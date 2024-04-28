@@ -125,7 +125,6 @@ async def show_order_info(self: 'OrderHandler', message: Message, order: dict, s
 
 
 async def show_courier_order(order_id, order: dict, message: Message, self: 'CourierHandler', state: FSMContext):
-    pprint.pprint(order)
     box_name = 'Не задано'
     box_count = 'Не задано'
     if order.get('box_data'):
@@ -146,6 +145,7 @@ async def show_courier_order(order_id, order: dict, message: Message, self: 'Cou
     msg = await message.answer(
         route_info_msg.format(
             order.get('order_num'),
+            order.get('status_data', {}).get('status_name'),
             order.get('address_data', {}).get('address'),
             order.get('user_data', {}).get('firstname') + ' ' + order.get('user_data', {}).get('secondname'),
             order.get('user_data', {}).get('phone_number') if order.get('user_data', {}).get(
@@ -153,7 +153,7 @@ async def show_courier_order(order_id, order: dict, message: Message, self: 'Cou
             box_name,
             box_count
         ),
-        reply_markup=self.kb.points_menu_btn(order_id)
+        reply_markup=self.kb.points_menu_btn(order, order_id)
     )
     await state.update_data(msg=msg.message_id)
 
