@@ -125,12 +125,13 @@ async def show_order_info(self: 'OrderHandler', message: Message, order: dict, s
 
 
 async def show_courier_order(order_id, order: dict, message: Message, self: 'CourierHandler', state: FSMContext):
-    if order.get('box_data') and order.get('box_count'):
-        box_count = order.get('box_count', 'Не задано')
+    pprint.pprint(order)
+    box_name = 'Не задано'
+    box_count = 'Не задано'
+    if order.get('box_data'):
         box_name = order.get('box_data', {}).get('box_name', 'Не задано')
-    else:
-        box_count = 'Не задано'
-        box_name = 'Не задано'
+    if order.get('box_count'):
+        box_count = order.get('box_count', 'Не задано')
 
     status_code, route_info_msg = await req_to_api(
         method='get',
