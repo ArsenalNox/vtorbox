@@ -9,6 +9,7 @@ from sqlalchemy.orm import joinedload
 
 from typing import Annotated, List, Tuple, Dict, Optional
 from fastapi import APIRouter, Security
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 from datetime import datetime, timedelta
@@ -439,7 +440,8 @@ async def add_user_address(
 
         session.add(address)
         session.commit()
-
+        
+        print(f"Adding address {address.id} to user {user.id}")
         user_address = UsersAddress(
             user_id=user.id,
             address_id=address.id,
@@ -686,7 +688,7 @@ async def get_routes(
 
         routes = routes.order_by(asc(Routes.date_created)).all()
 
-        return routes
+        return jsonable_encoder(routes)
 
 
 @router.get('/address/check', tags=[Tags.addresses])
