@@ -696,7 +696,7 @@ async def update_order_data(
                         content = getattr(order_query, attr),
                         type = attr
                     )
-                session.add(old_comment_to_history)             
+                    session.add(old_comment_to_history)             
 
             setattr(order_query, attr, value)
 
