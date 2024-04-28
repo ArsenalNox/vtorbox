@@ -253,7 +253,7 @@ async def get_routes(
             routes = routes.filter(Routes.courier_id == courier_id)
 
         if courier_tg_id:
-            courier = Users.get_or_404(t_id=courier_tg_id)
+            courier = Users.get_user(str(courier_tg_id), update_last_action=True)
             routes = routes.filter(Routes.courier_id == courier.id)
 
         routes = routes.order_by(asc(Routes.date_created)).all()
