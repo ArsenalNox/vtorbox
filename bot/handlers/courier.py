@@ -46,7 +46,6 @@ class CourierHandler(Handler):
                 method='get',
                 url=f'bot/routes/?courier_id={message.chat.id}',
             )
-            pprint.pprint(routes)
 
             if routes:
                 routes = routes[0]
