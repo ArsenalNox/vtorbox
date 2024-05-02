@@ -617,10 +617,7 @@ async def set_order_status(
 
             except Exception as err:
                 error_sending_message = True
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"Не удалось отправить сообщение пользователю: {err}"
-                )
+                print(f"Не удалось отправить сообщение пользователю: {err}")
 
         order_query = order_query.update_status(status_query.id)
 
