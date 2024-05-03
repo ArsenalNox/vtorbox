@@ -10,6 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm, SecurityScopes
 
+from uuid import UUID
+
 from app.models import (
     engine, 
     Session, 
@@ -69,8 +71,25 @@ async def get_status_info_by_name(
 
 
 @router.put('/statuses/{status_id}', tags=['admins'])
-async def change_status():
-    pass
+async def change_status(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
+    status_id: UUID,
+    allow_messages: bool
+):
+    """
+    - **allow_messages**: вкл/выкл отправку сообщения при изменении статуса на указанный
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        status = session.query(OrderStatuses).filter(OrderStatuses.id == status_id).first()
+        if not status:
+            return JSONResponse({
+                "detail": "Статус не найден"
+            }, 404)
+
+        status.message_on_update = allow_messages
+        session.commit()
+
+        return status
 
 
 @router.get('/roles', tags=[Tags.roles])
