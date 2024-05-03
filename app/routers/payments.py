@@ -339,8 +339,10 @@ async def process_notification_from_tinkoff(requestd_data: Request):
             return Response(content='NO', status_code=422)
 
         try:
+            if "RebillId" in payment_data:
+                payment.rebill_id = payment_data["RebillId"]
+
             payment.status = payment_data['Status']
-            payment.rebill_id = payment_data["RebillId"]
             session.commit()
         except Exception as err:
             print(err)
