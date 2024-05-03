@@ -31,6 +31,7 @@ class CourierHandler(Handler):
         async def get_route(message: Message, state: FSMContext):
             """Получение маршрута для курьера"""
 
+            await state.update_data(menu_view='courier_menu')
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -133,6 +134,23 @@ class CourierHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('finished'))
         async def mark_point_like_finished(callback: CallbackQuery, state: FSMContext):
+            data = await state.get_data()
+            order_id = callback.data.split('_')[-1]
+            status_code, order = await req_to_api(
+                method='get',
+                url=f'orders/{order_id}',
+            )
+
+            if data.get('courier_msg'):
+                await callback.bot.edit_message_text(
+                    text=MESSAGES['ARE_YOU_SURE'].format(order.get('order_num')),
+                    chat_id=data.get('chat_id'),
+                    message_id=data.get('courier_msg'),
+                    reply_markup=self.kb.yes_or_no_btn(order_id)
+                )
+
+        @self.router.callback_query(F.data.startswith('courier_yes'))
+        async def mark_point_like_finished(callback: CallbackQuery, state: FSMContext):
             """Отмечаем точку маршрута как обработанную"""
 
             await state.update_data(chat_id=callback.message.chat.id)
@@ -149,6 +167,7 @@ class CourierHandler(Handler):
                 method='put',
                 url=f'orders/{order_id}/status?status_text={status}',
             )
+
             logger.debug(
                 f'Пользователь: {callback.message.chat.id} отметил заявку: {order_id} как Ожидается Оплата')
 
@@ -169,6 +188,29 @@ class CourierHandler(Handler):
             await callback.message.answer(
                 MESSAGES['BACK_TO_ROUTES'],
                 reply_markup=self.kb.back_btn()
+            )
+
+        @self.router.callback_query(F.data.startswith('courier_no'))
+        async def no_sure_courier_save(callback: CallbackQuery, state: FSMContext):
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=callback.message
+            )
+
+            order_id = callback.data.split('_')[-1]
+            status_code, order = await req_to_api(
+                method='get',
+                url=f'orders/{order_id}',
+            )
+
+            await show_courier_order(
+                order_id=order_id,
+                order=order,
+                state=state,
+                message=callback.message,
+                self=self
             )
 
         @self.router.callback_query(F.data.startswith('not_finished'))
@@ -199,63 +241,63 @@ class CourierHandler(Handler):
                 data=data,
                 src=callback.message
             )
+            order_id = data.get('order_id')
 
             status_code, box_types = await req_to_api(
                 method='get',
                 url='boxes'
             )
 
-            await callback.message.answer(
+            msg = await callback.message.answer(
                 MESSAGES['CHOOSE_BOX_TYPE'],
-                reply_markup=self.kb.choose_box_type(box_types)
+                reply_markup=self.kb.choose_box_type(box_types, order_id)
             )
+            await state.update_data(msg=msg.message_id)
             await state.set_state(state=Courier.container_type)
 
-        @self.router.message(Courier.container_type)
-        async def set_container_type(message: Message, state: FSMContext):
+        @self.router.callback_query(F.data.startswith('box_id'), Courier.container_type)
+        async def set_container_type(callback: CallbackQuery, state: FSMContext):
             data = await state.get_data()
-            status_code, _box_types = await req_to_api(
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=callback.message
+            )
+            status_code, box_types = await req_to_api(
                 method='get',
                 url='boxes'
             )
+            box_id = callback.data.split('_')[-1]
+            container_type = [c.get('box_name') for c in box_types if c.get('id') == box_id]
+            container_type = container_type[0]
 
-            box_type = [i.get('box_name') for i in _box_types]
-            container_type = message.text
+            await state.set_state(state=None)
 
-            if container_type in box_type:
-                await state.set_state(state=None)
+            order_id = data.get('order_id')
 
-                order_id = data.get('order_id')
+            order_update_data = json.dumps(
+                {
+                    'box_name': container_type
+                }
+            )
+            await req_to_api(
+                method='put',
+                url=f'orders/{order_id}',
+                data=order_update_data
+            )
 
-                order_update_data = json.dumps(
-                    {
-                        'box_name': container_type
-                    }
-                )
-                await req_to_api(
-                    method='put',
-                    url=f'orders/{order_id}',
-                    data=order_update_data
-                )
+            status_code, order = await req_to_api(
+                method='get',
+                url=f'orders/{order_id}',
+            )
 
-                status_code, order = await req_to_api(
-                    method='get',
-                    url=f'orders/{order_id}',
-                )
-
-                await show_courier_order(
-                    order_id=order_id,
-                    order=order,
-                    state=state,
-                    message=message,
-                    self=self
-                )
-
-            else:
-                await message.answer(
-                    MESSAGES['WRONG_CONTAINER_TYPE'],
-                    reply_markup=self.kb.choose_box_type(_box_types)
-                )
+            await show_courier_order(
+                order_id=order_id,
+                order=order,
+                state=state,
+                message=callback.message,
+                self=self
+            )
 
         @self.router.callback_query(F.data.startswith('container_count'))
         async def change_container_count(callback: CallbackQuery, state: FSMContext):
@@ -265,54 +307,53 @@ class CourierHandler(Handler):
                 data=data,
                 src=callback.message
             )
+            order_id = data.get('order_id')
 
-            await callback.message.answer(
+            msg = await callback.message.answer(
                 MESSAGES['CHOOSE_BOX_COUNT'],
-                reply_markup=self.kb.choose_box_count()
+                reply_markup=self.kb.choose_box_count(order_id)
             )
+            await state.update_data(msg=msg.message_id)
             await state.set_state(state=Courier.container_count)
 
-        @self.router.message(Courier.container_count)
-        async def set_container_count(message: Message, state: FSMContext):
+        @self.router.callback_query(F.data.startswith('box_count'), Courier.container_count)
+        async def set_container_count(callback: CallbackQuery, state: FSMContext):
             data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=callback.message
+            )
 
-            available_container_count = [str(num) for num in range(1, 11)]
-            container_count = message.text
+            container_count = callback.data.split('_')[-1]
 
-            if container_count in available_container_count:
-                await state.set_state(state=None)
+            await state.set_state(state=None)
 
-                order_id = data.get('order_id')
+            order_id = data.get('order_id')
 
-                order_update_data = json.dumps(
-                    {
-                        'box_count': container_count
-                    }
-                )
-                await req_to_api(
-                    method='put',
-                    url=f'orders/{order_id}',
-                    data=order_update_data
-                )
+            order_update_data = json.dumps(
+                {
+                    'box_count': container_count
+                }
+            )
+            await req_to_api(
+                method='put',
+                url=f'orders/{order_id}',
+                data=order_update_data
+            )
 
-                status_code, order = await req_to_api(
-                    method='get',
-                    url=f'orders/{order_id}',
-                )
+            status_code, order = await req_to_api(
+                method='get',
+                url=f'orders/{order_id}',
+            )
 
-                await show_courier_order(
-                    order_id=order_id,
-                    order=order,
-                    state=state,
-                    message=message,
-                    self=self
-                )
-
-            else:
-                await message.answer(
-                    MESSAGES['WRONG_CONTAINER_COUNT'],
-                    reply_markup=self.kb.choose_box_count()
-                )
+            await show_courier_order(
+                order_id=order_id,
+                order=order,
+                state=state,
+                message=callback.message,
+                self=self
+            )
 
         @self.router.message(Courier.point)
         async def get_comment_to_not_finished_point(message: Message, state: FSMContext):
@@ -390,3 +431,28 @@ class CourierHandler(Handler):
                 reply_markup=await self.kb.points_btn(routes)
             )
             await state.update_data(msg=msg.message_id)
+
+        @self.router.callback_query(F.data.startswith('cancel_change'))
+        async def cancel_change_order(callback: CallbackQuery, state: FSMContext):
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=callback.message
+            )
+
+            order_id = callback.data.split('_')[-1]
+            status_code, order = await req_to_api(
+                method='get',
+                url=f'orders/{order_id}',
+            )
+
+            await show_courier_order(
+                order_id=order_id,
+                order=order,
+                state=state,
+                message=callback.message,
+                self=self
+            )
+
+

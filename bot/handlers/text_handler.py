@@ -12,6 +12,7 @@ from aiogram.types import Message
 
 from bot.handlers.base_handler import Handler
 from bot.keyboards.base_keyboards import BaseKeyboard
+from bot.keyboards.courier_kb import CourierKeyboard
 from bot.keyboards.order import OrderKeyboard
 from bot.keyboards.questionnaire_kb import QuestionnaireKeyboard
 from bot.states.states import RegistrationUser, SMSEmail
@@ -29,6 +30,7 @@ class TextHandler(Handler):
         self.router = Router()
         self.kb = BaseKeyboard()
         self.order_kb = OrderKeyboard()
+        self.courier_kb = CourierKeyboard()
         self.questionnaire_kb = QuestionnaireKeyboard()
 
     def handle(self):
@@ -367,7 +369,17 @@ class TextHandler(Handler):
         async def any_text(message: Message, state: FSMContext):
             data = await state.get_data()
             menu_view = data.get('menu_view')
-            await state.update_data(menu_view='main')
+
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=message
+            )
+
+            status_code, menu_btn_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=PRESS_BUTTONS_MENU'
+            )
 
             menus_buttons = {
                 'registration': self.kb.registration_btn,
@@ -377,17 +389,26 @@ class TextHandler(Handler):
                 'addresses': self.kb.menu_btn,
                 'schedule': self.kb.menu_btn,
                 'payment': self.kb.menu_btn,
-                'menu': self.kb.menu_btn
+                'menu': self.kb.menu_btn,
             }
+            print(menu_view)
+            if menu_view == 'courier_menu':
+                status_code, routes = await req_to_api(
+                    method='get',
+                    url=f'bot/routes/?courier_id={message.chat.id}',
+                )
+                if routes:
+                    routes = routes[0]
+                    route_link = routes.get('route_link')
+                    msg = await message.answer(
+                        menu_btn_msg,
+                        reply_markup=self.courier_kb.routes_menu(route_link)
+                    )
+                    await state.update_data(courier_msg=msg.message_id)
 
-            buttons = menus_buttons.get(menu_view, self.kb.start_menu_btn)
-
-            status_code, menu_btn_msg = await req_to_api(
-                method='get',
-                url='bot/messages?message_key=PRESS_BUTTONS_MENU'
-            )
-
-            await message.answer(
-                menu_btn_msg,
-                reply_markup=buttons()
-            )
+            else:
+                buttons = menus_buttons.get(menu_view, self.kb.start_menu_btn)
+                await message.answer(
+                    menu_btn_msg,
+                    reply_markup=buttons()
+                )
