@@ -35,7 +35,7 @@ from app.models import (
     ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION,
     IntervalStatuses, ROLE_ADMIN_NAME, Regions, WeekDaysWork,
     DaysWork, ORDER_STATUS_AWAITING_PAYMENT, Payments, PaymentClientData,
-    OrderComments, get_user_from_db_secondary
+    OrderComments, get_user_from_db_secondary, OrderChangeHistory
     )
 
 from app.utils import (send_message_through_bot)
@@ -159,57 +159,7 @@ async def get_filtered_orders(
         }
 
 
-@router.get('/orders/{order_id}', tags=[Tags.orders, Tags.bot], 
-    responses={
-        200: {
-            "description": "Заявка полученная по айди",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "tg_id": 851230989,
-                        "day": "2024-01-14T00:00:00",
-                        "last_disposal": 'null',
-                        "times_completed": 'null',
-                        "status": "32c9cfba-7774-4fb1-95be-76a897dc2e54",
-                        "date_created": "2024-01-12T14:15:57.364705",
-                        "last_updated": "2024-01-12T14:15:34.617734",
-                        "id": "5a56a39a-11f7-4a99-9c99-e90043c8b754",
-                        "address_id": "e2dbda30-0593-4d67-a7bc-cf56b406eb2c",
-                        "next_planned_date": 'null',
-                        "legal_entity": 'false',
-                        "box_type_id": "a6996b4d-ef7d-4054-8340-5f850d1543e6",
-                        "box_count": 1,
-                        "on_interval": 'false',
-                        "interval_type": 'null',
-                        "intreval": 'null',
-                        "address_data": {
-                            "address": "Москва Пушкина 10",
-                            "district": 'null',
-                            "distance_from_mkad": 'null',
-                            "comment": 'null',
-                            "detail": 'null',
-                            "longitude": "37.210662",
-                            "latitude": "55.609151",
-                            "main": 'false',
-                            "region": 'null',
-                            "point_on_map": 'null'
-                        },
-                        "box_data": {
-                            "pricing_default": 500,
-                            "box_name": "Пакет",
-                            "volume": 2,
-                            "weight_limit": 15
-                        },
-                        "status_data": {
-                            "status_name": "подтверждена",
-                            "description": "подтверждена клиентом"
-                        }
-                    }
-                }
-            }
-        }
-    }
-    )
+@router.get('/orders/{order_id}', tags=[Tags.orders, Tags.bot])
 async def get_order_by_id(
         current_user: Annotated[UserLoginSchema, Security(get_current_user)],
         order_id: UUID
@@ -560,13 +510,13 @@ async def set_order_status(
     order_id: UUID,
     status_text: str = None,
     status_id: UUID = None,
+    send_message: bool = True
 )->OrderOut:
     """
     Обновление/Установка статуса заявки
     - **order_id**: UUID заявки
     - **status_text**: status_name статсуа в бд
     - **status_id**: UUID статуса в бд
-    
     в запросе обязательно нужно передать либо **status_text** либо **status_id**
     """
     if (not status_text) and (not status_id):
@@ -585,7 +535,7 @@ async def set_order_status(
 
         if not status_query:
             return JSONResponse({
-                "message": "status not found"
+                "detail": "status not found"
             },status_code=404)
         
         order_query = session.query(Orders).filter_by(id = order_id).\
@@ -593,33 +543,35 @@ async def set_order_status(
 
         if not order_query:
             return JSONResponse({
-                "message": "order not found"
+                "detail": "order not found"
             },status_code=404)
 
         if order_query.status == status_query.id:
             return JSONResponse({
-                "message": "Status is identical, change not saved"
+                "detail": "Status is identical, change not saved"
             }, 200)
-
-
-
-        print("Checking for payment")
-        print(status_query.status_name)
 
         error_sending_message = False
 
+        #если статус меняется в "ожидается оплата" - отправить сообщение об оплате
         if status_query.status_name == ORDER_STATUS_AWAITING_PAYMENT['status_name']: 
             try:
-                print("Creating payment")
-                new_payment = Payments.process_status_update(
-                    order = order_query
+                if order_query.user.allow_messages_from_bot:
+                    send_message_through_bot(
+                        order_query.user.telegram_id,
+                        message=f"От вас требуется оплата заявки ({order_query.order_num}) по адресу ({order_query.address.address})",
+                        btn={
+                            "inline_keyboard" : [[{
+                            "text" : "Перейти к оплате",
+                            "callback_data": f"payment_{order_query.id}",
+                        }]]}
                 )
-
+                    
             except Exception as err:
                 error_sending_message = True
                 print(f"Не удалось отправить сообщение пользователю: {err}")
 
-        order_query = order_query.update_status(status_query.id)
+        order_query = order_query.update_status(status_query.id, (status_query.message_on_update and send_message))
 
         session.commit()
 
@@ -631,7 +583,7 @@ async def update_order_data(
         current_user: Annotated[UserLoginSchema, Security(get_current_user)],
         order_id: UUID, 
         new_order_data: OrderUpdate,
-        comment_from_user: Annotated[UserIdMultiple, Depends(get_user_from_db_secondary)]
+        change_from_user: Annotated[UserIdMultiple, Depends(get_user_from_db_secondary)]
     )->OrderOut:
     """
     Обновить данные заявки
@@ -644,7 +596,7 @@ async def update_order_data(
 
         if not order_query:
             return JSONResponse({
-                "message": "Order not found"
+                "detail": "Order not found"
             },status_code=404)
 
         address_query = session.query(Address).filter_by(id=new_order_data.address_id).\
@@ -660,7 +612,7 @@ async def update_order_data(
             
             if attr == "box_name" and (not container):
                 return JSONResponse({
-                    "message": f"no '{new_order_data.box_name}' container found"
+                    "detail": f"no '{new_order_data.box_name}' container found"
                 }, status_code=422)
 
             elif attr == "box_name":
@@ -669,21 +621,21 @@ async def update_order_data(
 
             if attr == "address_id" and (not address_query):
                 return JSONResponse({
-                    "message": "Address not found"
+                    "detail": "Address not found"
                 },status_code=404)
 
             if attr == "box_count" and (new_order_data.box_count < 1):
                 return JSONResponse({
-                    "message": "Cannot set box_count below 1"
+                    "detail": "Cannot set box_count below 1"
                 }, status_code=422)
 
             comment_types = ["comment_manager", "comment_courier", "comment"]
             if attr in comment_types and value:
                 print("Setting new comment to order")
                 from_user_id = None
-                if comment_from_user:
-                    print(f"comment from {comment_from_user.id}")
-                    from_user_id = comment_from_user.id
+                if change_from_user:
+                    print(f"comment from {change_from_user.id}")
+                    from_user_id = change_from_user.id
 
                 old_comment = getattr(order_query, attr)
                 if old_comment:
@@ -694,6 +646,16 @@ async def update_order_data(
                         type = attr
                     )
                     session.add(old_comment_to_history)             
+
+
+            new_data_change = OrderChangeHistory(
+                from_user_id = change_from_user.id if change_from_user else current_user.id,
+                order_id = order_query.id,
+                attribute = attr,
+                old_content = getattr(order_query, attr),
+                new_content = value,
+            )
+            session.add(new_data_change)
 
             setattr(order_query, attr, value)
 
