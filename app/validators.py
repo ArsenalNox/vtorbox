@@ -438,7 +438,7 @@ class UserOut(BaseModel):
 class StatusOut(BaseModel):
     status_name: str
     description: str
-    message_on_update: bool
+    message_on_update: Optional[bool] = None
     id: UUID4
 
 
