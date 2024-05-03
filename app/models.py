@@ -163,6 +163,7 @@ class Orders(Base):
             if not simple_load:
                 order[0].manager_info
                 order[0].comment_history
+                order[0].data_changes
 
             parent_data = jsonable_encoder(order[0])
             order_data = OrderOut(**parent_data)
@@ -224,7 +225,7 @@ class Orders(Base):
         return return_data
 
 
-    def update_status(__self__, status_id) -> Optional['Orders']:
+    def update_status(__self__, status_id, send_message=False) -> Optional['Orders']:
         """
         Указать новый статус зявки с записью изменения в историю заявки
         """
@@ -238,23 +239,40 @@ class Orders(Base):
             session.add(status_update)
             session.commit()
 
-            if not __self__.from_user:
-                return __self__
+            if send_message:
+                if not __self__.from_user:
+                    return __self__
 
-            user = Users.get_user(str(__self__.from_user))
-            if not user:
-                return __self__
+                user = Users.get_user(str(__self__.from_user))
+                if not user:
+                    return __self__
 
-            if (not user.allow_messages_from_bot) or (not user.telegram_id):
-                return __self__
+                if (not user.allow_messages_from_bot) or (not user.telegram_id):
+                    return __self__
             
-            status_query = session.query(OrderStatuses).filter(OrderStatuses.id == status_id).first()
-            send_message_through_bot(
-                receipient_id=user.telegram_id,
-                message=f"Ваша заявка №{__self__.order_num} изменила статус на '{status_query.status_name}'"
-            )
+                status_query = session.query(OrderStatuses).filter(OrderStatuses.id == status_id).first()
+                send_message_through_bot(
+                    receipient_id=user.telegram_id,
+                    message=f"Ваша заявка №{__self__.order_num} изменила статус на '{status_query.status_name}'"
+                )
 
             return __self__
+
+
+class OrderChangeHistory(Base):
+    __tablename__ = "order_change_history"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    from_user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    from_user = relationship('Users', backref='order_changes', lazy='joined')
+    order_id = Column(UUID(as_uuid=True), ForeignKey('orders.id'), nullable=False)
+    order = relationship('Orders', backref='data_changes', lazy=True)
+
+    attribute = Column(String(), nullable=False)
+    new_content = Column(String(), nullable=True)
+    old_content = Column(String(), nullable=True)
+
+    date_created = Column(DateTime(), default=default_time)
 
 
 class OrderComments(Base):
@@ -605,6 +623,7 @@ class OrderStatuses(Base):
 
     status_name = Column(String(), nullable=False)
     description = Column(String(), nullable=False)
+    message_on_update = Column(String(), default=True)
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
@@ -973,15 +992,16 @@ class Payments(Base):
                 session.add(new_payment)
                 session.commit()
 
-            send_message_through_bot(
-                order.user.telegram_id,
-                message=f"От вас требуется оплата заявки ({order.order_num}) по адресу ({order.address.address})",
-                btn={
-                    "inline_keyboard" : [[{
-                    "text" : "Перейти к оплате",
-                    "url": payment_url,
-                }]]}
-            )
+                # send_message_through_bot(
+                #     order.user.telegram_id,
+                #     message=f"От вас требуется оплата заявки ({order.order_num}) по адресу ({order.address.address})",
+                #     btn={
+                #         "inline_keyboard" : [[{
+                #         "text" : "Перейти к оплате",
+                #         "url": payment_url,
+                #     }]]}
+                # )
+
             try:
                 set_timed_func('p', new_payment.id, 'M:01')
             except Exception as err:
