@@ -87,6 +87,7 @@ async def change_status(
             }, 404)
 
         status.message_on_update = allow_messages
+        session.add(status)
         session.commit()
 
         return status
