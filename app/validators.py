@@ -12,6 +12,7 @@ from typing import Optional, Annotated, Any, List, Union, Tuple
 from typing_extensions import TypedDict
 from datetime import datetime
 
+from pydantic_extra_types.phone_numbers import PhoneNumber
 
 class UserIdMultiple(BaseModel):
     user_id: Optional[UUID4|int] = None
@@ -89,7 +90,7 @@ class UserCreationValidator(BaseModel):
 
     telegram_id: int | None = None
     telegram_username: str | None = None
-    phone_number: str | None = None
+    phone_number: Optional[PhoneNumber] = None
 
     firstname: str | None = None
     secondname: str | None = None
@@ -109,7 +110,7 @@ class UserUpdateValidator(BaseModel):
     password: Optional[str] = None
     telegram_id: Optional[int] = None
     telegram_username: Optional[str] = None
-    phone_number: Optional[str] = None
+    phone_number: Optional[PhoneNumber] = None
     firstname: Optional[str] = None
     secondname: Optional[str] = None
     patronymic: Optional[str] = None
@@ -301,11 +302,11 @@ class Status(BaseModel):
     """
     status_name: str
     description: str
+    message_on_update: Optional[bool] = None
 
 
 class UserOrderOutData(BaseModel):
     id: UUID4
-    amount: Optional[int] = None
     email: Optional[EmailStr] 
     telegram_id: Optional[int]
     telegram_username: Optional[str]
@@ -339,6 +340,16 @@ class PaymentOut(BaseModel):
     
     date_created: datetime
 
+
+class OrderDataChange(BaseModel):
+    id: UUID4
+    from_user: Optional[UserOrderOutData] = None
+
+    attribute: str
+    new_content: Optional[str] = None
+    old_content: Optional[str] = None
+
+    date_created: datetime
 
 
 class OrderOut(BaseModel):
@@ -381,6 +392,7 @@ class OrderOut(BaseModel):
     deleted_at: Optional[datetime] = None
 
     payments: Annotated[Optional[List[PaymentOut]], Field(None)]
+    data_changes: Annotated[Optional[List[OrderDataChange]], Field(None)]
 
 
 class UserOut(BaseModel):
@@ -423,11 +435,10 @@ class UserOut(BaseModel):
             return v
 
 
-
-
 class StatusOut(BaseModel):
     status_name: str
     description: str
+    message_on_update: bool
     id: UUID4
 
 
