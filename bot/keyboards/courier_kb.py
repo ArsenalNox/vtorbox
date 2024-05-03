@@ -129,31 +129,71 @@ class CourierKeyboard(BaseKeyboard):
             one_time_keyboard=True
         )
 
-    def choose_box_type(self, box_types: list[dict]) -> ReplyKeyboardMarkup:
+    def choose_box_type(self, box_types: list[dict], order_id: str) -> InlineKeyboardMarkup:
 
-        builder = ReplyKeyboardBuilder()
+        builder = InlineKeyboardBuilder()
 
         for box in box_types:
-            builder.row(
-                KeyboardButton(text=box.get('box_name'))
+            builder.add(
+                InlineKeyboardButton(
+                    text=box.get('box_name'),
+                    callback_data=f'box_id_{box.get("id")}'
+                )
             )
+
+        builder.adjust(2)
+
+        builder.row(
+            InlineKeyboardButton(
+                text='Отменить изменения',
+                callback_data=f'cancel_change_{order_id}'
+            )
+        )
 
         return builder.as_markup(
             resize_keyboard=True,
             one_time_keyboard=True
         )
 
-    def choose_box_count(self) -> ReplyKeyboardMarkup:
-        builder = ReplyKeyboardBuilder()
+    def choose_box_count(self, order_id: str) -> InlineKeyboardMarkup:
+        builder = InlineKeyboardBuilder()
 
-        for number in range(1, 11):
-            builder.row(
-                KeyboardButton(text=str(number))
+        for number in range(1, 9):
+            builder.add(
+                InlineKeyboardButton(
+                    text=str(number),
+                    callback_data=f'box_count_{number}'
+                )
             )
 
         builder.adjust(4)
+        builder.row(
+            InlineKeyboardButton(
+                text='Отменить изменения',
+                callback_data=f'cancel_change_{order_id}'
+            )
+        )
 
         return builder.as_markup(
             resize_keyboard=True,
             one_time_keyboard=True
         )
+
+    def yes_or_no_btn(self, order_id: str) -> InlineKeyboardMarkup:
+        builder = InlineKeyboardBuilder()
+
+        builder.add(
+            InlineKeyboardButton(text='Да',
+                                 callback_data=f'courier_yes_{order_id}')
+        )
+        builder.add(
+            InlineKeyboardButton(text='Нет',
+                                 callback_data=f'courier_no_{order_id}')
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
+

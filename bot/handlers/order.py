@@ -426,7 +426,6 @@ class OrderHandler(Handler):
                 method='post',
                 url=f'payment?for_order={order_id}'
             )
-            print(response)
 
             if isinstance(response[0], dict):
                 status_code, link_payment_msg = await req_to_api(

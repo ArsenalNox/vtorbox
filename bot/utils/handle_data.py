@@ -141,21 +141,27 @@ async def show_courier_order(order_id, order: dict, message: Message, self: 'Cou
         method='get',
         url='bot/messages?message_key=BACK_TO_ROUTES'
     )
+    order_comment = order.get('comment')
+    courier_comment = order.get('comment_courier')
+    address_comment = order.get('address_data', {}).get('comment')
 
     msg = await message.answer(
         route_info_msg.format(
             order.get('order_num'),
             order.get('status_data', {}).get('status_name'),
             order.get('address_data', {}).get('address'),
+            address_comment if address_comment != 'Без комментария' else '-',
             order.get('user_data', {}).get('firstname') + ' ' + order.get('user_data', {}).get('secondname'),
             order.get('user_data', {}).get('phone_number') if order.get('user_data', {}).get(
                 'phone_number') else 'Не указан',
             box_name,
-            box_count
+            box_count,
+            order_comment if order_comment != 'Без комментария' else '-',
+            courier_comment if courier_comment else '-'
         ),
         reply_markup=self.kb.points_menu_btn(order, order_id)
     )
-    await state.update_data(msg=msg.message_id)
+    await state.update_data(courier_msg=msg.message_id)
 
     await message.answer(
         back_routes_msg,

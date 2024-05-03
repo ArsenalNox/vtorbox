@@ -82,6 +82,14 @@ async def delete_messages_with_btn(data: dict, state: FSMContext, src: Message):
         )
         await state.update_data(container_msg=None)
 
+    if data.get('courier_msg'):
+        await src.bot.edit_message_reply_markup(
+            chat_id=data.get('chat_id'),
+            message_id=data.get('courier_msg'),
+            reply_markup=None
+        )
+        await state.update_data(courier_msg=None)
+
 
 def format_orders_statuses_text(orders_statuses: list[list[str]]) -> str:
     """Форматрируем текст для вывода изменения статуса конкретной заявки"""
