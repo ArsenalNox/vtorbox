@@ -43,6 +43,7 @@ class Tags(Enum):
     settings = "settings"
     payments = "payments"
     statistics = 'statistics'
+    statuses = 'statuses'
 
 class Scopes(Enum):
     bot = 'bot'
