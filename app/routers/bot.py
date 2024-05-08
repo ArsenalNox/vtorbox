@@ -566,7 +566,7 @@ async def get_address_information_by_id(
 
         else:
             return JSONResponse({
-                "message": "Not found"
+                "detail": "Not found"
             }, status_code=404)
 
 
@@ -586,7 +586,7 @@ async def update_user_addresses(
         user_query = Users.get_or_404(t_id=tg_id, internal_id=user_id)
         if not user_query:
             return JSONResponse({
-                "message": "User not found"
+                "detail": "User not found"
             },status_code=404)
         if new_address_data.main:
         #Сбросить статус главного у всех адресов
@@ -604,7 +604,7 @@ async def update_user_addresses(
 
         if not address_query:
             return JSONResponse({
-                "message": "Not found"
+                "detail": "Not found"
             },status_code=404)
 
         #Обновляем данные адреса на новые  
@@ -629,7 +629,7 @@ async def delete_user_address(
         user_query = Users.get_or_404(t_id=tg_id, internal_id=user_id)
         if not user_query:
             return JSONResponse({
-                "message": "User not found"
+                "detail": "User not found"
             },status_code=404)
 
         select_query = session.query(Address).\
@@ -640,7 +640,7 @@ async def delete_user_address(
 
         if not select_query:
             return JSONResponse({
-                "message": "No address found"
+                "detail": "No address found"
             }, status_code=404)
 
         delete_user_address_query = session.query(UsersAddress).filter_by(address_id = address_id).\
@@ -665,11 +665,11 @@ async def get_routes(
     - **date**: [datetime] - дата на получение маршрутов, по умолчанию получаются все маршруты
     """
     with Session(engine, expire_on_commit=False) as session:
-        user = session.query(Users).filter_by(telegram_id=courier_id).first()
+        user = Users.get_user(str(courier_id), update_last_action=True)
 
         if not user:
             return JSONResponse({
-                "message": "user not found"
+                "detail": "user not found"
             }, status_code=404)
 
         routes = session.query(Routes).options(
