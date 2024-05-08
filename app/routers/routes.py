@@ -260,7 +260,7 @@ async def get_routes(
 
         if len(routes)<1:
             return JSONResponse({
-                "message": "Not found"
+                "detail": "Not found"
             }, 404)
 
         # for route in routes:
@@ -299,7 +299,7 @@ async def update_route_orders(
             ).where(Routes.id==route_id).first()
         if not route_query:
             return JSONResponse({
-                "message": f"Route {route_id} not found"
+                "detail": f"Route {route_id} not found"
             },status_code=404)
 
         routes_today = session.query(Routes).\
@@ -358,7 +358,7 @@ async def update_route_orders(
             user = Users.get_user(str(new_courier_id))
             if not user:
                 return JSONResponse({
-                    "message": "Courier not found"
+                    "detail": "Courier not found"
                 }, 404)
 
             route_query.courier_id = new_courier_id
@@ -391,7 +391,7 @@ async def delete_route(
         route_query = session.query(Routes).filter(Routes.id==route_id).first()
         if not route_query:
             return JSONResponse({
-                "message": "not found"
+                "detail": "not found"
             }, 404)
 
         #TODO: Сброс статуса заявки 
@@ -419,7 +419,7 @@ async def get_route_y_map(
 
         if not route_query:
             return JSONResponse({
-                "message": "not found"
+                "detail": "not found"
             }, 404)
         
         if route_query.route_link:
