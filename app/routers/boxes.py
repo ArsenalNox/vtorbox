@@ -39,13 +39,17 @@ router = APIRouter()
 
 @router.get('/boxes', tags=['bot', 'boxes'])
 async def get_box_types(
-    bot: Annotated[UserLoginSchema, Security(get_current_user)]
+    bot: Annotated[UserLoginSchema, Security(get_current_user)],
+    show_deleted: bool = False
 ):
     """
     Получение списка доступных контейнеров
     """
     with Session(engine, expire_on_commit=False) as session:
-        boxes_query = session.query(BoxTypes).where(BoxTypes.deleted_at == None).all()
+        if show_deleted:
+            boxes_query = session.query(BoxTypes).all()
+        else: 
+            boxes_query = session.query(BoxTypes).where(BoxTypes.deleted_at == None).all()
 
         return_data = []
         if boxes_query:
@@ -195,9 +199,20 @@ async def update_box_data(
 
 @router.delete('/boxes/{box_id}')
 async def delete_box(
-    bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
     box_id: uuid.UUID
 ):
     """
     Удаление контейнера
     """
+    with Session(engine, expire_on_commit=False) as session:
+        box_query = session.query(BoxTypes).filter_by(id = box_id).first()
+        if not box_query:
+            return JSONResponse({
+                "detail": "Контейнер не найден"
+            }, status_code=404)
+        box_query.deteled_at = datetime.now()
+
+        session.commit()
+
+        return box_query
