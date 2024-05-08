@@ -147,7 +147,7 @@ if os.getenv('CREATE_DB'):
     from app.models import (
         init_role_table, init_boxtype_table, init_status_table,
         create_admin_user, add_default_messages_bot, add_default_settings,
-        create_demo_terminal
+        create_demo_terminal, init_status_restrictions
     )
     init_role_table()
     init_boxtype_table()
@@ -156,6 +156,7 @@ if os.getenv('CREATE_DB'):
     add_default_messages_bot()
     add_default_settings()
     create_demo_terminal()
+    init_status_restrictions()
 
 if __name__ == '__main__':
     uvicorn.run('app.main:app', reload=True)
