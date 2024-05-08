@@ -10,7 +10,7 @@ from app.routers import (
     admins, bot, boxes, 
     regions, routes, notifications,
     settings, payments, managers,
-    stats
+    stats, jobs
     )
 
 import os
@@ -36,7 +36,6 @@ load_dotenv()
 #TODO: подправить под soft delete'ы где не подправил 
 
 #TODO: Убрать возможность удалять заявку из маршрута со статусом выполнена и выше
-#TODO: Поставить фильтр на даты в маршрутах 
 #TODO: Доработать настройки
 
 #TODO: настройка принятия заявок с бота
@@ -44,10 +43,13 @@ load_dotenv()
 
 #TODO: deleted_at в картах пользователя
 #TODO: Если день прошёл, а маршрут не утверждён, то расформировать маршрут -> требует внимания (создана)
-#TODO: История комментариев у заявки
 #TODO: Дата последнего действия на определённых эндпоинтах
-#TODO: Фикс медленного получения заявок с последней страницы (недостаточно озу + упростить возвращаемые данные)
 #TODO: Унификация формата ответа ошибок
+
+#TODO: Сетка статусов
+#TODO: Получение регулярных задач
+#TODO: Удаление контейнера
+#TODO: Переделать формирование пула
 
 
 app.add_middleware(
@@ -131,6 +133,12 @@ app.include_router(
     stats.router,
     prefix='/api',
     tags=[Tags.statistics]
+)
+
+app.include_router(
+    jobs.router,
+    prefix='/api',
+    tags=['jobs']
 )
 
 
