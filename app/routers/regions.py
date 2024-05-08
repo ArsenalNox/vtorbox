@@ -167,7 +167,7 @@ async def update_region_data(
         query = session.query(Regions).filter_by(id=region_id).first()
         if not query: 
             return JSONResponse({
-                "message": "Not found"
+                "detail": "Not found"
             }, status_code=404)
 
         for attr, value in new_data.model_dump().items():
@@ -179,7 +179,7 @@ async def update_region_data(
                     day = str(day).lower()
                     if day not in WEEK_DAYS_WORK_STR_LIST:
                         return JSONResponse({
-                            "message": f"invalid weekday {day}"
+                            "detail": f"invalid weekday {day}"
                         }, status_code=422)
                 
                 t_lower = []
