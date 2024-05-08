@@ -24,6 +24,7 @@ from app.exceptions import UserNoIdProvided
 from app.utils import is_valid_uuid
 from app.validators import UserCreationValidator
 
+from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from calendar import monthrange
 from passlib.context import CryptContext
@@ -133,7 +134,7 @@ class Orders(Base):
             return session.query(Orders).all()
 
     @staticmethod
-    def query_by_id(order_id: UUID) -> Optional['Orders']:
+    def query_by_id(order_id: UUID):
         #TODO: реализовать запрос по айди внутри метода
         with Session(engine, expire_on_commit=False) as session:
             order = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
@@ -230,6 +231,20 @@ class Orders(Base):
         Указать новый статус зявки с записью изменения в историю заявки
         """
         with Session(engine, expire_on_commit=False) as session:
+
+            #Проверить, можно ли ставить статус из текущего            
+            status_data = session.query(OrderStatuses).filter_by(id=__self__.status).first()
+            allowed_statuses = []
+            for status_allow_u in status_data.allow_to_list:
+                allowed_statuses.append(status_allow_u.status_to.id)
+            
+            if not(status_id in allowed_statuses) and (len(allowed_statuses)>1):
+                raise HTTPException(
+                        status_code=422, 
+                        detail=f"Невозможно изменить статус с текущего '{status_data.status_name}'"
+                    )
+
+
             __self__.status = status_id
             status_update = OrderStatusHistory(
                 order_id = __self__.id,
@@ -627,6 +642,7 @@ class OrderStatuses(Base):
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
+
     @staticmethod
     def status_default():
         with Session(engine,expire_on_commit=False) as session:
@@ -697,6 +713,26 @@ class OrderStatuses(Base):
             query = session.query(OrderStatuses).\
                 filter_by(status_name=ORDER_STATUS_CANCELED['status_name']).first()
             return query
+
+
+class OrderStatusesAllowFromList(Base):
+    __tablename__ = 'order_statuses_allow_from_list'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    status_id = Column(UUID(as_uuid=True), ForeignKey('order_statuses.id'))
+    second_status_id = Column(UUID(as_uuid=True), ForeignKey('order_statuses.id'))
+    status_to = relationship('OrderStatuses', lazy='joined', foreign_keys=[second_status_id])
+    status = relationship('OrderStatuses', backref='allow_from_list', lazy=True, foreign_keys=[status_id])
+
+
+class OrderStatusesAllowToList(Base):
+    __tablename__ = 'order_statuses_allow_to_list'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    status_id = Column(UUID(as_uuid=True), ForeignKey('order_statuses.id'))
+    second_status_id = Column(UUID(as_uuid=True), ForeignKey('order_statuses.id'))
+    status_to = relationship('OrderStatuses', lazy='joined', foreign_keys=[second_status_id])
+    status = relationship('OrderStatuses', backref='allow_to_list', lazy=True, foreign_keys=[status_id])
 
 
 class OrderStatusHistory(Base):
@@ -1553,6 +1589,144 @@ WEEK_DAYS_WORK_STR_LIST = [
     "sunday",
     "saturday",
 ]
+
+s_st_l = [
+    ORDER_STATUS_DEFAULT, #0
+    ORDER_STATUS_PROCESSING, #1
+    ORDER_STATUS_AWAITING_CONFIRMATION, #2
+    ORDER_STATUS_CONFIRMED, #3
+    ORDER_STATUS_COURIER_PROGRESS, #4
+    ORDER_STATUS_AWAITING_PAYMENT, #5
+    ORDER_STATUS_PAYED, #6
+    ORDER_STATUS_DONE, #7
+    ORDER_STATUS_DELETED, #8
+    ORDER_STATUS_CANCELED #9
+]
+
+
+ALLOWED_STATUS_TRANSITION_CFG = {
+    s_st_l[0]['status_name']: {
+        "ALLOW_FROM": [],
+        "ALLOW_TO": []
+    },
+    s_st_l[1]['status_name']: {
+        "ALLOW_FROM": [],
+        "ALLOW_TO": [
+            s_st_l[2], s_st_l[3],
+            s_st_l[4], s_st_l[5],
+            s_st_l[6], s_st_l[7],
+            s_st_l[8], s_st_l[9]
+        ]
+    },
+    s_st_l[2]['status_name']: {
+        "ALLOW_FROM": [],
+        "ALLOW_TO": [
+            s_st_l[2], s_st_l[3],
+            s_st_l[4], s_st_l[5],
+            s_st_l[6], s_st_l[7],
+            s_st_l[8], s_st_l[9]
+        ],
+    },
+    s_st_l[3]['status_name']: {
+        "ALLOW_FROM": [],
+        "ALLOW_TO": [
+            s_st_l[4], s_st_l[5],
+            s_st_l[6], s_st_l[7],
+            s_st_l[8], s_st_l[9]
+        ],
+    },
+    s_st_l[4]['status_name']: {
+        "ALLOW_FROM": [],
+        "ALLOW_TO": [
+            s_st_l[5],
+            s_st_l[6], s_st_l[7],
+            s_st_l[8], s_st_l[9]
+        ],
+    },
+    s_st_l[5]['status_name']: {
+        "ALLOW_FROM": [],
+        "ALLOW_TO": [
+            s_st_l[6], s_st_l[7],
+        ],
+    },
+    s_st_l[6]['status_name']: {
+        "ALLOW_FROM": [],
+        "ALLOW_TO": [
+            s_st_l[7],
+        ],
+    },
+    s_st_l[7]['status_name']: {
+        "ALLOW_FROM": [],
+        "ALLOW_TO": [],
+    },
+    s_st_l[9]['status_name']: {
+        "ALLOW_FROM": [],
+        "ALLOW_TO": [],
+    },
+    s_st_l[9]['status_name']: {
+        "ALLOW_FROM": [],
+        "ALLOW_TO": [
+            s_st_l[4],
+            s_st_l[5],
+        ],
+    },
+}
+
+
+def init_status_restrictions():
+    with Session(engine, expire_on_commit=False) as session:
+        for status, value in ALLOWED_STATUS_TRANSITION_CFG.items():
+            status_query = session.query(OrderStatuses).filter_by(status_name = status).first()
+            if not status_query: 
+                return
+
+            print(f'Setting status list for status {status_query.status_name}')
+
+            print("Allowed to:")
+            if len(value['ALLOW_TO']) < 1:
+                print('Any')
+
+            for status_allow_to in value['ALLOW_TO']:
+                print(status_allow_to['status_name'])
+                status_allow_to_query = session.query(OrderStatuses).filter_by(status_name = status_allow_to['status_name']).first()
+                substatus_query = session.query(OrderStatusesAllowToList).filter_by(
+                    status_id = status_query.id,
+                    second_status_id = status_allow_to_query.id
+                ).first()
+
+                if not substatus_query:
+                    print("Setting not in place. Creating")
+                    new_status_allow_to_setting = OrderStatusesAllowToList(
+                        status_id = status_query.id,
+                        second_status_id = status_allow_to_query.id
+                    )
+                    session.add(new_status_allow_to_setting)
+
+
+            print("Allowed from:")
+            if len(value['ALLOW_FROM']) < 1:
+                print('Any')
+
+            for status_allow_from in value['ALLOW_FROM']:
+                print(status_allow_from['status_name'])
+                status_allow_from_query = session.query(OrderStatuses).filter_by(status_name = status_allow_from['status_name']).first()
+                substatus_query = session.query(OrderStatusesAllowFromList).filter_by(
+                    status_id = status_query.id,
+                    second_status_id = status_allow_from_query.id
+                ).first()
+                if not substatus_query:
+                    print("Setting not in place. Creating")
+                    new_status_allow_from_setting = OrderStatusesAllowFromList(
+                        status_id = status_query.id,
+                        second_status_id = status_allow_from_query.id
+                    )
+                    session.add(new_status_allow_from_setting)
+
+            print('----\n')
+
+        session.commit() 
+        print("Done adding allow lists")
+
 
 def init_role_table():
     """
