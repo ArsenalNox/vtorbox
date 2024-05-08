@@ -435,10 +435,23 @@ class UserOut(BaseModel):
             return v
 
 
+class SubStatusOut(BaseModel):
+    id: UUID4
+    status_name: str
+    description: str
+
+
+class SubStatusListOut(BaseModel):
+    id: UUID4
+    status_to: SubStatusOut
+
+
 class StatusOut(BaseModel):
     status_name: str
     description: str
     message_on_update: Optional[bool] = None
+    allow_from_list: Optional[List[SubStatusListOut]] = None
+    allow_to_list: Optional[List[SubStatusListOut]] = None
     id: UUID4
 
 
