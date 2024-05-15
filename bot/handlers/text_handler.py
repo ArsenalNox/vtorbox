@@ -391,7 +391,7 @@ class TextHandler(Handler):
                 'payment': self.kb.menu_btn,
                 'menu': self.kb.menu_btn,
             }
-            print(menu_view)
+
             if menu_view == 'courier_menu':
                 status_code, routes = await req_to_api(
                     method='get',
@@ -405,6 +405,11 @@ class TextHandler(Handler):
                         reply_markup=self.courier_kb.routes_menu(route_link)
                     )
                     await state.update_data(courier_msg=msg.message_id)
+                else:
+                    await message.answer(
+                        MESSAGES['NO_ROUTES'],
+                        reply_markup=self.kb.courier_btn()
+                    )
 
             else:
                 buttons = menus_buttons.get(menu_view, self.kb.start_menu_btn)
