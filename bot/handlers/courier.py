@@ -76,6 +76,8 @@ class CourierHandler(Handler):
         async def get_points_route(callback: CallbackQuery, state: FSMContext):
 
             await state.update_data(chat_id=callback.message.chat.id)
+            await state.update_data(menu_view='courier_menu')
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
