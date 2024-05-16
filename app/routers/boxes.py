@@ -65,7 +65,8 @@ async def get_box_types(
 
                     box_prices.append(RegionalBoxPrice(
                         region_name = str(price[1].name_full),
-                        price = str(price[0].price)
+                        price = str(price[0].price),
+                        region_id = str(price[0].id)
                     ))
                     
                 box_data.regional_prices = box_prices
@@ -127,7 +128,8 @@ async def create_new_box_type(
         for price in new_box.regional_pricing:
             box_prices.append(RegionalBoxPrice(
                 region_name = str(price.region.name_full),
-                price = str(price.price)
+                price = str(price.price),
+                region_id = str(price[0].id)
             ))
 
         box_data.regional_prices = box_prices
@@ -189,7 +191,8 @@ async def update_box_data(
 
             box_prices.append(RegionalBoxPrice(
                 region_name = str(price[1].name_full),
-                price = str(price[0].price)
+                price = str(price[0].price),
+                region_id = str(price[0].id)
             ))
             
         box_data.regional_prices = box_prices
