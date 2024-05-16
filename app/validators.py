@@ -286,6 +286,7 @@ class BoxType(BoxTypeCreate):
     Модель контейнера
     """
     id: UUID4
+    deleted_at: Optional[datetime] = None
 
 
 class BoxUpdate(BaseModel):

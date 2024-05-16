@@ -211,8 +211,10 @@ async def delete_box(
             return JSONResponse({
                 "detail": "Контейнер не найден"
             }, status_code=404)
-        box_query.deteled_at = datetime.now()
 
+        box_query.deleted_at = datetime.now()
+
+        session.add(box_query)
         session.commit()
 
         return box_query
