@@ -270,6 +270,7 @@ class AddressUpdate(Address):
 
 class RegionalBoxPrice(BaseModel):
     region_name: str
+    region_id: UUID4
     price: float
     
 
