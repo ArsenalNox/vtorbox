@@ -14,6 +14,7 @@ from datetime import datetime
 
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
+
 class UserIdMultiple(BaseModel):
     user_id: Optional[UUID4|int] = None
 
@@ -435,6 +436,14 @@ class UserOut(BaseModel):
             return unique_roles
         else:
             return v
+
+    @validator('phone_number', pre=True, always=True)
+    def replace_tel(cls, v):
+        if v == None:
+            return
+        if "tel:" in v:
+            v = str(v).replace('tel:', '')
+        return v
 
 
 class SubStatusOut(BaseModel):
