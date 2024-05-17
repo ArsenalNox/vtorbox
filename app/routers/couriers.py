@@ -15,6 +15,7 @@ from calendar import monthrange
 from datetime import datetime, timedelta
 from uuid import UUID
 
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import desc, asc, desc
 
 from app.validators import (
@@ -158,11 +159,11 @@ async def get_courier_info_by_id(
             join(Regions, Regions.id == Address.region_id).\
             filter(Orders.courier_id == query.id).all()
 
-        return_data.assigned_orders = Orders.process_order_array(orders)
+        return_data.assigned_orders = Orders.process_order_array(orders, simple_load=True)
 
         routes = session.query(Routes).filter(Routes.courier_id == query.id).all()
         return_data.assigned_routes = routes
-
+        return_data = jsonable_encoder(return_data)
         return return_data
 
 
