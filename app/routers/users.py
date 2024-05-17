@@ -758,7 +758,10 @@ async def check_user_roles(
 
 
 @router.post('/users/import/file', tags=[Tags.admins])
-async def import_clients(file: UploadFile):
+async def import_clients(
+    file: UploadFile,
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])]
+    ):
     """
     Импорт клиентов и заявки с историей из excel таблицы
     """
@@ -834,7 +837,7 @@ async def import_clients(file: UploadFile):
                 first()
 
             if not new_address:
-                latitude, longitude = get_lang_long_from_text_addres(sheet_obj.cell(row,7).value)
+                longitude, latitude = get_lang_long_from_text_addres(sheet_obj.cell(row,7).value)
                 if (latitude == None) or (longitude == None):
                     error_data.append({
                         "message": f"No data found for address {sheet_obj.cell(row, 7).value}",
@@ -914,3 +917,46 @@ async def import_clients(file: UploadFile):
         "errors_detail": error_data
     })
         
+
+@router.post('/users/phone-numbers/fix')
+async def fix_phone_numbers(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])]
+):
+    from pydantic_extra_types.phone_numbers import PhoneNumber
+    from pydantic import  BaseModel
+    from typing import Optional
+
+    class PhoneCheckValidator(BaseModel):
+        phone_number: Optional[PhoneNumber] = None
+
+    with Session(engine, expire_on_commit=False) as session:
+        user_query = session.query(Users).all()
+
+        for user in user_query:
+            if user.phone_number == None:
+                continue
+            
+
+            old_phone_number = str(user.phone_number)
+            if '.0' in old_phone_number:
+                old_phone_number = old_phone_number.replace('.0', '')
+
+            print(f'old number: {old_phone_number}')
+            new_phone_number = None
+
+            try:
+                if old_phone_number[0] == '8':
+                    old_phone_number = "+7"+str(old_phone_number)[1::]
+                    new_phone_number = PhoneCheckValidator(phone_number=old_phone_number)
+                else: 
+                    new_phone_number = PhoneCheckValidator(phone_number=old_phone_number)
+            except Exception as err:
+                user.phone_number = None
+
+            if new_phone_number:
+                user.phone_number = new_phone_number.phone_number
+            else:
+                user.phone_number = None
+
+            print(f"new: {new_phone_number}")
+            print("")
