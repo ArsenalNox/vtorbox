@@ -960,3 +960,5 @@ async def fix_phone_numbers(
 
             print(f"new: {new_phone_number}")
             print("")
+            session.add(user)
+        session.commit()
