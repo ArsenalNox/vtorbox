@@ -571,8 +571,16 @@ async def set_order_status(
                 error_sending_message = True
                 print(f"Не удалось отправить сообщение пользователю: {err}")
 
+        old_status_query = session.query(OrderStatuses).filter_by(id=order_query.status).first()
+        new_data_change = OrderChangeHistory(
+            from_user_id = current_user.id,
+            order_id = order_query.id,
+            attribute = 'status',
+            old_content = old_status_query.status_name,
+            new_content = status_query.status_name,
+        )
         order_query = order_query.update_status(status_query.id, (status_query.message_on_update and send_message))
-
+        session.add(new_data_change)
         session.commit()
 
         return jsonable_encoder(order_query)
