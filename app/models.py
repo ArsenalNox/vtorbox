@@ -91,6 +91,7 @@ class Orders(Base):
     user = relationship("Users", backref='orders', lazy='joined', foreign_keys=[from_user])
 
     day = Column(DateTime(), nullable=True)
+    time_window = Column(String(), nullable=True)
 
     #От юр. лица или нет
     legal_entity = Column(Boolean(), default=False)
@@ -113,7 +114,6 @@ class Orders(Base):
 
     #айди курьера, если заявка принята курьером
     courier_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
-
     #Айди менеджера
     manager_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     manager_info = relationship('Users', backref='managed_orders', lazy='joined', foreign_keys=[manager_id])
@@ -246,13 +246,6 @@ class Orders(Base):
 
 
             __self__.status = status_id
-            status_update = OrderStatusHistory(
-                order_id = __self__.id,
-                status_id = status_id
-            )
-            
-            session.add(status_update)
-            session.commit()
 
             if send_message:
                 if not __self__.from_user:
