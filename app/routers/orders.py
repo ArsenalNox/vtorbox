@@ -38,7 +38,9 @@ from app.models import (
     OrderComments, get_user_from_db_secondary, OrderChangeHistory
     )
 
-from app.utils import (send_message_through_bot)
+from app.utils import (
+    send_message_through_bot, generate_time_intervals
+    )
 
 router = APIRouter()
 
@@ -735,7 +737,7 @@ async def process_current_orders(
 
 ):
     """
-    Обработка всех доступных заявок, высчитывание следующего дня забора заявки без смены статуса
+    Обработка всех доступных заявок, высчитывание следующего дня забора заявки
     """
         
     with Session(engine, expire_on_commit=False) as session:
@@ -745,7 +747,7 @@ async def process_current_orders(
             join(OrderStatuses, OrderStatuses.id == Orders.status).\
             join(Users, Users.id == Orders.from_user).\
             filter(Orders.deleted_at == None).\
-            filter(Orders.status == OrderStatuses.status_default().id).\
+            filter(Orders.status == OrderStatuses.status_processing().id).\
             order_by(asc(Orders.date_created)).all()
 
         date_today = datetime.now()
@@ -762,7 +764,7 @@ async def process_current_orders(
             #если след день приходит на начало след месяца берём первое число как след день
             day_number_next = 1
 
-        order_list = []
+        order_list_to_generate_time_ranges = []
 
         date_tommorrow = date_today + timedelta(days=1)
         # date_tommorrow = datetime.datetime.strptime(date_tommorrow, '%Y-%m-%dT%H:%M:%S')
@@ -785,7 +787,7 @@ async def process_current_orders(
 
         if date_search_query or weekday_search_query:
             return JSONResponse({
-                "message": "Текущая дата помечена как нерабочий день. Генерация пула не запущена"
+                "detail": "Текущая дата помечена как нерабочий день. Генерация пула не запущена"
             })
 
         for order in orders:
@@ -796,7 +798,6 @@ async def process_current_orders(
 
             days_allowed = str(order[1].region.work_days).split(' ')
             print(days_allowed)
-
             if order[0].day > date_today:
                 print("DAY LARGER")
                 order_day_num = datetime.strftime(order[0].day, "%d-%m-%Y")
@@ -804,7 +805,6 @@ async def process_current_orders(
                 print(order_day_num, date_num_tommorrow)
                 if order_day_num == date_num_tommorrow:
                     print("ORDER DATE ALREADY SET TO TOMMORROW")
-                    order_list.append(order[0])
                     flag_day_set = True
             else:
                 match order[1].interval_type:
@@ -834,43 +834,60 @@ async def process_current_orders(
                         order_day_num = datetime.strftime(order[0].day, "%d-%m-%Y")
                         if order_day_num == date_num_tommorrow:
                             print("ORDER DATE ALREADY SET TO TOMMORROW")
-                            order_list.append(order[0])
                             flag_day_set = True
             
 
             if flag_day_set:
-                #TODO: Отправить уведомление пользователю
-                print("Updating order status")
-                order[0].update_status(OrderStatuses.status_awating_confirmation().id)
-                session.commit()
+                order_list_to_generate_time_ranges.append(order[0])
 
-                order_list.append(order[0])
-                
-                #TODO: ПЕРЕПИСАТЬ ПО-ЧЕЛОВЕЧЕСКИ
+        if len(order_list_to_generate_time_ranges) < 1:
+            print("No orders to process, skip generation")
+            return order_list_to_generate_time_ranges
 
-                if not order[4].allow_messages_from_bot and order[4].telegram_id:
-                    print(f"USER {order[4].id} has not telegram id connected")
-                    continue
-                else:
-                    send_message_through_bot(
-                        order[4].telegram_id,
-                        message=f"От вас требуется подверждение заявки ({order[0].order_num}) по адресу ({order[1].address})",
-                        btn={
-                            "inline_keyboard" : [[{
-                            "text" : "Подтвердить",
-                            "callback_data": f"confirm_order_12345",
-                        }]]}
-                    )
+        class Route_data():
+            orders: List
 
-                try:
-                    test_request = requests.post(
-                        url='https://api.telegram.org/bot{0}/{1}'.format(token, method), json=b
-                    ).json()
-                    print(test_request)
+        route_data = Route_data()
+        route_data.orders = order_list_to_generate_time_ranges
 
-                except Exception as err:
-                    print(err)
+        order_list_to_generate_time_ranges = generate_time_intervals(route_data)
 
-        return order_list
+        for order in order_list_to_generate_time_ranges:
+            print("Updating order status")
+
+            old_status_query = session.query(OrderStatuses).filter_by(id=order.status).first()
+            new_data_change = OrderChangeHistory(
+                order_id = order.id,
+                attribute = 'status',
+                old_content = old_status_query.status_name,
+                new_content = OrderStatuses.status_awating_confirmation().status_name,
+            )
+            print('---oldstatus')
+            print(order.status)
+            print(OrderStatuses.status_awating_confirmation().id)
+            print(OrderStatuses.status_awating_confirmation().status_name)
+            query = session.query(Orders).\
+            filter_by(id=order.id).update({"status": OrderStatuses.status_awating_confirmation().id})
+
+            session.add(new_data_change)
+            print(order.status)
+
+            
+            if not order.user.allow_messages_from_bot and order.user.telegram_id:
+                continue
+            else:
+                send_message_through_bot(
+                    order.user.telegram_id,
+                    message=f"От вас требуется подверждение заявки ({order.order_num}) по адресу ({order.address.address}) по временному итервалу {order.time_window}",
+                    btn={
+                        "inline_keyboard" : [[{
+                        "text" : "Подтвердить",
+                        "callback_data": f"confirm_order_12345",
+                    }]]}
+                )
+
+        session.commit()
+
+        return order_list_to_generate_time_ranges
 
 #TODO: повторная проверка подтверждения заявки

@@ -374,7 +374,7 @@ class OrderOut(BaseModel):
     comment: Optional[str] = None
     comment_manager: Optional[str] = None
     comment_courier: Optional[str] = None
-
+    time_window: Optional[str] = None
     comment_history: Optional[Any] = None
 
     interval_type: Optional[str] = None

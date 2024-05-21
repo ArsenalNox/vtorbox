@@ -125,10 +125,10 @@ async def write_routes_to_db(routes):
 @router.post('/routes/generate', tags=[Tags.routes, Tags.admins, Tags.managers])
 async def generate_routes_today(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    statuses_list: List[UUID] = Query(None),
     group_by: str = 'regions',
-    statuses_list = List[UUID],
-    couriers_id = List[UUID|int],
-    write_after_generation: bool = False
+    couriers_id: List[UUID] = Query(None),
+    write_after_generation: bool = False,
 ):
     """
     сформировать группы заявок в машруты
@@ -177,8 +177,12 @@ async def generate_routes_today(
             join(Permissions, Permissions.user_id == Users.id).\
             join(Roles, Roles.id == Permissions.role_id).\
             where(Roles.role_name == ROLE_COURIER_NAME).subquery()
-        couriers = couriers.filter(Users.id.in_(roles_user_query)).all()
-        
+        couriers = couriers.filter(Users.id.in_(roles_user_query))
+        print(couriers_id)
+        if couriers_id:
+            couriers = couriers.filter(Users.id.in_((couriers_id)))
+        couriers = couriers.all()
+
         if len(couriers)<1:
             return JSONResponse({
                 "message": "В бд отсутствуют курьеры"
@@ -441,8 +445,11 @@ async def get_route_y_map(
         if response.status_code == 400:
             return response.json()
 
-        result = set_timed_func('r', route_query.id, 'M:01')
-        print(result)
+        try:
+            result = set_timed_func('r', route_query.id, 'M:01')
+            print(result)
+        except Exception as err:
+            print(err)
 
         request_id = response.json()['id']
 
