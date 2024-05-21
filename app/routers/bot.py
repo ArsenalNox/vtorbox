@@ -679,7 +679,10 @@ async def get_routes(
             joinedload(Orders.payments)
             )
         routes = routes.filter(Routes.courier_id == user.id)
-        
+
+        if not date:
+            date = datetime.now()
+
         if date:
             date = date.replace(hour=0, minute=0)
             date_tommorrow = date + timedelta(days=1)
