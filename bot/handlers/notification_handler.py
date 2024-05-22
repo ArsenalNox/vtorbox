@@ -21,6 +21,7 @@ class NotificationHandler(Handler):
 
             data = await state.get_data()
             order_id = callback.data.split('_')[-1]
+            await state.update_data(msg=callback.message.message_id)
 
             status_code, order = await req_to_api(
                 method='get',
