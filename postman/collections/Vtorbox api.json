@@ -1,0 +1,2440 @@
+{
+	"info": {
+		"_postman_id": "6127ff9a-ba7e-4401-a881-a14090342eb7",
+		"name": "Vtorbox api",
+		"description": "# 🚀 Get started here\n\nThis template guides you through CRUD operations (GET, POST, PUT, DELETE), variables, and tests.\n\n## 🔖 **How to use this template**\n\n#### **Step 1: Send requests**\n\nRESTful APIs allow you to perform CRUD operations using the POST, GET, PUT, and DELETE HTTP methods.\n\nThis collection contains each of these request types. Open each request and click \"Send\" to see what happens.\n\n#### **Step 2: View responses**\n\nObserve the response tab for status code (200 OK), response time, and size.\n\n#### **Step 3: Send new Body data**\n\nUpdate or add new data in \"Body\" in the POST request. Typically, Body data is also used in PUT request.\n\n```\n{\n    \"name\": \"Add your name in the body\"\n}\n\n```\n\n#### **Step 4: Update the variable**\n\nVariables enable you to store and reuse values in Postman. We have created a variable called `base_url` with the sample request [https://postman-api-learner.glitch.me](https://postman-api-learner.glitch.me). Replace it with your API endpoint to customize this collection.\n\n#### **Step 5: Add tests in the \"Tests\" tab**\n\nTests help you confirm that your API is working as expected. You can write test scripts in JavaScript and view the output in the \"Test Results\" tab.\n\n<img src=\"https://content.pstmn.io/b5f280a7-4b09-48ec-857f-0a7ed99d7ef8/U2NyZWVuc2hvdCAyMDIzLTAzLTI3IGF0IDkuNDcuMjggUE0ucG5n\">\n\n## 💪 Pro tips\n\n- Use folders to group related requests and organize the collection.\n- Add more scripts in \"Tests\" to verify if the API works as expected and execute flows.\n    \n\n## ℹ️ Resources\n\n[Building requests](https://learning.postman.com/docs/sending-requests/requests/)  \n[Authorizing requests](https://learning.postman.com/docs/sending-requests/authorization/)  \n[Using variables](https://learning.postman.com/docs/sending-requests/variables/)  \n[Managing environments](https://learning.postman.com/docs/sending-requests/managing-environments/)  \n[Writing scripts](https://learning.postman.com/docs/writing-scripts/intro-to-scripts/)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_uid": "14187065-6127ff9a-ba7e-4401-a881-a14090342eb7"
+	},
+	"item": [
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Get all orders",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "dc59107f-73f9-4c45-9828-03462bb1461b",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "8538a875-579c-492c-b58c-b321341f32a9",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/orders/filter/?page=0&limit=0",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								"filter",
+								""
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "0"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "d103ed68-9e56-447d-854e-0bad4926771d",
+							"name": "Get all orders",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/orders/filter/?page=0&limit=1",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"orders",
+										"filter",
+										""
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Thu, 15 Feb 2024 14:39:24 GMT",
+									"uuid": "1f0e45a4-7139-4532-a2bb-bdd9d518cf2d"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "179873b4-8a17-468e-888e-37956d474a4f"
+								},
+								{
+									"key": "content-length",
+									"value": "1251",
+									"uuid": "6261b76f-93fd-4ac4-995f-501854859dd7"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "caf68f7c-4dec-4fdc-a33d-ead52c35c712"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"orders\": [\n        {\n            \"id\": \"a4f7a026-f465-49ae-81f8-e7a07b9985e7\",\n            \"order_num\": 7,\n            \"user_order_num\": 7,\n            \"last_disposal\": null,\n            \"times_completed\": null,\n            \"day\": \"2024-02-16T00:00:00\",\n            \"date_created\": \"2024-02-15T19:38:26.345578\",\n            \"last_updated\": \"2024-02-15T19:38:26.346579\",\n            \"legal_entity\": false,\n            \"interval_type\": null,\n            \"intreval\": null,\n            \"tg_id\": 851230989,\n            \"user_data\": {\n                \"email\": \"Test@test.com.ks\",\n                \"phone_number\": \"88888888888\",\n                \"secondname\": \"Тестов\",\n                \"deleted_at\": null,\n                \"telegram_id\": 851230989,\n                \"telegram_username\": \"romaha_57\",\n                \"firstname\": \"Тест\",\n                \"patronymic\": null,\n                \"link_code\": null\n            },\n            \"address_id\": \"832a31e2-e055-407f-b598-cfb464b9da7f\",\n            \"address_data\": {\n                \"address\": \"Сергея макеева 1\",\n                \"region_id\": \"98f38e9f-8eca-43f7-b5c5-195333cfaaf4\",\n                \"point_on_map\": null,\n                \"interval_type\": \"week_day\",\n                \"longitude\": \"37.549588\",\n                \"detail\": null,\n                \"latitude\": \"55.756675\",\n                \"main\": false,\n                \"distance_from_mkad\": null,\n                \"interval\": \"monday\",\n                \"comment\": null\n            },\n            \"box_type_id\": \"a6996b4d-ef7d-4054-8340-5f850d1543e6\",\n            \"box_count\": 1,\n            \"box_data\": {\n                \"box_name\": \"Пакет\",\n                \"pricing_default\": 500,\n                \"weight_limit\": 15,\n                \"volume\": 2\n            },\n            \"status\": \"995b5818-6010-44e2-9096-40c3a6a3f6e6\",\n            \"status_data\": {\n                \"status_name\": \"создана\",\n                \"description\": \"заявка не включена в работу\"\n            }\n        }\n    ],\n    \"global_count\": 7,\n    \"count\": 1\n}"
+						}
+					]
+				},
+				{
+					"name": "Create order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "6bb7142d-b2a0-4447-ac24-13aa662508f7",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "ed80cd03-ed3a-4631-9c50-7b09729135e7",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"address_id\": \"{{address_id}}\",\r\n    \"distance_from_mkad\": 12,\r\n    \"district\": \"МО\",\r\n    \"day\": \"16-2-2024\",\r\n    \"box_name\": \"Пакет\",\r\n    \"box_count\": \"1\",\r\n    \"is_legal_entity\": false,\r\n    \"phone_number\": \"+7 123 2323 88 88\",\r\n    \"price\": 350.0,\r\n    \"region\": \"Красногорск\",\r\n    \"from_user\": \"{{user_id}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host_url}}/api/orders/create",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								"create"
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "2729091c-a8c8-411f-83b0-225f79da5e3a",
+							"name": "Create order",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"address_id\": \"832a31e2-e055-407f-b598-cfb464b9da7f\",\r\n    \"distance_from_mkad\": 12,\r\n    \"district\": \"МО\",\r\n    \"day\": \"16-2-2024\",\r\n    \"box_name\": \"Пакет\",\r\n    \"box_count\": \"1\",\r\n    \"is_legal_entity\": false,\r\n    \"phone_number\": \"+7 123 2323 88 88\",\r\n    \"price\": 350.0,\r\n    \"region\": \"Красногорск\",\r\n    \"from_user\": \"851230989\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/orders/create",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"orders",
+										"create"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Thu, 15 Feb 2024 14:38:26 GMT",
+									"uuid": "7413b009-0ed0-41b9-8016-707c64db8148"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "242749ee-7123-4b22-ae74-19e9dbd9d76a"
+								},
+								{
+									"key": "content-length",
+									"value": "630",
+									"uuid": "5bb0b775-2cb9-4779-9eea-fe49b7bd1308"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "9d2fbae3-0f7a-4504-988b-d65b9e426316"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"created\",\n    \"content\": {\n        \"from_user\": \"b66d8055-c6c9-46a5-9fdf-e0b632476f2a\",\n        \"address_id\": \"832a31e2-e055-407f-b598-cfb464b9da7f\",\n        \"day\": \"2024-02-16\",\n        \"box_type_id\": \"a6996b4d-ef7d-4054-8340-5f850d1543e6\",\n        \"box_count\": 1,\n        \"status\": \"995b5818-6010-44e2-9096-40c3a6a3f6e6\",\n        \"date_created\": \"2024-02-15T19:38:26.345578\",\n        \"user_order_num\": 7,\n        \"id\": \"a4f7a026-f465-49ae-81f8-e7a07b9985e7\",\n        \"legal_entity\": false,\n        \"order_num\": 7,\n        \"last_updated\": \"2024-02-15T19:38:26.346579\"\n    },\n    \"data_given\": {\n        \"from_user\": \"b66d8055-c6c9-46a5-9fdf-e0b632476f2a\",\n        \"address_id\": \"832a31e2-e055-407f-b598-cfb464b9da7f\",\n        \"day\": \"2024-02-16\",\n        \"box_name\": \"Пакет\",\n        \"box_count\": 1\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f0468435-415f-4ee0-ab93-00fb62b61b9f",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.sendRequest(\"https://postman-echo.com/get\", function (err, response) {\r",
+									"    console.log(response.json());\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "19df0bbd-4234-41f5-9f8d-0dfaba95bf10",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/orders/{{order_id}}}/delete",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								"{{order_id}}}",
+								"delete"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get user's oders",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f8b87e8b-f12b-4aec-8ad6-863dbeebb2ff",
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "e80c59e1-b6d7-4e1b-9e8c-917b2b11ede1",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/users/orders?user_id={{user_id}}",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"orders"
+							],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "{{user_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Edit order data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "c7284a11-29b0-41dc-afa1-d313729df4fd",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "6414f1dd-cc80-4c42-967b-669028b58ef7",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"comment\": \"test_comment_2\",\r\n  \"comment_manager\": \"test_comment_manager_2\",\r\n  \"comment_courier\": \"test_comment_courier_2\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host_url}}/api/orders/{{order_id}}?user_id={{user_id}}",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								"{{order_id}}"
+							],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "{{user_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get order info by id",
+					"id": "57bc4597-315f-4a6b-a46e-f24abdf14941",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/orders/{{order_id}}",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								"{{order_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "c58130eb-21f0-411a-94a9-af38586b13d8"
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get all users",
+					"id": "00a18eab-4d32-4ebd-b245-bf8af9524a63",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/users?page=0&limit=10&with_orders=false&only_bot_users=true&with_active_orders=true",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "with_orders",
+									"value": "false"
+								},
+								{
+									"key": "only_bot_users",
+									"value": "true"
+								},
+								{
+									"key": "with_active_orders",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "45dc17d9-310c-4cc4-bacf-461373bb9cab",
+							"name": "Get all users",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/users?page=0&limit=10&with_orders=false",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"users"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "0"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										},
+										{
+											"key": "with_orders",
+											"value": "false"
+										},
+										{
+											"key": "only_bot_users",
+											"value": "true",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Thu, 15 Feb 2024 14:30:01 GMT",
+									"uuid": "11f28621-c724-48d5-bd46-accc9c425f27"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "d5ede447-c78f-42d5-ac4a-f0bb53db726b"
+								},
+								{
+									"key": "content-length",
+									"value": "2770",
+									"uuid": "312a7acf-c6a0-4038-9285-f59eb194bb52"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "c6f60a82-d2ae-4c51-b85b-232453271d8c"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"count\": 10,\n    \"global_count\": 789,\n    \"data\": [\n        {\n            \"email\": \"user@example.com\",\n            \"id\": \"d602f4e5-0a2b-442b-81e4-9aae0cb306ae\",\n            \"telegram_id\": 1234,\n            \"telegram_username\": \"тфьу\",\n            \"phone_number\": \"123\",\n            \"firstname\": null,\n            \"secondname\": null,\n            \"orders\": null,\n            \"roles\": [\n                \"customer\"\n            ],\n            \"deleted_at\": null,\n            \"link_code\": null\n        },\n        {\n            \"email\": null,\n            \"id\": \"d894e1f6-c673-4ad7-8702-f1e8e9cf7e73\",\n            \"telegram_id\": 246,\n            \"telegram_username\": \"string\",\n            \"phone_number\": null,\n            \"firstname\": null,\n            \"secondname\": null,\n            \"orders\": null,\n            \"roles\": [\n                \"customer\"\n            ],\n            \"deleted_at\": null,\n            \"link_code\": \"52f2ba37\"\n        },\n        {\n            \"email\": null,\n            \"id\": \"733f5ce6-f2dc-4e3c-a673-36aa3081346a\",\n            \"telegram_id\": 2146,\n            \"telegram_username\": \"string\",\n            \"phone_number\": null,\n            \"firstname\": null,\n            \"secondname\": null,\n            \"orders\": null,\n            \"roles\": [\n                \"customer\"\n            ],\n            \"deleted_at\": \"2024-01-11T18:49:19.157102\",\n            \"link_code\": \"0f7b8367-f\"\n        },\n        {\n            \"email\": null,\n            \"id\": \"14537b31-6a04-4bdb-8498-c98734a43641\",\n            \"telegram_id\": 21426,\n            \"telegram_username\": \"string\",\n            \"phone_number\": null,\n            \"firstname\": null,\n            \"secondname\": null,\n            \"orders\": null,\n            \"roles\": [\n                \"customer\"\n            ],\n            \"deleted_at\": null,\n            \"link_code\": \"d814c441-7\"\n        },\n        {\n            \"email\": \"usssser@example.com\",\n            \"id\": \"f20cdeef-4b1a-41be-9a6f-94da2c4f8159\",\n            \"telegram_id\": 214426,\n            \"telegram_username\": \"string\",\n            \"phone_number\": null,\n            \"firstname\": null,\n            \"secondname\": null,\n            \"orders\": null,\n            \"roles\": [\n                \"customer\"\n            ],\n            \"deleted_at\": null,\n            \"link_code\": \"c47cb4b4-b\"\n        },\n        {\n            \"email\": \"user3@example.com\",\n            \"id\": \"43f96b7c-c417-4be1-9be8-857bf9df8acb\",\n            \"telegram_id\": 55455,\n            \"telegram_username\": null,\n            \"phone_number\": null,\n            \"firstname\": null,\n            \"secondname\": null,\n            \"orders\": null,\n            \"roles\": [\n                \"customer\",\n                \"admin\",\n                \"manager\",\n                \"courier\",\n                \"bot\"\n            ],\n            \"deleted_at\": null,\n            \"link_code\": \"e08d1fb4-6\"\n        },\n        {\n            \"email\": \"Test@test.com.ks\",\n            \"id\": \"b66d8055-c6c9-46a5-9fdf-e0b632476f2a\",\n            \"telegram_id\": 851230989,\n            \"telegram_username\": \"romaha_57\",\n            \"phone_number\": \"88888888888\",\n            \"firstname\": \"Тест\",\n            \"secondname\": \"Тестов\",\n            \"orders\": null,\n            \"roles\": [\n                \"customer\"\n            ],\n            \"deleted_at\": null,\n            \"link_code\": null\n        },\n        {\n            \"email\": null,\n            \"id\": \"50d67d2d-4afe-4d66-9cd2-e5f45eeb9485\",\n            \"telegram_id\": null,\n            \"telegram_username\": null,\n            \"phone_number\": \"89777735691.0\",\n            \"firstname\": \"Лидия\",\n            \"secondname\": null,\n            \"orders\": null,\n            \"roles\": [\n                \"customer\"\n            ],\n            \"deleted_at\": \"2024-01-30T21:35:35.203199\",\n            \"link_code\": \"de13066f\"\n        },\n        {\n            \"email\": null,\n            \"id\": \"1d3723ad-3ac0-499f-acad-a46a6003e649\",\n            \"telegram_id\": null,\n            \"telegram_username\": null,\n            \"phone_number\": \"89150173071.0\",\n            \"firstname\": \"Волкова Дарья Александровна\",\n            \"secondname\": null,\n            \"orders\": null,\n            \"roles\": [\n                \"customer\"\n            ],\n            \"deleted_at\": \"2024-01-30T23:38:02.936277\",\n            \"link_code\": \"b886bf18\"\n        },\n        {\n            \"email\": null,\n            \"id\": \"fe8b2d52-99ea-4d60-a06e-b6587f0263f8\",\n            \"telegram_id\": null,\n            \"telegram_username\": null,\n            \"phone_number\": \"89262754019.0\",\n            \"firstname\": \"Князева Оксана Владимировна\",\n            \"secondname\": null,\n            \"orders\": null,\n            \"roles\": [\n                \"customer\"\n            ],\n            \"deleted_at\": \"2024-01-30T23:41:42.973746\",\n            \"link_code\": \"50202cee\"\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Get user by id",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "2defe500-0ae4-4b46-9f7b-16311d54cb56",
+								"exec": [
+									"let user_uuid;\r",
+									"\r",
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"User id is present in user_data\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    user_uuid = jsonData.id\r",
+									"});\r",
+									"\r",
+									"pm.test(`${user_uuid} is a valid UUID`, () => {\r",
+									"    console.log(user_uuid);\r",
+									"    pm.expect(user_uuid).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i);\r",
+									"});\r",
+									"\r",
+									"pm.test('roles are not empty', ()=>{\r",
+									"    var jsonData = pm.response.json()\r",
+									"    pm.expect(jsonData.roles.length>0).to.be.true\r",
+									"})"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "2ae08574-14f3-4056-8772-7b4caca02ce5",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/user/{{user_id}}/info?with_orders=true",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"user",
+								"{{user_id}}",
+								"info"
+							],
+							"query": [
+								{
+									"key": "with_orders",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "06ba0396-b8f0-482f-8df5-3b454b705c0f",
+							"name": "New Request",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/user/43f96b7c-c417-4be1-9be8-857bf9df8acb",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"user",
+										"43f96b7c-c417-4be1-9be8-857bf9df8acb"
+									],
+									"query": [
+										{
+											"key": "user_id",
+											"value": "50d67d2d-4afe-4d66-9cd2-e5f45eeb9485",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Thu, 15 Feb 2024 14:28:35 GMT",
+									"uuid": "d4b555cf-6ae9-4693-9f98-11f53cfec9d6"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "f684cf24-5538-4773-b45b-08d46b4127f0"
+								},
+								{
+									"key": "content-length",
+									"value": "465",
+									"uuid": "bcc4818b-2c0c-4a58-b150-a2522c47aa20"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "528e47fa-df79-4f0c-b353-85ac82fdf717"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"43f96b7c-c417-4be1-9be8-857bf9df8acb\",\n    \"email\": \"user3@example.com\",\n    \"phone_number\": null,\n    \"secondname\": null,\n    \"additional_info\": null,\n    \"last_action\": \"2023-12-20T21:06:46.766473\",\n    \"allow_messages_from_bot\": true,\n    \"disabled\": null,\n    \"deleted_at\": null,\n    \"password\": \"$2b$12$U.ae5qwStc5osxtZfpTirOvnIAt5zhQGOfd8NJrO7rK431Tr1aLES\",\n    \"telegram_id\": 55455,\n    \"telegram_username\": null,\n    \"firstname\": null,\n    \"patronymic\": null,\n    \"date_created\": \"2023-12-20T21:06:46.765473\",\n    \"link_code\": \"e08d1fb4-6\"\n}"
+						}
+					]
+				},
+				{
+					"name": "me",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "bb449219-7dad-4bd9-85c1-a548de15ae52",
+								"exec": [
+									"let user_uuid;\r",
+									"\r",
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"User id is present in user_data\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    \r",
+									"    user_uuid = jsonData.user_data.id\r",
+									"});\r",
+									"\r",
+									"pm.test(`${user_uuid} is a valid UUID`, () => {\r",
+									"    console.log(user_uuid);\r",
+									"    pm.expect(user_uuid).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i);\r",
+									"});\r",
+									"\r",
+									"pm.test('roles are not empty', ()=>{\r",
+									"    var jsonData = pm.response.json()\r",
+									"    pm.expect(jsonData.token_data.scopes.length>0).to.be.true\r",
+									"})\r",
+									"\r",
+									"pm.test('Token has expire date if bot role is not present, false otherwise', ()=>{\r",
+									"    var jsonData = pm.response.json()\r",
+									"    if (jsonData.token_data.scopes.includes('bot')){\r",
+									"        pm.expect(jsonData.token_data).to.not.have.property('exp')\r",
+									"    } else {\r",
+									"        pm.expect(jsonData.token_data).to.have.property('exp')\r",
+									"    }\r",
+									"})"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "240b574f-5682-464d-aa61-f18689539ed4",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host_url}}/api/users/me",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "b7df493c-5005-45cb-8f84-44747a447179",
+							"name": "me",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{host_url}}/api/users/me",
+									"host": [
+										"{{host_url}}"
+									],
+									"path": [
+										"api",
+										"users",
+										"me"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Thu, 15 Feb 2024 14:27:04 GMT",
+									"uuid": "ea352062-9aee-4c3e-aa0e-f73e97c22ca4"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "b7742792-6851-429d-b243-e372e655d770"
+								},
+								{
+									"key": "content-length",
+									"value": "629",
+									"uuid": "8c7dc8d8-d6c9-4193-8a2e-ad1fb1ac259e"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "245f4458-af69-4f97-a7e7-7164cfc35daf"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"user_data\": {\n        \"id\": \"43f96b7c-c417-4be1-9be8-857bf9df8acb\",\n        \"email\": \"user3@example.com\",\n        \"phone_number\": null,\n        \"secondname\": null,\n        \"additional_info\": null,\n        \"last_action\": \"2023-12-20T21:06:46.766473\",\n        \"allow_messages_from_bot\": true,\n        \"disabled\": null,\n        \"deleted_at\": null,\n        \"password\": \"$2b$12$U.ae5qwStc5osxtZfpTirOvnIAt5zhQGOfd8NJrO7rK431Tr1aLES\",\n        \"telegram_id\": 55455,\n        \"telegram_username\": null,\n        \"firstname\": null,\n        \"patronymic\": null,\n        \"date_created\": \"2023-12-20T21:06:46.765473\",\n        \"link_code\": \"e08d1fb4-6\"\n    },\n    \"token_data\": {\n        \"sub\": \"user3@example.com\",\n        \"internal_id\": \"43f96b7c-c417-4be1-9be8-857bf9df8acb\",\n        \"scopes\": [\n            \"customer\",\n            \"admin\",\n            \"manager\",\n            \"courier\",\n            \"bot\"\n        ]\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "auth",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "2353058e-f7f9-4a5c-89f7-0e6347f186d8",
+								"exec": [
+									"pm.test(\"Login passes\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.globals.set(\"test_auth_token\", jsonData.access_token);\r",
+									"    pm.globals.set(\"test_refresh_token\", jsonData.refresh_token);\r",
+									"\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "279f66b5-26f7-4dab-86c2-673503e54649",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "user3@example.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "string",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{host_url}}/api/token",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"token"
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "e10a9773-61a0-483d-87e8-8cf537b9077f",
+							"name": "Auth success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "username",
+											"value": "user3@example.com",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "string",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{host_url}}/api/token",
+									"host": [
+										"{{host_url}}"
+									],
+									"path": [
+										"api",
+										"token"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Thu, 15 Feb 2024 14:26:28 GMT",
+									"uuid": "ef38ce20-7a81-4373-bf1c-48bc8227102f"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "24f6c412-4ddc-4525-bd94-af99693bbbee"
+								},
+								{
+									"key": "content-length",
+									"value": "304",
+									"uuid": "465a26b7-91d8-4208-8b8c-90ae056d3d2c"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "b9786979-dc89-4e98-8981-9ad527da9419"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyM0BleGFtcGxlLmNvbSIsImludGVybmFsX2lkIjoiNDNmOTZiN2MtYzQxNy00YmUxLTliZTgtODU3YmY5ZGY4YWNiIiwic2NvcGVzIjpbImN1c3RvbWVyIiwiYWRtaW4iLCJtYW5hZ2VyIiwiY291cmllciIsImJvdCJdfQ.aKUiidy6ZQ18QdLeEs8cvHkFjft9wV7eCnzMVObMXqQ\",\n    \"token_type\": \"bearer\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Create user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "a4af6cd6-39fa-415a-b32a-0e8a0ae3236b",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Your test name\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.expect(jsonData.id).to.not.equal(null)\r",
+									"\r",
+									"    pm.collectionVariables.set(\"user_id\", jsonData.id);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "3bfe0cd7-5e15-4c6f-869f-984a178d1acc",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"email\": \"{{$randomEmail}}\",\r\n  \"password\": \"string\",\r\n  \"telegram_id\": {{$randomInt}},\r\n  \"telegram_username\": \"{{$randomUserName}}\",\r\n  \"phone_number\": \"{{$randomPhoneNumberExt}}\",\r\n  \"firstname\": \"{{$randomFirstName}}\",\r\n  \"role\": [\r\n    \"customer\"\r\n  ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host_url}}/api/users",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "ce724417-dd74-4999-bd36-944e0f1ad949",
+							"name": "Create user",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"email\": \"user221112@example.com\",\r\n  \"password\": \"string\",\r\n  \"telegram_id\": 456722453,\r\n  \"telegram_username\": \"test2_test\",\r\n  \"phone_number\": \"12456752242\",\r\n  \"firstname\": \"string\",\r\n  \"role\": [\r\n    \"customer\"\r\n  ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/users",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"users"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Wed, 24 Apr 2024 07:09:33 GMT",
+									"uuid": "919b88fa-654b-4d57-9976-4c1c4d5400a2"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "4b81fac5-ac12-4ef6-a9c0-2a5c50d10fb4"
+								},
+								{
+									"key": "content-length",
+									"value": "483",
+									"uuid": "f7ac32bb-9e29-4cff-ac59-dee74f347a31"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "8d189bbc-5dfd-4cfa-8076-84486c9deccf"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"email\": \"user221112@example.com\",\n    \"id\": \"fb96936c-b0fc-43e8-8eff-36c2355da041\",\n    \"telegram_id\": 456722453,\n    \"telegram_username\": \"test2_test\",\n    \"phone_number\": \"12456752242\",\n    \"password_plain\": \"string\",\n    \"firstname\": \"string\",\n    \"secondname\": null,\n    \"patronymic\": null,\n    \"allow_messages_from_bot\": true,\n    \"orders\": null,\n    \"roles\": [\n        \"customer\"\n    ],\n    \"deleted_at\": null,\n    \"last_action\": \"2024-04-24T12:09:34.481839\",\n    \"link_code\": \"783fd5d6-c\",\n    \"disabled\": false,\n    \"additional_info\": null,\n    \"date_created\": \"2024-04-24T12:09:34.481839\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Refresh",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "b4463730-bbe5-4b57-90d9-32b394657cdc",
+								"exec": [
+									"let refresh_token = pm.globals.get(\"test_refresh_token\");\r",
+									"pm.globals.set(\"test_auth_token\", refresh_token);\r",
+									"\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"id": "fc08c78b-1a1b-4845-b35a-56019e4ecce4",
+								"exec": [
+									"pm.test(\"Login passes\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.globals.set(\"test_auth_token\", jsonData.access_token);\r",
+									"    pm.globals.set(\"test_refresh_token\", jsonData.refresh_token);\r",
+									"\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "80d4c076-38ef-460e-9e7d-35493cf70172",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/token/refresh",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"token",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get user's orders",
+					"id": "da53b62d-4717-4f3e-aa0a-24221989f6d2",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/users/orders/?tg_id={{user_tg_id}}",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"orders",
+								""
+							],
+							"query": [
+								{
+									"key": "tg_id",
+									"value": "{{user_tg_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Import Clients",
+					"id": "a31fb32b-6ac9-4286-b104-54462552ffbf",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"fileNotInWorkingDirectoryWarning": "This file isn't in your working directory. Teammates you share this request with won't be able to use this file. To make collaboration easier you can setup your working directory in Settings.",
+									"filesNotInWorkingDirectory": [
+										"/B:/projects/vtrobox/Маршруты Жанна (1).xlsx"
+									],
+									"src": "/B:/projects/vtrobox/Маршруты Жанна (1).xlsx"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{host_url}}/api/users/import/file",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"import",
+								"file"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "43f35957-eee3-4d4e-b9a5-78f3fa6e2fd4"
+		},
+		{
+			"name": "Geocoder",
+			"item": [
+				{
+					"name": "Get addres",
+					"id": "84bef13c-376d-489a-9af0-3c7e0849dc62",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://geocode-maps.yandex.ru/1.x/?apikey=37e2fe65-4dd4-40c5-9c4d-9a45a9f3587a&geocode=55.157497,51.825872&format=json",
+							"protocol": "https",
+							"host": [
+								"geocode-maps",
+								"yandex",
+								"ru"
+							],
+							"path": [
+								"1.x",
+								""
+							],
+							"query": [
+								{
+									"key": "apikey",
+									"value": "37e2fe65-4dd4-40c5-9c4d-9a45a9f3587a"
+								},
+								{
+									"key": "geocode",
+									"value": "55.157497,51.825872"
+								},
+								{
+									"key": "format",
+									"value": "json"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get coords",
+					"id": "e5f9c918-1c9e-41f1-b67f-bc8ec84d5247",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://geocode-maps.yandex.ru/1.x/?apikey=37e2fe65-4dd4-40c5-9c4d-9a45a9f3587a&geocode=37.618920,55.756994&format=json&lang=ru_RU&ll=37.618920,55.756994&spn=4.552069,4.400552&rspn=1&kind=house",
+							"protocol": "https",
+							"host": [
+								"geocode-maps",
+								"yandex",
+								"ru"
+							],
+							"path": [
+								"1.x",
+								""
+							],
+							"query": [
+								{
+									"key": "apikey",
+									"value": "37e2fe65-4dd4-40c5-9c4d-9a45a9f3587a"
+								},
+								{
+									"key": "geocode",
+									"value": "37.618920,55.756994"
+								},
+								{
+									"key": "format",
+									"value": "json"
+								},
+								{
+									"key": "lang",
+									"value": "ru_RU"
+								},
+								{
+									"key": "ll",
+									"value": "37.618920,55.756994"
+								},
+								{
+									"key": "spn",
+									"value": "4.552069,4.400552"
+								},
+								{
+									"key": "rspn",
+									"value": "1"
+								},
+								{
+									"key": "kind",
+									"value": "house"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "test",
+					"id": "9cb13e48-7a37-48c2-8bd6-8f50c5c71ce6",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://geocode-maps.yandex.ru/1.x/?apikey=37e2fe65-4dd4-40c5-9c4d-9a45a9f3587a&geocode=Россия, Москва, Северный административный округ, улица 8 Марта, 2/10к1&format=json&lang=ru_RU&ll=37.618920,55.756994&spn=4.552069,4.400552&rspn=1&kind=house",
+							"protocol": "https",
+							"host": [
+								"geocode-maps",
+								"yandex",
+								"ru"
+							],
+							"path": [
+								"1.x",
+								""
+							],
+							"query": [
+								{
+									"key": "apikey",
+									"value": "37e2fe65-4dd4-40c5-9c4d-9a45a9f3587a"
+								},
+								{
+									"key": "geocode",
+									"value": "Россия, Москва, Северный административный округ, улица 8 Марта, 2/10к1"
+								},
+								{
+									"key": "format",
+									"value": "json"
+								},
+								{
+									"key": "lang",
+									"value": "ru_RU"
+								},
+								{
+									"key": "ll",
+									"value": "37.618920,55.756994"
+								},
+								{
+									"key": "spn",
+									"value": "4.552069,4.400552"
+								},
+								{
+									"key": "rspn",
+									"value": "1"
+								},
+								{
+									"key": "kind",
+									"value": "house"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "e0ab2847-fa62-4c25-9e8c-b1d25185ae41"
+		},
+		{
+			"name": "Roles",
+			"item": [
+				{
+					"name": "get roles",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "85b0064d-514c-419d-9e38-67c3042a4afb",
+								"exec": [
+									"pm.test('At least one role present', ()=>{\r",
+									"    var jsonData = pm.response.json()\r",
+									"    \r",
+									"    pm.expect(jsonData.length>1).to.be.true\r",
+									"    console.log(jsonData.length)\r",
+									"})\r",
+									"\r",
+									"\r",
+									"pm.test('All roles have non null labeles', ()=>{\r",
+									"    var jsonData = pm.response.json()\r",
+									"\r",
+									"    for (role of jsonData){\r",
+									"        pm.expect(role).to.have.property('label')\r",
+									"        pm.expect(role).to.not.equal(null)\r",
+									"    }\r",
+									"})"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "25c92c2a-f642-4655-8beb-411d51a2fff5",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/roles",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"roles"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "10090fa6-9e9e-43f6-995a-ada46d8431ff"
+		},
+		{
+			"name": "Adresses",
+			"item": [
+				{
+					"name": "Get user's addresses",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "a52719e8-a4fa-4141-abdb-656f43ab83b2",
+								"exec": [
+									"pm.test(\"Response time is less than 200ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var schema = {\r",
+									"    \"addresses\": {\r",
+									"        \"type\": \"array\",\r",
+									"        \"properties\": {\r",
+									"            \"address\": {\r",
+									"                \"type\": \"string\"\r",
+									"            },\r",
+									"            \"latitude\": {\r",
+									"                \"type\": \"integer\"\r",
+									"            },\r",
+									"            \"longitude\": {\r",
+									"                \"type\": \"integer\"\r",
+									"            },\r",
+									"        },\r",
+									"        \"required\": [\r",
+									"            \"address\",\r",
+									"            \"latitude\",\r",
+									"            \"longitude\"\r",
+									"        ]\r",
+									"    }\r",
+									"};\r",
+									"\r",
+									"\r",
+									"pm.test('Schema is valid', function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    if (jsonData.length < 1){\r",
+									"        return\r",
+									"    }\r",
+									"\r",
+									"    for (address of jsonData){\r",
+									"        pm.expect(tv4.validate(address, schema)).to.be.true;\r",
+									"        pm.expect(address).to.have.property('region_id')\r",
+									"        pm.expect(address.region_id).to.not.be.null\r",
+									"    }\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "75126806-0053-41f0-b678-50f75e500d72",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/bot/user/addresses/all?days_list_len=5&user_id={{user_id}}",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"bot",
+								"user",
+								"addresses",
+								"all"
+							],
+							"query": [
+								{
+									"key": "days_list_len",
+									"value": "5"
+								},
+								{
+									"key": "user_id",
+									"value": "{{user_id}}"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "ca7845ac-ee86-48d2-a68b-65a616da8aa1",
+							"name": "Get user's addresses",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{host_url}}/api/bot/user/addresses/all?days_list_len=10&user_id={{user_id}}",
+									"host": [
+										"{{host_url}}"
+									],
+									"path": [
+										"api",
+										"bot",
+										"user",
+										"addresses",
+										"all"
+									],
+									"query": [
+										{
+											"key": "days_list_len",
+											"value": "10"
+										},
+										{
+											"key": "user_id",
+											"value": "{{user_id}}"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Wed, 24 Apr 2024 07:15:25 GMT",
+									"uuid": "0e77b2c2-9f21-4ee7-9484-3abafea1f994"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "3e37b7a6-4e5e-426f-b344-686ac0385050"
+								},
+								{
+									"key": "content-length",
+									"value": "6203",
+									"uuid": "f98a4974-f16e-4680-9da4-46ebdc605797"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "b45f07d9-d1b0-4475-a8a7-b620f368d791"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": \"8a1db917-b7ef-4554-9d40-f0f853d2f9cb\",\n        \"main\": false,\n        \"address\": \"улица Трёхгорный Вал, 14с3\",\n        \"latitude\": 55.75979,\n        \"longitude\": 37.562272,\n        \"detail\": null,\n        \"comment\": null,\n        \"distance_from_mkad\": null,\n        \"point_on_map\": null,\n        \"selected_day_of_week\": null,\n        \"selected_day_of_month\": null,\n        \"interval_type\": \"once\",\n        \"interval\": [\n            \"None\"\n        ],\n        \"region_id\": \"98f38e9f-8eca-43f7-b5c5-195333cfaaf4\",\n        \"region\": {\n            \"id\": \"98f38e9f-8eca-43f7-b5c5-195333cfaaf4\",\n            \"name_short\": null,\n            \"name_full\": \"Пресненский район\",\n            \"region_type\": \"district\",\n            \"is_active\": true,\n            \"work_days\": [\n                \"monday\",\n                \"friday\"\n            ]\n        },\n        \"work_dates\": [\n            {\n                \"date\": \"2024-04-26T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-04-29T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-03T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-06T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-10T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-13T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-17T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-20T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-24T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-27T12:15:25\",\n                \"weekday\": \"monday\"\n            }\n        ]\n    },\n    {\n        \"id\": \"538bd347-bfe4-4573-80a1-7d1c52de2475\",\n        \"main\": false,\n        \"address\": \"улица Вавилова, 60к3, Москва\",\n        \"latitude\": 55.688096,\n        \"longitude\": 37.553469,\n        \"detail\": null,\n        \"comment\": null,\n        \"distance_from_mkad\": null,\n        \"point_on_map\": null,\n        \"selected_day_of_week\": null,\n        \"selected_day_of_month\": null,\n        \"interval_type\": \"once\",\n        \"interval\": [\n            \"None\"\n        ],\n        \"region_id\": \"49ef08dd-170a-4ccf-8e48-2a5b64f52c1a\",\n        \"region\": {\n            \"id\": \"49ef08dd-170a-4ccf-8e48-2a5b64f52c1a\",\n            \"name_short\": null,\n            \"name_full\": \"Гагаринский район\",\n            \"region_type\": \"district\",\n            \"is_active\": true,\n            \"work_days\": null\n        },\n        \"work_dates\": []\n    },\n    {\n        \"id\": \"9fc71555-eda7-4c2c-be61-f17e6aba40c6\",\n        \"main\": false,\n        \"address\": \"Большая садовая\",\n        \"latitude\": 55.767423,\n        \"longitude\": 37.593048,\n        \"detail\": null,\n        \"comment\": \"Требуется проверить адрес\",\n        \"distance_from_mkad\": null,\n        \"point_on_map\": null,\n        \"selected_day_of_week\": null,\n        \"selected_day_of_month\": null,\n        \"interval_type\": \"once\",\n        \"interval\": [\n            \"None\"\n        ],\n        \"region_id\": \"98f38e9f-8eca-43f7-b5c5-195333cfaaf4\",\n        \"region\": {\n            \"id\": \"98f38e9f-8eca-43f7-b5c5-195333cfaaf4\",\n            \"name_short\": null,\n            \"name_full\": \"Пресненский район\",\n            \"region_type\": \"district\",\n            \"is_active\": true,\n            \"work_days\": [\n                \"monday\",\n                \"friday\"\n            ]\n        },\n        \"work_dates\": [\n            {\n                \"date\": \"2024-04-26T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-04-29T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-03T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-06T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-10T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-13T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-17T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-20T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-24T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-27T12:15:25\",\n                \"weekday\": \"monday\"\n            }\n        ]\n    },\n    {\n        \"id\": \"bcbafac4-ab8b-4f8d-834a-fda9b67ad1e2\",\n        \"main\": false,\n        \"address\": \"Большая садовая 2\",\n        \"latitude\": 55.765711,\n        \"longitude\": 37.59118,\n        \"detail\": null,\n        \"comment\": \"Требуется проверить адрес\",\n        \"distance_from_mkad\": null,\n        \"point_on_map\": null,\n        \"selected_day_of_week\": null,\n        \"selected_day_of_month\": null,\n        \"interval_type\": \"once\",\n        \"interval\": [\n            \"None\"\n        ],\n        \"region_id\": \"98f38e9f-8eca-43f7-b5c5-195333cfaaf4\",\n        \"region\": {\n            \"id\": \"98f38e9f-8eca-43f7-b5c5-195333cfaaf4\",\n            \"name_short\": null,\n            \"name_full\": \"Пресненский район\",\n            \"region_type\": \"district\",\n            \"is_active\": true,\n            \"work_days\": [\n                \"monday\",\n                \"friday\"\n            ]\n        },\n        \"work_dates\": [\n            {\n                \"date\": \"2024-04-26T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-04-29T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-03T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-06T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-10T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-13T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-17T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-20T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-24T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-27T12:15:25\",\n                \"weekday\": \"monday\"\n            }\n        ]\n    },\n    {\n        \"id\": \"dd7ac5ad-8c88-4815-a465-80cd71ac2487\",\n        \"main\": false,\n        \"address\": \"Большая садовая 3\",\n        \"latitude\": 55.767539,\n        \"longitude\": 37.592303,\n        \"detail\": null,\n        \"comment\": \"Требуется проверить адрес\",\n        \"distance_from_mkad\": null,\n        \"point_on_map\": null,\n        \"selected_day_of_week\": null,\n        \"selected_day_of_month\": null,\n        \"interval_type\": \"once\",\n        \"interval\": [\n            \"None\"\n        ],\n        \"region_id\": \"98f38e9f-8eca-43f7-b5c5-195333cfaaf4\",\n        \"region\": {\n            \"id\": \"98f38e9f-8eca-43f7-b5c5-195333cfaaf4\",\n            \"name_short\": null,\n            \"name_full\": \"Пресненский район\",\n            \"region_type\": \"district\",\n            \"is_active\": true,\n            \"work_days\": [\n                \"monday\",\n                \"friday\"\n            ]\n        },\n        \"work_dates\": [\n            {\n                \"date\": \"2024-04-26T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-04-29T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-03T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-06T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-10T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-13T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-17T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-20T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-24T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-27T12:15:25\",\n                \"weekday\": \"monday\"\n            }\n        ]\n    },\n    {\n        \"id\": \"61c0f155-6532-4e09-afae-5fa5458ba198\",\n        \"main\": false,\n        \"address\": \"площадь Революции\",\n        \"latitude\": 55.756705,\n        \"longitude\": 37.618372,\n        \"detail\": null,\n        \"comment\": \"Требуется проверить адрес\",\n        \"distance_from_mkad\": null,\n        \"point_on_map\": null,\n        \"selected_day_of_week\": null,\n        \"selected_day_of_month\": null,\n        \"interval_type\": \"once\",\n        \"interval\": [\n            \"None\"\n        ],\n        \"region_id\": \"ca35bed4-dadf-4c48-9991-101e33cc4d27\",\n        \"region\": {\n            \"id\": \"ca35bed4-dadf-4c48-9991-101e33cc4d27\",\n            \"name_short\": null,\n            \"name_full\": \"Тверской район\",\n            \"region_type\": \"district\",\n            \"is_active\": true,\n            \"work_days\": [\n                \"monday\",\n                \"friday\",\n                \"saturday\"\n            ]\n        },\n        \"work_dates\": [\n            {\n                \"date\": \"2024-04-26T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-04-27T12:15:25\",\n                \"weekday\": \"saturday\"\n            },\n            {\n                \"date\": \"2024-04-29T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-03T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-04T12:15:25\",\n                \"weekday\": \"saturday\"\n            },\n            {\n                \"date\": \"2024-05-06T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-10T12:15:25\",\n                \"weekday\": \"friday\"\n            },\n            {\n                \"date\": \"2024-05-11T12:15:25\",\n                \"weekday\": \"saturday\"\n            },\n            {\n                \"date\": \"2024-05-13T12:15:25\",\n                \"weekday\": \"monday\"\n            },\n            {\n                \"date\": \"2024-05-17T12:15:25\",\n                \"weekday\": \"friday\"\n            }\n        ]\n    }\n]"
+						}
+					]
+				}
+			],
+			"id": "945a1b35-c9f5-4c6a-bbab-741ded9f8c83"
+		},
+		{
+			"name": "routes",
+			"item": [
+				{
+					"name": "Generate routes today",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f0d21d24-7117-4499-9775-eccfe62fc0d7",
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "b4b1e25a-41e3-4589-b672-9d31b4c23082",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/routes/generate",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"routes",
+								"generate"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get routes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e70ad606-4019-42a8-a431-62ebe647fe7b",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"var schema = {\r",
+									"    \"orders\": {\r",
+									"        \"id\": \"string\",\r",
+									"        \"courier_id\": \"string\",\r",
+									"        \"orders\": Array\r",
+									"    }\r",
+									"};\r",
+									"\r",
+									"\r",
+									"pm.test('Schema is valid', function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    if (jsonData.length < 1){\r",
+									"        return\r",
+									"    }\r",
+									"\r",
+									"    for (route of jsonData){\r",
+									"        pm.expect(tv4.validate(route, schema)).to.be.true;\r",
+									"        // pm.expect(route).to.have.property('orders')\r",
+									"    }\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "40ba5fa3-5aa7-4bd7-88f7-08295f29cffa",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/routes",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"routes"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "3bbf9fa6-0a82-4efb-a706-020192eb35cc"
+		},
+		{
+			"name": "Regions",
+			"item": [
+				{
+					"name": "Get regions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "d303ff62-d1ab-4a85-8a1a-b03bdae3653b",
+								"exec": [
+									"pm.test('At least one region present', ()=>{\r",
+									"    var jsonData = pm.response.json()\r",
+									"    \r",
+									"    pm.expect(jsonData.length>1).to.be.true\r",
+									"    console.log(jsonData.length)\r",
+									"})\r",
+									"\r",
+									"pm.test('All regions have non null names', ()=>{\r",
+									"    var jsonData = pm.response.json()\r",
+									"\r",
+									"    for (region of jsonData){\r",
+									"        pm.expect(region).to.have.property('name_full')\r",
+									"        pm.expect(region).to.not.equal(null)\r",
+									"    }\r",
+									"})\r",
+									"\r",
+									"pm.test('All regions have non null geodata', ()=>{\r",
+									"    var jsonData = pm.response.json()\r",
+									"\r",
+									"    for (region of jsonData){\r",
+									"        pm.expect(region).to.have.property('geodata')\r",
+									"        pm.expect(region).to.not.equal(null)\r",
+									"    }\r",
+									"})"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "1e066f78-c208-49c3-987d-208f898f92f5",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/regions",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"regions"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "ab1266da-0caf-4545-9eba-e2abd8cf302e"
+		},
+		{
+			"name": "Settings",
+			"item": [
+				{
+					"name": "Get settings",
+					"id": "99a3354f-4917-4475-9550-047ec8227c19",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/bot/settings",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"bot",
+								"settings"
+							],
+							"query": [
+								{
+									"key": "setting_type",
+									"value": "бот",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New Request",
+					"id": "39ba6851-0f0a-40cd-90c4-da1372ae3ced",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"value\": \"test\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host_url}}/api/bot/setting/fc8def43-484e-4f59-a7cd-bbdab8f15989",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"bot",
+								"setting",
+								"fc8def43-484e-4f59-a7cd-bbdab8f15989"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "1d3d7216-8a77-41fc-aa3a-b3925cbbe980"
+		},
+		{
+			"name": "Payments",
+			"item": [
+				{
+					"name": "Process Notification From Tinkoff",
+					"id": "4d1619ff-9251-48ef-ac74-d5b3ff419932",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"TerminalKey\": \"1690270113071\",\r\n  \"Amount\": 0,\r\n  \"OrderId\": \"string\",\r\n  \"Success\": true,\r\n  \"Status\": \"string\",\r\n  \"PaymentId\": 4235017530,\r\n  \"ErrorCode\": \"string\",\r\n  \"Message\": \"string\",\r\n  \"Details\": \"string\",\r\n  \"RebillId\": 0,\r\n  \"CardId\": \"string\",\r\n  \"Pan\": \"string\",\r\n  \"ExpDate\": \"string\",\r\n  \"Token\": \"string\",\r\n  \"DATA\": \"string\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host_url}}/api/payment/notify/auto",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"payment",
+								"notify",
+								"auto"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get payments",
+					"id": "e159f6e2-199b-492b-8a9c-bb83a57f0fd7",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/payments",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"payments"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "2ede9577-a42b-4371-9673-8ac2d3762d57"
+		},
+		{
+			"name": "Boxes",
+			"item": [
+				{
+					"name": "Get boxes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "d7f3497c-a557-4b2f-be7e-9fc15e98c030",
+								"exec": [
+									"\r",
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"const schema = {\r",
+									"        \"type\": \"object\",\r",
+									"        \"properties\": {\r",
+									"            \"box_name\": {\"type\": \"string\"},\r",
+									"            \"id\": {\"type\": \"string\"},\r",
+									"            \"pricing_default\": {\"type\": \"number\"},\r",
+									"            \"weight_limit\": {\"type\": \"number\"},\r",
+									"            \"volume\": {\"type\": \"number\"},\r",
+									"            \"regional_prices\": {\r",
+									"                \"type\": \"array\",\r",
+									"                \"items\": {\r",
+									"                    \"type\": \"object\",\r",
+									"                    \"properties\": {\r",
+									"                        \"region_name\": { \"type\": \"string\" },\r",
+									"                        \"price\": {\"type\": \"number\"}\r",
+									"                    },\r",
+									"                    \"required\": [\"region_name\", \"price\"]\r",
+									"                },\r",
+									"            }\r",
+									"        },\r",
+									"        \"required\": [\r",
+									"            \"box_name\",\r",
+									"            \"pricing_default\",\r",
+									"            \"volume\",\r",
+									"            \"weight_limit\",\r",
+									"            \"id\"\r",
+									"        ]\r",
+									"};\r",
+									"\r",
+									"pm.test('Schema is valid', function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    for (box_data of jsonData){\r",
+									"        pm.expect(tv4.validate(box_data, schema)).to.be.true;\r",
+									"    }\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "b6b9101e-5b66-4c88-b58b-bbe01be4e55b",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/boxes",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"boxes"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "835b8295-c131-4ac6-ab3d-126f88323d79"
+		},
+		{
+			"name": "Statistics",
+			"item": [
+				{
+					"name": "User registration stats",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1c552d35-982a-451a-b657-6743a3fc2536",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "0a3f966d-583b-4400-86b6-d10201ffbaf9",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/stats/users/registration?year_month=2024-01-01T00:00",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"stats",
+								"users",
+								"registration"
+							],
+							"query": [
+								{
+									"key": "year_month",
+									"value": "2024-01-01T00:00"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "8e0ae583-25bb-4b22-a9af-df1264518a29",
+							"name": "User registration stats",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{host_url}}/api/stats/users/registration?year_month=2024-01-01T00:00",
+									"host": [
+										"{{host_url}}"
+									],
+									"path": [
+										"api",
+										"stats",
+										"users",
+										"registration"
+									],
+									"query": [
+										{
+											"key": "year_month",
+											"value": "2024-01-01T00:00"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Thu, 25 Apr 2024 02:43:18 GMT",
+									"uuid": "d65e3d10-785f-4582-9028-10e2a4dc1f09"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "a473c403-a71b-4b9e-b478-379a158790c7"
+								},
+								{
+									"key": "content-length",
+									"value": "1378",
+									"uuid": "26db2a62-4db4-417d-97e4-73193dd572e1"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "5ee45fd3-43f8-44a5-a1a5-51e910ad3954"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"number\": 796,\n    \"deleted_count\": 5,\n    \"registered_in_month\": 781,\n    \"percentage\": 0.9811557788944724,\n    \"chartData\": [\n        {\n            \"date\": \"2024-01-01T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-02T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-03T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-04T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-05T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-06T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-07T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-08T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-09T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-10T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-11T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-12T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-13T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-14T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-15T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-16T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-17T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-18T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-19T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-20T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-21T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-22T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-23T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-24T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-25T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-26T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-27T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-28T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-29T00:00:00\",\n            \"count\": 0\n        },\n        {\n            \"date\": \"2024-01-30T00:00:00\",\n            \"count\": 57\n        },\n        {\n            \"date\": \"2024-01-31T00:00:00\",\n            \"count\": 724\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Order region count",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "13ee4cba-5ac4-4a73-b64b-be30f538b7d2",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "46137dcc-f46e-4f2d-a307-0cd905b49c22",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/stats/orders/regions",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"stats",
+								"orders",
+								"regions"
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "d6085559-d1a0-4cfc-9214-f39bfd804406",
+							"name": "Order region count",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{host_url}}/api/stats/orders/regions",
+									"host": [
+										"{{host_url}}"
+									],
+									"path": [
+										"api",
+										"stats",
+										"orders",
+										"regions"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Thu, 25 Apr 2024 02:43:06 GMT",
+									"uuid": "dc23eda7-55c4-4652-9801-117c26f18cbf"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "672fae3d-fb58-43bf-a342-5f72b8a3ef60"
+								},
+								{
+									"key": "content-length",
+									"value": "6810",
+									"uuid": "0ec2ba25-1d7c-44d6-ba59-5d2d67466f2f"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "6d797a5f-c699-49d4-af85-b378e4aba3eb"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"name\": \"район Кунцево\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Крылатское\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Мещанский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Сокольники\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"поселение Воскресенское\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"поселение Московский\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Хорошёво-Мнёвники\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Щукино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Строгино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Митино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Куркино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Кузьминки\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Донской район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Левобережный\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Ховрино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Западное Дегунино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Тимирязевский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Коптево\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Дмитровский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Северное Тушино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Сокол\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Отрадное\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Молжаниновский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Бирюлёво Восточное\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Царицыно\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Внуково\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Северный\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Восточное Дегунино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Головинский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Беговой\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Хорошёвский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Войковский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Южное Тушино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Покровское-Стрешнево\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Бескудниковский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Алтуфьевский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Аэропорт\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Лианозово\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Бибирево\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Северное Медведково\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Южное Медведково\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Филёвский Парк\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Дорогомилово\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Раменки\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Ярославский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Ростокино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Текстильщики\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Люблино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Фили-Давыдково\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Капотня\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Марьино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Печатники\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Нагатинский Затон\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Москворечье-Сабурово\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Орехово-Борисово Северное\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Орехово-Борисово Южное\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Зябликово\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Братеево\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Нагатино-Садовники\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Нагорный район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Выхино-Жулебино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Вешняки\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Бирюлёво Западное\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Чертаново Южное\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Ясенево\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Тёплый Стан\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Коньково\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Алексеевский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Свиблово\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Останкинский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Марфино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Марьина Роща\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Бутырский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Лосиноостровский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Бабушкинский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Рязанский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Косино-Ухтомский\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Некрасовка\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Новокосино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Северное Измайлово\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Восточное Измайлово\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Замоскворечье\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Хамовники\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Красносельский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Южное Бутово\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Северное Бутово\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Можайский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Арбат\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Таганский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Якиманка\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Нижегородский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Лефортово\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Южнопортовый район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Даниловский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Академический район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Пресненский район\",\n        \"value\": 2\n    },\n    {\n        \"name\": \"Тверской район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Черёмушки\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Гагаринский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Ломоносовский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Котловка\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Зюзино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Обручевский район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Проспект Вернадского\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Тропарёво-Никулино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Очаково-Матвеевское\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Новогиреево\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Перово\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Соколиная Гора\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Богородское\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Метрогородок\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Гольяново\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Измайлово\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Ивановское\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Крюково\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Старое Крюково\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Силино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Матушкино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Савёлки\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"поселение Кокошкино\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Басманный район\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"район Преображенское\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"Савёловский район\",\n        \"value\": 0\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Order statuses count",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "b2f818c8-561b-4b9f-a17f-e43c5255dd30",
+								"exec": [
+									"pm.test(\"Response time is less than 200ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(200);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "9d3bd22b-21ef-4943-93e5-06f16758ce46",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/stats/orders/statuses",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"stats",
+								"orders",
+								"statuses"
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "aa0f42e4-2e81-4ea0-8646-3731c6d4b20d",
+							"name": "Order statuses count",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{host_url}}/api/stats/orders/statuses",
+									"host": [
+										"{{host_url}}"
+									],
+									"path": [
+										"api",
+										"stats",
+										"orders",
+										"statuses"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Thu, 25 Apr 2024 02:42:53 GMT",
+									"uuid": "4af6eb4d-b81b-4059-8e6b-d842411e85dc"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "fb1c05b2-b6fd-4107-a381-8a40eff78b98"
+								},
+								{
+									"key": "content-length",
+									"value": "491",
+									"uuid": "65280ca3-3a40-4567-bd02-e2eff04fa77a"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "e3c6eee9-9df3-4f40-98dd-88931c782dc8"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"name\": \"создана\",\n        \"value\": 200\n    },\n    {\n        \"name\": \"в работе\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"ожидается подтверждение\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"подтверждена\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"передана курьеру\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"ожидается оплата\",\n        \"value\": 1\n    },\n    {\n        \"name\": \"оплаченна\",\n        \"value\": 2\n    },\n    {\n        \"name\": \"обработанна\",\n        \"value\": 2\n    },\n    {\n        \"name\": \"удалена\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"отменена\",\n        \"value\": 0\n    },\n    {\n        \"name\": \"оплачена\",\n        \"value\": 0\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Order statuses dynamic",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "c4b1b169-3cec-4bb1-a195-c8da69f8a915",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "01688808-e79a-49e2-a766-998b2e958515",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/stats/orders/dynamic?year_month=2024-04-19T23:09:01.754000&before=0&after=4&by_creation_date=false",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"stats",
+								"orders",
+								"dynamic"
+							],
+							"query": [
+								{
+									"key": "year_month",
+									"value": "2024-04-19T23:09:01.754000"
+								},
+								{
+									"key": "before",
+									"value": "0"
+								},
+								{
+									"key": "after",
+									"value": "4"
+								},
+								{
+									"key": "by_creation_date",
+									"value": "false"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "8a3fc302-9228-4145-9130-2f695e26d994",
+							"name": "Order statuses dynamic",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{host_url}}/api/stats/orders/dynamic?year_month=2024-04-24T00:00&before=0&after=30",
+									"host": [
+										"{{host_url}}"
+									],
+									"path": [
+										"api",
+										"stats",
+										"orders",
+										"dynamic"
+									],
+									"query": [
+										{
+											"key": "year_month",
+											"value": "2024-04-24T00:00"
+										},
+										{
+											"key": "before",
+											"value": "0"
+										},
+										{
+											"key": "after",
+											"value": "30"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Thu, 25 Apr 2024 02:42:42 GMT",
+									"uuid": "239ab10f-07e4-4c59-88d5-31e2efeeb88c"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "fb6daf3e-44d8-4e56-8341-ac8195cc8c90"
+								},
+								{
+									"key": "content-length",
+									"value": "9961",
+									"uuid": "b4d33fac-3379-4490-9db9-2a90bb9e4b8f"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "0e1e0080-4153-4f84-9df6-732f9d23041a"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"name\": \"2024-04-24T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-04-25T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-04-26T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-04-27T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-04-28T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-04-29T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-04-30T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-01T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-02T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-03T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-04T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-05T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-06T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-07T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-08T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-09T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-10T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-11T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-12T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-13T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-14T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-15T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-16T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-17T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-18T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-19T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-20T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-21T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-22T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    },\n    {\n        \"name\": \"2024-05-23T00:00:00\",\n        \"создана\": 0,\n        \"в работе\": 0,\n        \"ожидается подтверждение\": 0,\n        \"подтверждена\": 0,\n        \"передана курьеру\": 0,\n        \"ожидается оплата\": 0,\n        \"оплаченна\": 0,\n        \"обработанна\": 0,\n        \"удалена\": 0,\n        \"отменена\": 0,\n        \"оплачена\": 0\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Get latest N orders",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "1bdec778-8dd6-4f03-8aa9-d41233e06081",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "ee9829af-8572-47bf-93da-3ec8e7e5aa0a",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host_url}}/api/stats/orders/latest?limit=5",
+							"host": [
+								"{{host_url}}"
+							],
+							"path": [
+								"api",
+								"stats",
+								"orders",
+								"latest"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "74919637-bc9f-43cc-a80e-7b641de660ce",
+							"name": "Get latest N orders",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{host_url}}/api/stats/orders/latest?limit=5",
+									"host": [
+										"{{host_url}}"
+									],
+									"path": [
+										"api",
+										"stats",
+										"orders",
+										"latest"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "date",
+									"value": "Thu, 25 Apr 2024 02:42:23 GMT",
+									"uuid": "2ae849fe-e3c4-4217-ab8d-aec63f225af1"
+								},
+								{
+									"key": "server",
+									"value": "uvicorn",
+									"uuid": "62ea064a-f77e-46ae-8490-efee265c0239"
+								},
+								{
+									"key": "content-length",
+									"value": "7347",
+									"uuid": "8bb69de6-1999-4f95-819a-e50c2f854dc6"
+								},
+								{
+									"key": "content-type",
+									"value": "application/json",
+									"uuid": "e089fe35-2aa7-42d7-81c6-f71b853fa950"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": \"7ca84b94-b94c-427a-9a45-33d0b8d834d4\",\n        \"order_num\": 205,\n        \"user_order_num\": 5,\n        \"last_disposal\": null,\n        \"times_completed\": null,\n        \"day\": \"2024-04-20T23:09:01.754000\",\n        \"date_created\": \"2024-04-22T15:27:26.178085\",\n        \"last_updated\": \"2024-04-22T15:27:26.190086\",\n        \"legal_entity\": false,\n        \"courier_id\": null,\n        \"manager_id\": \"2fd958a0-b5f7-4f27-ab6e-d5bf07d329d7\",\n        \"manager_info\": {\n            \"id\": \"2fd958a0-b5f7-4f27-ab6e-d5bf07d329d7\",\n            \"amount\": null,\n            \"email\": \"admin@example.com\",\n            \"telegram_id\": null,\n            \"telegram_username\": null,\n            \"phone_number\": null,\n            \"firstname\": \"admin\",\n            \"secondname\": \"adminov\",\n            \"patronymic\": \"adminovich\",\n            \"deleted_at\": null,\n            \"link_code\": \"274dcbed-1\"\n        },\n        \"comment\": \"test_comment_2\",\n        \"comment_manager\": \"test_comment_manager_2\",\n        \"comment_courier\": \"test_comment_courier_2\",\n        \"comment_history\": null,\n        \"interval_type\": null,\n        \"interval\": null,\n        \"tg_id\": null,\n        \"user_data\": {\n            \"telegram_username\": \"namerinnos\",\n            \"link_code\": \"23b24181-d\",\n            \"telegram_id\": 368262500,\n            \"phone_number\": \"89058928829\",\n            \"firstname\": null,\n            \"secondname\": null,\n            \"email\": \"nohtimore@gmail.com\",\n            \"patronymic\": null,\n            \"deleted_at\": null,\n            \"id\": \"b3bdc515-cfd6-4a80-9e5d-caee44e36cd0\"\n        },\n        \"address_id\": \"8a1db917-b7ef-4554-9d40-f0f853d2f9cb\",\n        \"address_data\": {\n            \"distance_from_mkad\": null,\n            \"interval\": null,\n            \"longitude\": \"37.562272\",\n            \"id\": \"8a1db917-b7ef-4554-9d40-f0f853d2f9cb\",\n            \"address\": \"улица Трёхгорный Вал, 14с3\",\n            \"main\": false,\n            \"region_id\": \"98f38e9f-8eca-43f7-b5c5-195333cfaaf4\",\n            \"latitude\": \"55.75979\",\n            \"comment\": null,\n            \"point_on_map\": null,\n            \"detail\": null,\n            \"interval_type\": \"once\"\n        },\n        \"box_type_id\": \"a6996b4d-ef7d-4054-8340-5f850d1543e6\",\n        \"box_count\": 5,\n        \"box_data\": null,\n        \"status\": \"4b8dee4e-490e-49ae-a4a5-b0bb4f149ab1\",\n        \"status_data\": null,\n        \"deleted_at\": null,\n        \"payments\": []\n    },\n    {\n        \"id\": \"ac250361-3117-4f34-9644-349f0486b127\",\n        \"order_num\": 204,\n        \"user_order_num\": 4,\n        \"last_disposal\": null,\n        \"times_completed\": null,\n        \"day\": \"2024-04-20T23:09:01.754000\",\n        \"date_created\": \"2024-04-18T12:30:05.754815\",\n        \"last_updated\": \"2024-04-18T12:30:05.758817\",\n        \"legal_entity\": false,\n        \"courier_id\": null,\n        \"manager_id\": null,\n        \"manager_info\": null,\n        \"comment\": null,\n        \"comment_manager\": null,\n        \"comment_courier\": null,\n        \"comment_history\": null,\n        \"interval_type\": null,\n        \"interval\": null,\n        \"tg_id\": null,\n        \"user_data\": {\n            \"telegram_username\": \"namerinnos\",\n            \"link_code\": \"23b24181-d\",\n            \"telegram_id\": 368262500,\n            \"phone_number\": \"89058928829\",\n            \"firstname\": null,\n            \"secondname\": null,\n            \"email\": \"nohtimore@gmail.com\",\n            \"patronymic\": null,\n            \"deleted_at\": null,\n            \"id\": \"b3bdc515-cfd6-4a80-9e5d-caee44e36cd0\"\n        },\n        \"address_id\": \"8a1db917-b7ef-4554-9d40-f0f853d2f9cb\",\n        \"address_data\": {\n            \"distance_from_mkad\": null,\n            \"interval\": null,\n            \"longitude\": \"37.562272\",\n            \"id\": \"8a1db917-b7ef-4554-9d40-f0f853d2f9cb\",\n            \"address\": \"улица Трёхгорный Вал, 14с3\",\n            \"main\": false,\n            \"region_id\": \"98f38e9f-8eca-43f7-b5c5-195333cfaaf4\",\n            \"latitude\": \"55.75979\",\n            \"comment\": null,\n            \"point_on_map\": null,\n            \"detail\": null,\n            \"interval_type\": \"once\"\n        },\n        \"box_type_id\": \"a6996b4d-ef7d-4054-8340-5f850d1543e6\",\n        \"box_count\": 1,\n        \"box_data\": null,\n        \"status\": \"4b8dee4e-490e-49ae-a4a5-b0bb4f149ab1\",\n        \"status_data\": null,\n        \"deleted_at\": null,\n        \"payments\": [\n            {\n                \"id\": \"a8c46f99-09b2-4ab1-a8c5-567c973cabc2\",\n                \"tinkoff_id\": 4276168497,\n                \"order_id\": 204,\n                \"amount\": 100,\n                \"status\": \"NEW\",\n                \"is_reocurring\": true,\n                \"rebill_id\": null,\n                \"payment_url\": \"https://securepayments.tinkoff.ru/08J3Ec6L\",\n                \"terminal_id\": \"31ab951a-9bfa-4e88-8262-345a796f7034\",\n                \"deleted_at\": null,\n                \"date_created\": \"2024-04-18T12:30:28.152903\"\n            }\n        ]\n    },\n    {\n        \"id\": \"312c07c8-5eaf-4997-a88f-0718d8613aae\",\n        \"order_num\": 203,\n        \"user_order_num\": 4,\n        \"last_disposal\": null,\n        \"times_completed\": null,\n        \"day\": null,\n        \"date_created\": \"2024-04-18T05:32:45.596938\",\n        \"last_updated\": \"2024-04-18T05:32:45.596938\",\n        \"legal_entity\": false,\n        \"courier_id\": null,\n        \"manager_id\": null,\n        \"manager_info\": null,\n        \"comment\": null,\n        \"comment_manager\": null,\n        \"comment_courier\": null,\n        \"comment_history\": null,\n        \"interval_type\": null,\n        \"interval\": null,\n        \"tg_id\": null,\n        \"user_data\": {\n            \"telegram_username\": null,\n            \"link_code\": \"e5a21ff7\",\n            \"telegram_id\": null,\n            \"phone_number\": \"89153113881\",\n            \"firstname\": \"Жанна\",\n            \"secondname\": null,\n            \"email\": null,\n            \"patronymic\": null,\n            \"deleted_at\": null,\n            \"id\": \"206b9ace-255a-4bcb-aac5-ab291ef93538\"\n        },\n        \"address_id\": \"3bfc6e34-84fa-42f5-a219-6db7c115a413\",\n        \"address_data\": {\n            \"distance_from_mkad\": \"20 км от МКАД\",\n            \"interval\": null,\n            \"longitude\": \"55.814608\",\n            \"id\": \"3bfc6e34-84fa-42f5-a219-6db7c115a413\",\n            \"address\": \"Павлово-2, Малахитовая ул., д9Б, кв 4\",\n            \"main\": true,\n            \"region_id\": \"7198447c-0bbc-430e-af32-59805a1c60e1\",\n            \"latitude\": \"37.128152\",\n            \"comment\": null,\n            \"point_on_map\": \"https://yandex.ru/maps/-/CCUyEZussC\",\n            \"detail\": null,\n            \"interval_type\": \"once\"\n        },\n        \"box_type_id\": \"28082f4a-6e7f-435f-a29f-7447a5466474\",\n        \"box_count\": 1,\n        \"box_data\": null,\n        \"status\": \"cfb81270-6068-4281-a365-437f29b239bc\",\n        \"status_data\": null,\n        \"deleted_at\": null,\n        \"payments\": []\n    },\n    {\n        \"id\": \"50c80c67-681b-4597-a176-c12f3bbc630a\",\n        \"order_num\": 202,\n        \"user_order_num\": 4,\n        \"last_disposal\": null,\n        \"times_completed\": null,\n        \"day\": null,\n        \"date_created\": \"2024-04-18T05:32:45.384298\",\n        \"last_updated\": \"2024-04-18T05:32:45.385296\",\n        \"legal_entity\": false,\n        \"courier_id\": null,\n        \"manager_id\": null,\n        \"manager_info\": null,\n        \"comment\": null,\n        \"comment_manager\": null,\n        \"comment_courier\": null,\n        \"comment_history\": null,\n        \"interval_type\": null,\n        \"interval\": null,\n        \"tg_id\": null,\n        \"user_data\": {\n            \"telegram_username\": null,\n            \"link_code\": \"53c71b46\",\n            \"telegram_id\": null,\n            \"phone_number\": \"89160535652\",\n            \"firstname\": \"Яна\",\n            \"secondname\": null,\n            \"email\": null,\n            \"patronymic\": null,\n            \"deleted_at\": null,\n            \"id\": \"a99d1239-c80d-4721-b930-bbd370a5f6af\"\n        },\n        \"address_id\": \"9ff10a14-eba0-4e7d-b035-a23c5ea332ec\",\n        \"address_data\": {\n            \"distance_from_mkad\": \"20 км от МКАД\",\n            \"interval\": null,\n            \"longitude\": \"55.813035\",\n            \"id\": \"9ff10a14-eba0-4e7d-b035-a23c5ea332ec\",\n            \"address\": \"Павлово-2, Малахитовая ул., д4, кв 3\",\n            \"main\": true,\n            \"region_id\": \"7198447c-0bbc-430e-af32-59805a1c60e1\",\n            \"latitude\": \"37.130434\",\n            \"comment\": null,\n            \"point_on_map\": \"https://yandex.ru/maps/-/CCUyEZubPC\",\n            \"detail\": null,\n            \"interval_type\": \"once\"\n        },\n        \"box_type_id\": \"28082f4a-6e7f-435f-a29f-7447a5466474\",\n        \"box_count\": 1,\n        \"box_data\": null,\n        \"status\": \"cfb81270-6068-4281-a365-437f29b239bc\",\n        \"status_data\": null,\n        \"deleted_at\": null,\n        \"payments\": []\n    },\n    {\n        \"id\": \"478fc21e-3248-4818-944f-0346f906bd44\",\n        \"order_num\": 201,\n        \"user_order_num\": 4,\n        \"last_disposal\": null,\n        \"times_completed\": null,\n        \"day\": null,\n        \"date_created\": \"2024-04-18T05:32:45.376297\",\n        \"last_updated\": \"2024-04-18T05:32:45.377297\",\n        \"legal_entity\": false,\n        \"courier_id\": null,\n        \"manager_id\": null,\n        \"manager_info\": null,\n        \"comment\": null,\n        \"comment_manager\": null,\n        \"comment_courier\": null,\n        \"comment_history\": null,\n        \"interval_type\": null,\n        \"interval\": null,\n        \"tg_id\": null,\n        \"user_data\": {\n            \"telegram_username\": null,\n            \"link_code\": \"a3269222\",\n            \"telegram_id\": null,\n            \"phone_number\": \"89268471496\",\n            \"firstname\": \"Ольга Юрьевна Ч. (Лариса 7 910 478-24-05)\",\n            \"secondname\": null,\n            \"email\": null,\n            \"patronymic\": null,\n            \"deleted_at\": null,\n            \"id\": \"71f5e97e-c7ee-42fe-8397-7afcc46fb3e8\"\n        },\n        \"address_id\": \"2dfd2e02-21d8-44a0-b14d-f0951450df60\",\n        \"address_data\": {\n            \"distance_from_mkad\": \"20 км от МКАД\",\n            \"interval\": null,\n            \"longitude\": \"55.822154\",\n            \"id\": \"2dfd2e02-21d8-44a0-b14d-f0951450df60\",\n            \"address\": \"Павлово-2, Исаковская улица, д15\",\n            \"main\": true,\n            \"region_id\": \"7198447c-0bbc-430e-af32-59805a1c60e1\",\n            \"latitude\": \"37.145283\",\n            \"comment\": null,\n            \"point_on_map\": \"https://yandex.ru/maps/-/CCUyEZqXCD\",\n            \"detail\": \"Исаковская 15, Звонить 89778457758\",\n            \"interval_type\": \"once\"\n        },\n        \"box_type_id\": \"28082f4a-6e7f-435f-a29f-7447a5466474\",\n        \"box_count\": 1,\n        \"box_data\": null,\n        \"status\": \"cfb81270-6068-4281-a365-437f29b239bc\",\n        \"status_data\": null,\n        \"deleted_at\": null,\n        \"payments\": []\n    }\n]"
+						}
+					]
+				}
+			],
+			"id": "333b9391-5442-4e37-9a9e-7854b0db70b1"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{test_auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "1d0edd0a-c820-45d7-82d0-c96ced2da532",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "9c82abdd-5968-4dd5-b1d9-ae27a9e3f6db",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"id": "23a4d2fa-7d82-4e65-9dd8-ad8f2f1d2bdf",
+			"key": "id",
+			"value": "1"
+		},
+		{
+			"id": "3b4f29f5-a06e-42b3-83bc-baf765be57fd",
+			"key": "host_url",
+			"value": "http://5.253.62.213:8000",
+			"type": "string"
+		},
+		{
+			"id": "106d89da-fb98-4b4e-975e-03433c6fdc59",
+			"key": "user_id",
+			"value": "b3bdc515-cfd6-4a80-9e5d-caee44e36cd0"
+		},
+		{
+			"id": "796e8662-41ef-41ae-8103-018fcef44771",
+			"key": "user_tg_id",
+			"value": "368262500"
+		},
+		{
+			"id": "ed361640-13fe-4901-9634-11d4a0a5f07f",
+			"key": "address_id",
+			"value": "832a31e2-e055-407f-b598-cfb464b9da7f"
+		},
+		{
+			"id": "43ef76dc-f473-4e41-a9b2-b70bb6bb4e20",
+			"key": "order_id",
+			"value": "7ca84b94-b94c-427a-9a45-33d0b8d834d4"
+		}
+	]
+}
