@@ -404,6 +404,7 @@ class OrderHandler(Handler):
         async def payment_order(callback: CallbackQuery, state: FSMContext):
 
             await state.update_data(chat_id=callback.message.chat.id)
+            await state.update_data(msg=callback.message.message_id)
             data = await state.get_data()
             if data.get('order_msg'):
                 await callback.bot.edit_message_reply_markup(
