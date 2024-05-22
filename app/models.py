@@ -905,6 +905,8 @@ class Payments(Base):
         notification_url = 'http://5.253.62.213:8000/api/payment/notify/auto'
 
         payment_data = {}
+        if 'tel:' in order.user.phone_number:
+            order.user.phone_number = str(order.user.phone_number).replace('tel:', '')
 
         if without_r_c:
             payment_data = {
