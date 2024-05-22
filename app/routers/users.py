@@ -673,6 +673,7 @@ async def get_user_data(
 
         if with_orders:
             orders = session.query(Orders).\
+                    enable_eagerloads(False).\
                     where(Orders.from_user == user_query.id).\
                     order_by(asc(Orders.date_created)).all()
 
