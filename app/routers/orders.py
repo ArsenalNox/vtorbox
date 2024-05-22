@@ -620,17 +620,17 @@ async def update_order_data(
                     )
                     session.add(old_comment_to_history)             
 
-
-            new_data_change = OrderChangeHistory(
-                from_user_id = change_from_user.id if change_from_user else current_user.id,
-                order_id = order_query.id,
-                attribute = attr,
-                old_content = getattr(order_query, attr),
-                new_content = value,
-            )
-            session.add(new_data_change)
-
-            setattr(order_query, attr, value)
+            if not(getattr(order_query, attr) == value):
+                new_data_change = OrderChangeHistory(
+                    from_user_id = change_from_user.id if change_from_user else current_user.id,
+                    order_id = order_query.id,
+                    attribute = attr,
+                    old_content = getattr(order_query, attr),
+                    new_content = value,
+                    date_created = datetime.now()
+                )
+                session.add(new_data_change)
+                setattr(order_query, attr, value)
 
         session.commit()
 
