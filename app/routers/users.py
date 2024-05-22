@@ -672,11 +672,10 @@ async def get_user_data(
         return_data = UserOut(**user_parent_data)
 
         if with_orders:
-            orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
-                    join(Address, Address.id == Orders.address_id).\
-                    outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
+            orders = session.query(Orders, OrderStatuses).\
                     join(OrderStatuses, OrderStatuses.id == Orders.status).\
-                    where(Orders.from_user == user_query.id).order_by(asc(Orders.date_created)).all()
+                    where(Orders.from_user == user_query.id).\
+                    order_by(asc(Orders.date_created)).all()
 
             orders_out = []
             for order in orders:
@@ -685,20 +684,13 @@ async def get_user_data(
 
                 order_data.tg_id = user_query.telegram_id
 
-                try:
-                    order_data.address_data = order[1]
-                    order_data.interval = str(order[1].interval).split(', ')
-                except IndexError: 
-                    order_data.address_data = None
+                order_data.address_data = order[0].address
+                order_data.interval = str(order[0].address.interval).split(', ')
+
+                order_data.box_data = order[0].box
 
                 try:
-                    if not order[2] == None:
-                        order_data.box_data = order[2]
-                except IndexError:
-                    order_data.box_data = None
-
-                try:
-                    order_data.status_data = order[3]
+                    order_data.status_data = order[1]
                 except IndexError:
                     order_data.status_data = None
 
