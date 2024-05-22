@@ -195,7 +195,7 @@ async def get_user_by_tg_id(
     with Session(engine, expire_on_commit=False) as session:
         user = session.query(Users).filter_by(telegram_id=tg_id).first()
         if user:
-            return user
+            return jsonable_encoder(user)
 
     return JSONResponse({
         "message": "Not found"
