@@ -14,6 +14,8 @@ from datetime import datetime
 
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
+PhoneNumber.phone_format = 'E164'
+PhoneNumber.default_region_code = 'RU'
 
 class UserIdMultiple(BaseModel):
     user_id: Optional[UUID4|int] = None
@@ -314,7 +316,7 @@ class UserOrderOutData(BaseModel):
     telegram_id: Optional[int]
     telegram_username: Optional[str]
 
-    phone_number: Optional[str]
+    phone_number: Optional[PhoneNumber] = None
 
     firstname: Optional[str]
     secondname: Optional[str]
