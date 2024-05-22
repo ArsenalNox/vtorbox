@@ -672,27 +672,19 @@ async def get_user_data(
         return_data = UserOut(**user_parent_data)
 
         if with_orders:
-            orders = session.query(Orders, OrderStatuses).\
-                    join(OrderStatuses, OrderStatuses.id == Orders.status).\
+            orders = session.query(Orders).\
                     where(Orders.from_user == user_query.id).\
                     order_by(asc(Orders.date_created)).all()
 
             orders_out = []
             for order in orders:
-                parent_data = jsonable_encoder(order[0])
+                parent_data = jsonable_encoder(order)
                 order_data = OrderOut(**parent_data)
 
                 order_data.tg_id = user_query.telegram_id
-
-                order_data.address_data = order[0].address
-                order_data.interval = str(order[0].address.interval).split(', ')
-
-                order_data.box_data = order[0].box
-
-                try:
-                    order_data.status_data = order[1]
-                except IndexError:
-                    order_data.status_data = None
+                order_data.address_data = order.address
+                order_data.box_data = order.box
+                order_data.status_data = session.query(OrderStatuses).filter_by(id=order.status).first()
 
                 orders_out.append(order_data)
 
