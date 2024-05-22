@@ -228,79 +228,42 @@ async def get_user_orders(
             }, status_code=422)
 
         #TODO: сократить то что идёт ниже, желательно на хотя бы 70%
-        orders = None
-        if not (order_id == None):
-            #Получение конкретной заявки
-            orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
-                join(Address, Address.id == Orders.address_id).\
-                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-                join(OrderStatuses, OrderStatuses.id == Orders.status).\
-                where(Orders.id == order_id).\
-                where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
 
-        elif orders_id:
-            orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
-                join(Address, Address.id == Orders.address_id).\
-                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-                join(OrderStatuses, OrderStatuses.id == Orders.status).\
-                filter(Orders.id.in_(orders_id)).\
-                where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
+        orders = session.query(Orders).\
+            enable_eagerloads(False).\
+            filter_by(from_user = user.id)
 
-        elif order_num:
-            orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
-                join(Address, Address.id == Orders.address_id).\
-                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-                join(OrderStatuses, OrderStatuses.id == Orders.status).\
-                where(Orders.order_num == order_num).order_by(asc(Orders.date_created)).all()
+        if order_id:
+            orders = orders.where(Orders.id == order_id)
+
+        if orders_id:
+            orders = orders.filter(Orders.id.in_(orders_id))
+            
+        if order_num:
+            orders = orders.where(Orders.order_num == order_num)
+
+        if user_order_num:
+            orders = orders.where(Orders.user_order_num == user_order_num)
+
+        if order_nums:
+            orders = orders.filter(Orders.order_num.in_(order_nums))
         
-        elif user_order_num:
-            orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
-                join(Address, Address.id == Orders.address_id).\
-                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-                join(OrderStatuses, OrderStatuses.id == Orders.status).\
-                where(Orders.user_order_num == user_order_num).order_by(asc(Orders.date_created)).all()
-        
-        elif order_nums:
-            orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
-                join(Address, Address.id == Orders.address_id).\
-                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-                join(OrderStatuses, OrderStatuses.id == Orders.status).\
-                filter(Orders.order_num.in_(order_nums)).\
-                where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
-
-        else:
-            orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
-                join(Address, Address.id == Orders.address_id).\
-                outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-                join(OrderStatuses, OrderStatuses.id == Orders.status).\
-                where(Orders.from_user == user.id).order_by(asc(Orders.date_created)).all()
+        orders = orders.order_by(asc(Orders.date_created)).all()
 
         return_data = []
         for order in orders:
-            order_parent_data = jsonable_encoder(order[0])
+            order_parent_data = jsonable_encoder(order)
             order_data = OrderOut(**order_parent_data)
 
             order_data.tg_id = user.telegram_id
 
-            try:
-                order_data.address_data = order[1]
-                order_data.interval = str(order[1].interval).split(', ')
-            except IndexError: 
-                order_data.address_data = None
+            order_data.address_data = order.address
+            order_data.interval = str(order.address.interval).split(', ')
 
-            try:
-                if not order[2] == None:
-                    order_data.box_data = order[2]
-            except IndexError:
-                order_data.box_data = None
+            order_data.box_data = order.box
 
-            try:
-                order_data.status_data = order[3]
-            except IndexError:
-                order_data.status_data = None
-
-            if order_data.manager_id:
-                order_data.manager_info = order[0].manager_info
+            s_query = session.query(OrderStatuses).filter_by(id=order.status).first()
+            order_data.status_data = s_query
 
             return_data.append(order_data)
 
@@ -882,7 +845,7 @@ async def process_current_orders(
                     btn={
                         "inline_keyboard" : [[{
                         "text" : "Подтвердить",
-                        "callback_data": f"confirm_order_12345",
+                        "callback_data": f"confirm_order_{order.id}",
                     }]]}
                 )
 
