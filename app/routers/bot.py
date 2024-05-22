@@ -191,7 +191,7 @@ async def check_user_by_promocode(
 async def get_user_by_tg_id(
     tg_id:int,
     bot: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
-    ):
+    )->UserOut:
     with Session(engine, expire_on_commit=False) as session:
         user = session.query(Users).filter_by(telegram_id=tg_id).first()
         if user:
