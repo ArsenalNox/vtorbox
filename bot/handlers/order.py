@@ -235,7 +235,7 @@ class OrderHandler(Handler):
                 self.index = len(self.orders_list) - 1
                 logger.debug(f'История заявок:::Список заявок у {message.chat.id} = {[i.get("order_num") for i in self.orders_list]}(index={self.index})')
 
-                if len(orders) <= 5:
+                if len(orders) <= 3:
 
                     status_code, orders_msg = await req_to_api(
                         method='get',
@@ -319,6 +319,36 @@ class OrderHandler(Handler):
                 orders_msg,
                 reply_markup=self.kb.order_list(orders)
             )
+            await state.update_data(msg=msg.message_id)
+
+        @self.router.callback_query(F.data.startswith('go_to_month_list_order'))
+        async def back_to_list_order_by_month(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=callback.message
+            )
+
+            status_code, orders = await req_to_api(
+                method='get',
+                url=f'users/orders/?tg_id={callback.message.chat.id}',
+            )
+            self.orders_list = orders
+            self.index = len(self.orders_list) - 1
+            result = await group_orders_by_month(self.orders_list)
+
+            status_code, orders_by_month_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=YOUR_ORDERS_BY_MONTH'
+            )
+
+            msg = await callback.message.answer(
+                orders_by_month_msg,
+                reply_markup=self.kb.order_list_by_month(result)
+            )
+
             await state.update_data(msg=msg.message_id)
 
         @self.router.callback_query(F.data.startswith('show'))
@@ -414,6 +444,11 @@ class OrderHandler(Handler):
                 )
 
             order_id = callback.data.split('_')[-1]
+            status_code, order = await req_to_api(
+                method='get',
+                url=f'orders/{order_id}',
+            )
+            order_status = order.get('status_data', {}).get('status_name').lower()
 
             status_code, payment_msg = await req_to_api(
                 method='get',
@@ -427,8 +462,9 @@ class OrderHandler(Handler):
                 method='post',
                 url=f'payment?for_order={order_id}'
             )
+            logger.debug(f'Получена ссылка для оплаты заказа {order_id}: {response}')
 
-            if isinstance(response[0], dict):
+            if isinstance(response[0], dict) and order_status == 'ожидается оплата':
                 status_code, link_payment_msg = await req_to_api(
                     method='get',
                     url='bot/messages?message_key=YOUR_LINK_PAYMENT'
@@ -437,6 +473,20 @@ class OrderHandler(Handler):
                     link_payment_msg.format(
                         response[0].get('payment_url')
                     )
+                )
+                status_code, menu_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=MENU'
+                )
+
+                await callback.message.answer(
+                    menu_msg,
+                    reply_markup=self.kb.start_menu_btn()
+                )
+
+            elif order_status != 'ожидается оплата':
+                await callback.message.answer(
+                    MESSAGES['ORDER_ALREADY_PAID']
                 )
                 status_code, menu_msg = await req_to_api(
                     method='get',

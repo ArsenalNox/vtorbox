@@ -41,6 +41,7 @@ class OrderKeyboard(BaseKeyboard):
         """Меню для управление заказом"""
 
         builder = InlineKeyboardBuilder()
+        pprint.pprint(order)
         order_id = order.get('id')
         order_num = order.get('order_num')
         manager_id = order.get('manager_info', {}).get('telegram_id')
@@ -249,6 +250,13 @@ class OrderKeyboard(BaseKeyboard):
                     )
                 )
 
+        builder.row(
+            InlineKeyboardButton(
+                text='⬅️ Назад',
+                callback_data=f'go_to_month_list_order'
+            )
+        )
+
         return builder.as_markup(
             resize_keyboard=True,
             one_time_keyboard=True
@@ -258,7 +266,6 @@ class OrderKeyboard(BaseKeyboard):
         """Кнопки отображения истории заказов по месяцам"""
 
         builder = InlineKeyboardBuilder()
-
         for order in orders:
             orders_id = '_'.join(orders[order])
             builder.row(
