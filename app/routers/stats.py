@@ -209,7 +209,7 @@ async def get_order_statuses_stats()->List[OrderStatusStatistic]:
 @router.get('/stats/orders/regions')
 async def get_order_region_stats()->List[OrderRegionStatistic]:
     """
-    Получить кол-во заявок по регионам, сбор заявок не учитывает даты создания/вывоза
+    Получить кол-во заявок по регионам, сбор заявок не учитывает даты создания/вывоза. Берутся только закрытые заявки
     """
     with Session(engine, expire_on_commit=False) as session:
         regions_query = session.query(Regions).all()
@@ -228,7 +228,6 @@ async def get_order_region_stats()->List[OrderRegionStatistic]:
             })
 
         return return_data
-
 
 @router.get('/stats/orders/dynamic')
 async def get_order_dynamics_stat(
