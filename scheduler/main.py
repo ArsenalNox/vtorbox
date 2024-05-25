@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from os import getenv
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
 from fastapi import FastAPI
@@ -179,4 +180,14 @@ if __name__ == '__main__':
     }
     scheduler = BackgroundScheduler(jobstores=jobstores)
     scheduler.start()
+
+    trigger_p_g = CronTrigger(
+        year="*", month="*", day="*", hour="11", minute="40", second="*"
+    )
+    scheduler.add_job(
+        trigger_poll_generation,
+        trigger=trigger_p_g,
+        id='trigger_poll_generation'
+    )
+
     uvicorn.run(app, host="0.0.0.0", port=8081)
