@@ -843,14 +843,119 @@ async def process_current_orders(
                     order.user.telegram_id,
                     message=f"От вас требуется подверждение заявки ({order.order_num}) по адресу ({order.address.address}) по временному итервалу {order.time_window}",
                     btn={
-                        "inline_keyboard" : [[{
-                        "text" : "Подтвердить",
-                        "callback_data": f"confirm_order_{order.id}",
-                    }]]}
+                        "inline_keyboard" : [
+                        [{
+                            "text" : "Подтвердить",
+                            "callback_data": f"confirm_order_{order.id}",
+                        }],
+                        [{
+                            "text" : "Отказаться",
+                            "callback_data": f"deny_order_{order.id}",
+                        }]
+                    ]}
                 )
 
         session.commit()
 
         return order_list_to_generate_time_ranges
 
-#TODO: повторная проверка подтверждения заявки
+
+@router.get('/check-intervals')
+async def check_order_intervals():
+    """
+    Идентичная генерации пула, только создаёт заявку из интервала адресов
+    """
+    with Session(engine, expire_on_commit=False) as session:
+        date_today = datetime.now()
+        date_today = date_today.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        day_number_now = datetime.strftime(date_today, "%d")
+        month_now_str = datetime.strftime(date_today, "%m")
+        year_now_str = datetime.strftime(date_today, "%Y")
+
+        date_tommorrow = date_today + timedelta(days=1)
+        weekday_tomorrow = str(date_tommorrow.strftime('%A')).lower()
+
+        addresses_query = session.query(Address).filter(Address.interval != None).all()
+        for address in addresses_query:
+            print(f"address: {address.address}")
+            print(f"inteval: {address.interval}")
+            print(f"region work days: {address.region.work_days}")
+            
+            if not address.region.is_active:
+                print("Region is not active")
+                continue
+
+            #Проверить, есть ли заявка на этот адрес (созданная)
+            order_exists = False
+            if len(address.orders)>0:
+                for order in address.orders:
+                    #Проверить, на сегодня ли эта заявка
+                    order_day = order.day
+                    order_day = order_day.replace(hour=0, minute=0, second=0, microsecond=0)
+                    if order_day == date_tommorrow:
+                        order_exists = True
+                        break
+            
+            if order_exists: 
+                print("Order exists, skipping")
+                continue
+            
+            if not (weekday_tomorrow in address.interval):
+                print("weekday tomorrow not in addres intreval")
+                continue
+
+            if not weekday_tomorrow in address.region.work_days:
+                print("weekday tomorrow not in region workd days")
+                continue
+
+            #Если заявки нет - создать её в статус в работе
+            user_id = session.query(UsersAddress).filter_by(address_id=address.id).first().user_id
+            count = session.query(Orders.id).where(Orders.from_user == user_id).count()
+            new_order = Orders(
+                from_user   = user_id,
+                address_id  = address.id,
+                day         = date_tommorrow,
+                comment     = 'Создана из интервала',
+                status      = OrderStatuses.status_processing().id,
+                date_created = datetime.now(),
+                user_order_num = count + 1,
+                manager_id = Users.get_random_manager()
+            )
+            session.add(new_order)
+            session.commit()
+
+            print('')
+
+
+
+
+@router.post('/resend-notify')
+async def resend_order_confirm_notify(
+    final_check: bool = False
+):
+    with Session(engine, expire_on_commit=False) as session:
+        orders = session.query(Orders).\
+            filter(Orders.deleted_at == None).\
+            filter(Orders.status == OrderStatuses.status_awating_confirmation().id).\
+            order_by(asc(Orders.date_created)).all()
+        
+        for order in orders:
+            if not order.user.allow_messages_from_bot and order.user.telegram_id:
+                continue
+            else:
+                send_message_through_bot(
+                    order.user.telegram_id,
+                    message=f"От вас требуется подверждение заявки ({order.order_num}) по адресу ({order.address.address}) по временному итервалу {order.time_window}",
+                    btn={
+                        "inline_keyboard" : [
+                        [{
+                        "text" : "Подтвердить",
+                        "callback_data": f"confirm_order_{order.id}",
+                        }],
+                        [{
+                            "text" : "Отказаться",
+                            "callback_data": f"deny_order_{order.id}",
+                        }]
+                    ]}
+                )
