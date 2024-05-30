@@ -108,7 +108,7 @@ def generate_y_courier_json(route_data, vehicles=None):
     """
     locations = []
 
-    time_winow = "07:00-20:00"
+    time_winow = "10:00-20:00"
 
     for order in route_data.orders:
         try:
@@ -139,7 +139,7 @@ def generate_y_courier_json(route_data, vehicles=None):
                 "shifts": [
                     {
                         "id": "day",
-                        "time_window": "7:00-20:00",
+                        "time_window": "10:00-20:00",
                         "balanced_group_id": "group_1"
                     }
                 ]
@@ -155,7 +155,7 @@ def generate_y_courier_json(route_data, vehicles=None):
                 "lat": 55.734157,
                 "lon": 37.589346
             },
-            "time_window": "07:00-20:00"
+            "time_window": "10:00-20:00"
         },
         "vehicles": payload_vehicles,
         "locations": locations,
@@ -307,7 +307,6 @@ def generate_time_intervals(route_data):
     from app.models import Session, engine, Orders, Address
 
     time_ranges = [
-        ['7:00', '10:00'],
         ['10:00','13:00'],
         ['13:00', '16:00'],
         ['16:00', '20:00'],
