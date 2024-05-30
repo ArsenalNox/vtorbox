@@ -22,6 +22,8 @@ class NotificationHandler(Handler):
             data = await state.get_data()
             order_id = callback.data.split('_')[-1]
             await state.update_data(msg=callback.message.message_id)
+            await state.update_data(chat_id=callback.message.chat.id)
+
 
             status_code, order = await req_to_api(
                 method='get',
@@ -46,3 +48,36 @@ class NotificationHandler(Handler):
                 method='put',
                 url=f'orders/{order_id}/status?status_text={status}',
             )
+
+        @self.router.callback_query(F.data.startswith('deny_order'))
+        async def deny_order(callback: CallbackQuery, state: FSMContext):
+            data = await state.get_data()
+            order_id = callback.data.split('_')[-1]
+            await state.update_data(msg=callback.message.message_id)
+            await state.update_data(chat_id=callback.message.chat.id)
+
+            status_code, order = await req_to_api(
+                method='get',
+                url=f'orders/{order_id}',
+            )
+
+            status = quote("отменена")
+
+            await req_to_api(
+                method='put',
+                url=f'orders/{order_id}/status?status_text={status}',
+            )
+
+            status_code, deny_order_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=ORDER_WAS_DENY'
+            )
+
+            await callback.bot.edit_message_text(
+                chat_id=data.get('chat_id'),
+                message_id=callback.message.message_id,
+                text=deny_order_msg.format(order.get('order_num')),
+                reply_markup=None
+            )
+
+
