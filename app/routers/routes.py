@@ -172,7 +172,7 @@ async def generate_routes_today(
         for _order in orders:
             order_pool_awaliable.append(_order[0])
         
-        couriers = session.query(Users)
+        couriers = session.query(Users).filter(Users.disabled==False)
         roles_user_query = session.query(Users.id).\
             join(Permissions, Permissions.user_id == Users.id).\
             join(Roles, Roles.id == Permissions.role_id).\
