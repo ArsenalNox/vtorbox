@@ -105,6 +105,16 @@ def trigget_route_generation():
     request = s.get(f'{api_url}/routes/generate?group_by=regions&write_after_generation=true')
 
 
+def check_intervals():
+    loggin.info('Checking intevals')
+    request = s.get(f'{api_url}/check-intervals')
+
+
+def resend_notify():
+    loggin.info('Resending notifycations')
+    request = s.get(f'{api_url}/resend-notify')
+
+
 @app.get("/add_timer/{resource_id}/{time}")
 async def add_job(
     resource_id: str, 
@@ -181,13 +191,44 @@ if __name__ == '__main__':
     scheduler = BackgroundScheduler(jobstores=jobstores)
     scheduler.start()
 
+    #Генерация пула
     trigger_p_g = CronTrigger(
-        year="*", month="*", day="*", hour="11", minute="40", second="*"
+        year="*", month="*", day="*", hour="19", minute="00", second="*"
     )
     scheduler.add_job(
         trigger_poll_generation,
         trigger=trigger_p_g,
         id='trigger_poll_generation'
+    )
+
+    #Проверка интервалов. Создание заявок по адресам если соответсвует интервал
+    trigger_gen_intervals = CronTrigger(
+        year="*", month="*", day="*", hour="19", minute="01", second="*"
+    )
+    scheduler.add_job(
+        check_intervals,
+        trigger=trigger_gen_intervals,
+        id='trigger_get_intervals'
+    )
+
+    #Формирование маршрутов, окончательное
+    trigger_r_g = CronTrigger(
+        year="*", month="*", day="*", hour="10", minute="00", second="*"
+    )
+    scheduler.add_job(
+        trigger_route_generation,
+        trigger=trigger_r_g,
+        id='trigger_route_generation'
+    )
+
+    #Повторная отправка сообщения на подтверждение
+    trigger_s_n = CronTrigger(
+        year="*", month="*", day="*", hour="9", minute="00", second="*"
+    ) 
+    scheduler.add_job(
+        resend_notify,
+        trigger=trigger_s_n,
+        id='trigger_resend_notifications'
     )
 
     uvicorn.run(app, host="0.0.0.0", port=8081)
