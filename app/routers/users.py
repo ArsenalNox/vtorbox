@@ -939,11 +939,19 @@ async def fix_phone_numbers(
                 user.phone_number = None
 
             if new_phone_number:
-                user.phone_number = new_phone_number.phone_number
+                check_existance = session.query(Users).filter_by(phone_number=new_phone_number.phone_number).first()
+                if check_existance:
+                    print("Phone exists")
+                    user.phone_number = None
+                else:
+                    user.phone_number = new_phone_number.phone_number
             else:
                 user.phone_number = None
 
+
             print(f"new: {new_phone_number}")
             print("")
+
             session.add(user)
+
         session.commit()
