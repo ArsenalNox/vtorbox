@@ -231,4 +231,12 @@ if __name__ == '__main__':
         id='trigger_resend_notifications'
     )
 
+    scheduler.add_job(
+        func=authorize, 
+        trigger='interval', 
+        hours=1, 
+        id='reauthenticate'
+        )
+
+
     uvicorn.run(app, host="0.0.0.0", port=8081)
