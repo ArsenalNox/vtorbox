@@ -194,7 +194,7 @@ if __name__ == '__main__':
 
     #Генерация пула
     trigger_p_g = CronTrigger(
-        year="*", month="*", day="*", hour="19", minute="00", second="*"
+        year="*", month="*", day="*", hour="19", minute="01", second="*"
     )
     scheduler.add_job(
         trigger_poll_generation,
@@ -205,7 +205,7 @@ if __name__ == '__main__':
 
     #Проверка интервалов. Создание заявок по адресам если соответсвует интервал
     trigger_gen_intervals = CronTrigger(
-        year="*", month="*", day="*", hour="19", minute="01", second="*"
+        year="*", month="*", day="*", hour="19", minute="00", second="*"
     )
     scheduler.add_job(
         check_intervals,
