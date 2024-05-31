@@ -100,7 +100,7 @@ def trigger_poll_generation():
 
 
 #TODO: Получение настройки вкд\выкл генерации маршрутов
-def trigget_route_generation():
+def trigger_route_generation():
     loggin.info('Generating routes')
     request = s.get(f'{api_url}/routes/generate?group_by=regions&write_after_generation=true')
 
@@ -175,7 +175,8 @@ async def get_jobs(
 
         return_data.append({
             "job_id": job.id,
-            "func_name": job.name
+            "func_name": job.name,
+            "interval": str(job.trigger)
         })
 
     print(jobs)
@@ -198,7 +199,8 @@ if __name__ == '__main__':
     scheduler.add_job(
         trigger_poll_generation,
         trigger=trigger_p_g,
-        id='trigger_poll_generation'
+        id='trigger_poll_generation',
+        replace_existing=True
     )
 
     #Проверка интервалов. Создание заявок по адресам если соответсвует интервал
@@ -208,7 +210,8 @@ if __name__ == '__main__':
     scheduler.add_job(
         check_intervals,
         trigger=trigger_gen_intervals,
-        id='trigger_get_intervals'
+        id='trigger_get_intervals',
+        replace_existing=True
     )
 
     #Формирование маршрутов, окончательное
@@ -218,7 +221,8 @@ if __name__ == '__main__':
     scheduler.add_job(
         trigger_route_generation,
         trigger=trigger_r_g,
-        id='trigger_route_generation'
+        id='trigger_route_generation',
+        replace_existing=True
     )
 
     #Повторная отправка сообщения на подтверждение
@@ -228,14 +232,16 @@ if __name__ == '__main__':
     scheduler.add_job(
         resend_notify,
         trigger=trigger_s_n,
-        id='trigger_resend_notifications'
+        id='trigger_resend_notifications',
+        replace_existing=True
     )
 
     scheduler.add_job(
         func=authorize, 
         trigger='interval', 
         hours=1, 
-        id='reauthenticate'
+        id='reauthenticate',
+        replace_existing=True
         )
 
 
