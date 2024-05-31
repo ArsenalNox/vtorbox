@@ -95,7 +95,6 @@ def tirgger_payment_check(payment_id):
 
 #TODO: Получение настройки вкд\выкл генерации пула
 def trigger_poll_generation():
-    loggin.info('Generating poll')
     request = s.get(f'{api_url}/process_orders')
 
 
@@ -103,10 +102,10 @@ def trigger_poll_generation():
 def trigger_route_generation():
     loggin.info('Generating routes')
     request = s.post(f'{api_url}/routes/generate?group_by=regions&write_after_generation=true')
+    request = s.get(f'{api_url}/routes/generate?group_by=regions&write_after_generation=true')
 
 
 def check_intervals():
-    loggin.info('Checking intevals')
     request = s.get(f'{api_url}/check-intervals')
 
 
