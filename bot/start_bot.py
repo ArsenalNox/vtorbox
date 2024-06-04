@@ -4,6 +4,7 @@ import traceback
 
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
+from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ErrorEvent
 from loguru import logger
@@ -11,6 +12,8 @@ from loguru import logger
 from bot.handlers.main_handler import MainHandler
 from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.settings import settings
+from bot.states.states import RegistrationUser
+from bot.utils.handle_data import show_active_orders
 from bot.utils.logger import warning_log_write, debug_log_write
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
@@ -34,7 +37,7 @@ class MainBot:
         """Отлов всех ошибок в хендлерах и логгирование"""
 
         @self.dp.errors()
-        async def catch_error(event: ErrorEvent):
+        async def catch_error(event: ErrorEvent, state: FSMContext):
             try:
                 error_data: dict = event.model_dump()
                 error = error_data.get('exception')
@@ -48,18 +51,54 @@ class MainBot:
                 logger.warning(error_text)
                 logger.warning(traceback.format_exc())
 
+                status_code, user = await req_to_api(
+                    method='get',
+                    url=f'user/me?tg_id={chat_id}',
+                )
+
+                if user.get('id'):
+                    kb = self.kb.start_menu_btn
+                    status_code, text = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=MENU'
+                    )
+
+                    message = event.update.message
+                    status_code, orders = await req_to_api(
+                        method='get',
+                        url=f'users/orders/?tg_id={chat_id}',
+                    )
+
+                    if orders and status_code == 200:
+                        await show_active_orders(
+                            orders=orders,
+                            self=self,
+                            message=message,
+                            state=state
+                        )
+                else:
+                    await state.set_state(RegistrationUser.phone)
+                    await state.update_data(menu_view='registration')
+                    status_code, text = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=REGISTRATION_MENU'
+                    )
+                    kb = self.kb.registration_btn
+
                 await self.bot.send_message(
                     chat_id=chat_id,
-                    text=MESSAGES['ERROR_IN_HANDLER'],
-                    reply_markup=self.kb.start_menu_btn()
+                    text=text,
+                    reply_markup=kb()
                 )
+
+
             except Exception as e:
                 logger.warning(e)
                 logger.warning(traceback.format_exc())
 
                 await self.bot.send_message(
                     chat_id=chat_id,
-                    text=MESSAGES['ERROR_IN_HANDLER'],
+                    text=MESSAGES['MENU'],
                     reply_markup=self.kb.start_menu_btn()
                 )
 
