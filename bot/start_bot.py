@@ -51,7 +51,7 @@ class MainBot:
                 await self.bot.send_message(
                     chat_id=chat_id,
                     text=MESSAGES['ERROR_IN_HANDLER'],
-                    reply_markup=self.kb.start_btn()
+                    reply_markup=self.kb.start_menu_btn()
                 )
             except Exception as e:
                 logger.warning(e)
@@ -60,7 +60,7 @@ class MainBot:
                 await self.bot.send_message(
                     chat_id=chat_id,
                     text=MESSAGES['ERROR_IN_HANDLER'],
-                    reply_markup=self.kb.start_btn()
+                    reply_markup=self.kb.start_menu_btn()
                 )
 
     async def start(self):
