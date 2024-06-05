@@ -64,6 +64,9 @@ class MainBot:
                     )
 
                     message = event.update.message
+                    if not message:
+                        message = event.update.callback_query.message
+
                     status_code, orders = await req_to_api(
                         method='get',
                         url=f'users/orders/?tg_id={chat_id}',
@@ -87,10 +90,13 @@ class MainBot:
 
                 await self.bot.send_message(
                     chat_id=chat_id,
+                    text=MESSAGES['ERROR']
+                )
+                await self.bot.send_message(
+                    chat_id=chat_id,
                     text=text,
                     reply_markup=kb()
                 )
-
 
             except Exception as e:
                 logger.warning(e)
