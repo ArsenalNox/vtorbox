@@ -530,6 +530,7 @@ class OrderHandler(Handler):
                     message_id=callback.message.message_id,
                     reply_markup=self.kb.accept_deny_payment_btn(BUTTONS['DENY'], order_id,  False)
                 )
+                await state.update_data(flag='False')
 
 
 
