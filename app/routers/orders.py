@@ -252,6 +252,7 @@ async def get_user_orders(
 
         return_data = []
         for order in orders:
+            order.manager_info
             order_parent_data = jsonable_encoder(order)
             order_data = OrderOut(**order_parent_data)
 
@@ -261,7 +262,7 @@ async def get_user_orders(
             order_data.interval = str(order.address.interval).split(', ')
             order_data.user_data = user
             order_data.box_data = order.box
-
+            
             s_query = session.query(OrderStatuses).filter_by(id=order.status).first()
             order_data.status_data = s_query
 
