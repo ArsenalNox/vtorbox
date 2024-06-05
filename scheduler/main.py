@@ -102,7 +102,7 @@ def trigger_poll_generation():
 #TODO: Получение настройки вкд\выкл генерации маршрутов
 def trigger_route_generation():
     loggin.info('Generating routes')
-    request = s.get(f'{api_url}/routes/generate?group_by=regions&write_after_generation=true')
+    request = s.post(f'{api_url}/routes/generate?group_by=regions&write_after_generation=true')
 
 
 def check_intervals():
@@ -112,7 +112,7 @@ def check_intervals():
 
 def resend_notify():
     loggin.info('Resending notifycations')
-    request = s.get(f'{api_url}/resend-notify')
+    request = s.post(f'{api_url}/resend-notify')
 
 
 @app.get("/add_timer/{resource_id}/{time}")
