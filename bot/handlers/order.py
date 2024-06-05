@@ -458,6 +458,7 @@ class OrderHandler(Handler):
             )
 
             if flag == 'True':
+                await state.update_data(flag='False')
                 if data.get('accept_msg'):
                     await callback.bot.edit_message_reply_markup(
                         chat_id=data.get('chat_id'),
