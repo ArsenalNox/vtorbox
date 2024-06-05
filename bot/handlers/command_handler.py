@@ -26,10 +26,7 @@ class CommandHandler(Handler):
         async def start(message: Message, state: FSMContext):
             """Отлов команды /start"""
 
-            await message.answer(
-                'test',
-                reply_markup=self.kb.accept_deny_payment_btn('Не согласен')
-            )
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
