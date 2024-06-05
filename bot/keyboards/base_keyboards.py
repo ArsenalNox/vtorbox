@@ -144,12 +144,7 @@ class BaseKeyboard:
         """ Кнопки 'Согласен/Не согласен' при оплате заявки """
 
         builder = InlineKeyboardBuilder()
-        builder.row(
-            InlineKeyboardButton(
-                text='Перейти к оплате',
-                callback_data=f'payment_{order_id}'
-            ),
-        )
+
         builder.row(
             InlineKeyboardButton(
                 text=text,
@@ -157,6 +152,12 @@ class BaseKeyboard:
             ),
         )
 
+        builder.row(
+            InlineKeyboardButton(
+                text='Перейти к оплате',
+                callback_data=f'payment_{order_id}'
+            ),
+        )
 
         return builder.as_markup(
             resize_keyboard=True,
