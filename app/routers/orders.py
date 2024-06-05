@@ -549,6 +549,7 @@ async def set_order_status(
                     message_text = message_text.replace("%AMOUNT%", f'{amount} руб.')
 
                     #"От вас требуется оплата заявки (%ORDER_NUM%) по адресу (%ADDRESS_TEXT%) на сумму %AMOUNT%"
+
                     send_message_through_bot(
                         order_query.user.telegram_id,
                         message=message_text,
@@ -560,10 +561,12 @@ async def set_order_status(
                                 }],
                                 [{
                                     "text" : "❌ Не согласен",
-                                    "callback_data": f"accept_deny_payment_False",
+                                    "callback_data": f"accept_deny_payment_False_{order_query.id}",
                                 }],
                         ]}
-                )
+                    )
+
+
                     
             except Exception as err:
                 error_sending_message = True
