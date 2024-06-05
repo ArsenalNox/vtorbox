@@ -310,6 +310,6 @@ async def get_latest_orders(
             return_data[-1].address_data = order.address
             return_data[-1].user_data = order.user
             if return_data[-1].payments == None:
-                return[-1].payments = []
+                return_data[-1].payments = []
 
         return return_data
