@@ -302,13 +302,14 @@ async def get_latest_orders(
             joinedload(Orders.address),
             joinedload(Orders.user)
         ).enable_eagerloads(False).order_by(desc(Orders.date_created)).limit(limit).all()
-        print("Processing order array...")
         return_data = []
         for order in order_query:
-            print(f"Processing order {order.order_num}")
+            order.payments
             parent_data = jsonable_encoder(order)
             return_data.append(OrderOut(**parent_data))
             return_data[-1].address_data = order.address
             return_data[-1].user_data = order.user
+            if return_data[-1].payments == None:
+                return[-1].payments = []
 
         return return_data
