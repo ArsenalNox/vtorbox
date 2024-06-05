@@ -1454,6 +1454,14 @@ class BotSettings(Base):
         overlaps="botsettings,types")
     date_created = Column(DateTime(), default=default_time)
 
+    @staticmethod
+    def get_by_key(setting_key):
+        with Session(engine, expire_on_commit=False) as session:
+            message_key_query = session.query(BotSettings).\
+                filter(BotSettings.key == setting_key).first()
+            return message_key_query
+
+
 
 class SettingsTypes(Base):
     __tablename__ ="settings_types"
@@ -1468,6 +1476,11 @@ class SettingsTypes(Base):
         overlaps="botsettings,types"
         )
     date_created = Column(DateTime(), default=default_time)
+
+
+class Depots(Base):
+    __tablename__ = 'route_depots'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
 
 class RegionalBoxPrices(Base):
@@ -1993,8 +2006,10 @@ def add_default_messages_bot():
     'CARD_WAS_DELETED': 'Карта успешно удалена',
     'PRESS_BUTTONS_MENU': 'Нажмите кнопку на клавиатуре',
     'ADD_MANUALLY_ADDRESS': 'Введите ваш адрес',
-    'BACK': 'Для возврата назад нажмите кнопку внизу'
+    'BACK': 'Для возврата назад нажмите кнопку внизу',
+    'MESSAGE_PAYMENT_REQUIRED_ASK': "От вас требуется оплата заявки (%ORDER_NUM%) по адресу (%ADDRESS_TEXT%) на сумму %AMOUNT%"
 }
+
     with Session(engine, expire_on_commit=False) as session:
         #Проверить тэг для сообщений бота
         type_query = session.query(SettingsTypes).filter(SettingsTypes.name=='бот').first()
