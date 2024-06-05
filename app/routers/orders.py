@@ -524,32 +524,24 @@ async def set_order_status(
         if status_query.status_name == ORDER_STATUS_AWAITING_PAYMENT['status_name']: 
             try:
                 if order_query.user.allow_messages_from_bot:
+
                     message_text = str(BotSettings.get_by_key('MESSAGE_PAYMENT_REQUIRED_ASK').value)
                     message_text = message_text.replace("%ORDER_NUM%", str(order_query.order_num))
                     message_text = message_text.replace("%ADDRESS_TEXT%", str(order_query.address.address))
                     amount = 0
-
                     box_price = None
-                    print(len(order_query.box.regional_pricing))
-
-                    if len(order_query.box.regional_pricing) > 0:
-                        for regional_price in order_query.box.regional_pricing:
-                            print(regional_price.region.id)
-                            print(order_query.address.region.id)
-                            if regional_price.region.id == order_query.address.region.id:
-                                print("USING REGIONAL PRICING FOR BOX")
-                                box_price = regional_price.price
-                    
-                    if box_price == None:
-                        print("USING DEFAULT PRICING FOR BOX")
-                        box_price = order_query.box.pricing_default
-                    
-                    box_count = order_query.box_count
-                    if not box_count:
-                        box_count = 1
-
 
                     if not (order_query.box_count == None) and not (order_query.box_type_id == None):
+                        if len(order_query.box.regional_pricing) > 0:
+                            for regional_price in order_query.box.regional_pricing:
+                                if regional_price.region.id == order_query.address.region.id:
+                                    print("USING REGIONAL PRICING FOR BOX")
+                                    box_price = regional_price.price
+                        
+                        if box_price == None:
+                            print("USING DEFAULT PRICING FOR BOX")
+                            box_price = order_query.box.pricing_default
+                        
                         print(order_query.box_count)
                         amount = box_price*order_query.box_count
                         print(f"AMOUNT: {amount}")
