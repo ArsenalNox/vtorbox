@@ -459,6 +459,12 @@ class OrderHandler(Handler):
             )
 
             if flag == 'True':
+                if data.get('accept_msg'):
+                    await callback.bot.edit_message_reply_markup(
+                        chat_id=data.get('chat_id'),
+                        message_id=data.get('accept_msg'),
+                        reply_markup=None
+                    )
                 await callback.message.answer(
                     payment_msg
                 )
@@ -519,20 +525,21 @@ class OrderHandler(Handler):
             await callback.answer(f'callback {flag}')
             order_id = callback.data.split('_')[-1]
             if flag == 'False':
-                await callback.bot.edit_message_reply_markup(
+                msg = await callback.bot.edit_message_reply_markup(
                     chat_id=callback.message.chat.id,
                     message_id=callback.message.message_id,
                     reply_markup=self.kb.accept_deny_payment_btn(BUTTONS['ACCEPT'], order_id, True)
                 )
                 await state.update_data(flag='True')
             else:
-                await callback.bot.edit_message_reply_markup(
+                msg = await callback.bot.edit_message_reply_markup(
                     chat_id=callback.message.chat.id,
                     message_id=callback.message.message_id,
                     reply_markup=self.kb.accept_deny_payment_btn(BUTTONS['DENY'], order_id,  False)
                 )
                 await state.update_data(flag='False')
 
+            await state.update_data(accept_msg=msg.message_id)
 
 
         @self.router.callback_query(F.data.startswith('history'))
