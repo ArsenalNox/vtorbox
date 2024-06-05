@@ -252,7 +252,7 @@ async def get_order_dynamics_stat(
         month_end_date   = date + relativedelta(days=after)
 
         print(month_start_date, month_end_date)
-        statuses_query = session.query(OrderStatuses).all().enable_eagerloads(False)
+        statuses_query = session.query(OrderStatuses).enable_eagerloads(False).all()
 
         return_data = []
 
