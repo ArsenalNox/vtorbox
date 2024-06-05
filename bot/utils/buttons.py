@@ -28,4 +28,6 @@ BUTTONS = {
     'BACK_SETTINGS': '⬅ Назад',
     'BACK_QUESTIONNAIRE': '⬅ Назад ',
     'BACK_SCHEDULE': '⬅ Назад   ',
+    'ACCEPT': '✅ Согласен',
+    'DENY': '❌ Не согласен',
 }

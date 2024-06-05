@@ -26,6 +26,7 @@ class CommandHandler(Handler):
         async def start(message: Message, state: FSMContext):
             """Отлов команды /start"""
 
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
