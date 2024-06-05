@@ -153,7 +153,7 @@ class BaseKeyboard:
         builder.row(
             InlineKeyboardButton(
                 text=text,
-                callback_data=f'accept_deny_payment_{flag}'
+                callback_data=f'accept_deny_payment_{flag}_{order_id}'
             ),
         )
 
