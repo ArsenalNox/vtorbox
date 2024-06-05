@@ -146,16 +146,17 @@ class BaseKeyboard:
         builder = InlineKeyboardBuilder()
         builder.row(
             InlineKeyboardButton(
-                text=text,
-                callback_data=f'accept_deny_payment_{flag}'
-            ),
-        )
-        builder.row(
-            InlineKeyboardButton(
                 text='Перейти к оплате',
                 callback_data=f'payment_{order_id}'
             ),
         )
+        builder.row(
+            InlineKeyboardButton(
+                text=text,
+                callback_data=f'accept_deny_payment_{flag}'
+            ),
+        )
+
 
         return builder.as_markup(
             resize_keyboard=True,
