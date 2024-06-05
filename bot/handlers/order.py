@@ -438,6 +438,7 @@ class OrderHandler(Handler):
             await state.update_data(msg=callback.message.message_id)
             data = await state.get_data()
             flag = data.get('flag')
+            await callback.message.answer(f'payment {flag}')
             if data.get('order_msg'):
                 await callback.bot.edit_message_reply_markup(
                     chat_id=data.get('chat_id'),
@@ -515,6 +516,7 @@ class OrderHandler(Handler):
         @self.router.callback_query(F.data.startswith('accept_deny_payment'))
         async def accept_deny_payment(callback: CallbackQuery, state: FSMContext):
             flag = callback.data.split('_')[-2]
+            await callback.answer(f'callback {flag}')
             order_id = callback.data.split('_')[-1]
             if flag == 'False':
                 await callback.bot.edit_message_reply_markup(
