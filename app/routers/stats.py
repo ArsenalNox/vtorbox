@@ -299,7 +299,7 @@ async def get_latest_orders(
             joinedload(Orders.payments),
             joinedload(Orders.address),
             joinedload(Orders.user)
-        ).enable_eagerloads(false).order_by(desc(Orders.date_created)).limit(limit).all()
+        ).enable_eagerloads(False).order_by(desc(Orders.date_created)).limit(limit).all()
 
         return_data = []
         for order in order_query:
