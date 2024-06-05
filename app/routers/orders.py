@@ -35,7 +35,8 @@ from app.models import (
     ORDER_STATUS_DELETED, ORDER_STATUS_AWAITING_CONFIRMATION,
     IntervalStatuses, ROLE_ADMIN_NAME, Regions, WeekDaysWork,
     DaysWork, ORDER_STATUS_AWAITING_PAYMENT, Payments, PaymentClientData,
-    OrderComments, get_user_from_db_secondary, OrderChangeHistory
+    OrderComments, get_user_from_db_secondary, OrderChangeHistory,
+    BotSettings
     )
 
 from app.utils import (
@@ -523,14 +524,53 @@ async def set_order_status(
         if status_query.status_name == ORDER_STATUS_AWAITING_PAYMENT['status_name']: 
             try:
                 if order_query.user.allow_messages_from_bot:
+                    message_text = str(BotSettings.get_by_key('MESSAGE_PAYMENT_REQUIRED_ASK').value)
+                    message_text = message_text.replace("%ORDER_NUM%", str(order_query.order_num))
+                    message_text = message_text.replace("%ADDRESS_TEXT%", str(order_query.address.address))
+                    amount = 0
+
+                    box_price = None
+                    print(len(order_query.box.regional_pricing))
+
+                    if len(order_query.box.regional_pricing) > 0:
+                        for regional_price in order_query.box.regional_pricing:
+                            print(regional_price.region.id)
+                            print(order_query.address.region.id)
+                            if regional_price.region.id == order_query.address.region.id:
+                                print("USING REGIONAL PRICING FOR BOX")
+                                box_price = regional_price.price
+                    
+                    if box_price == None:
+                        print("USING DEFAULT PRICING FOR BOX")
+                        box_price = order_query.box.pricing_default
+                    
+                    box_count = order_query.box_count
+                    if not box_count:
+                        box_count = 1
+
+
+                    if not (order_query.box_count == None) and not (order_query.box_type_id == None):
+                        print(order_query.box_count)
+                        amount = box_price*order_query.box_count
+                        print(f"AMOUNT: {amount}")
+
+                    message_text = message_text.replace("%AMOUNT%", f'{amount} руб.')
+
+                    #"От вас требуется оплата заявки (%ORDER_NUM%) по адресу (%ADDRESS_TEXT%) на сумму %AMOUNT%"
                     send_message_through_bot(
                         order_query.user.telegram_id,
-                        message=f"От вас требуется оплата заявки ({order_query.order_num}) по адресу ({order_query.address.address})",
+                        message=message_text,
                         btn={
-                            "inline_keyboard" : [[{
-                            "text" : "Перейти к оплате",
-                            "callback_data": f"payment_{order_query.id}",
-                        }]]}
+                            "inline_keyboard" : [
+                                [{
+                                    "text" : "Перейти к оплате",
+                                    "callback_data": f"payment_{order_query.id}",
+                                }],
+                                [{
+                                    "text" : "❌ Не согласен",
+                                    "callback_data": f"accept_deny_payment_False",
+                                }],
+                        ]}
                 )
                     
             except Exception as err:
