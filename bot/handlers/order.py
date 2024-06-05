@@ -457,13 +457,7 @@ class OrderHandler(Handler):
                 url='bot/messages?message_key=PAYMENT_ORDER'
             )
 
-            if flag == 'False':
-                await callback.answer(
-                    MESSAGES['YOU_NEED_ACCEPT_PAYMENT'],
-                    show_alert=True
-                )
-            else:
-
+            if flag == 'True':
                 await callback.message.answer(
                     payment_msg
                 )
@@ -512,6 +506,11 @@ class OrderHandler(Handler):
                         MESSAGES['PLEASE_ADD_NUMBER_OR_EMAIL'],
                         reply_markup=self.kb.settings_btn()
                     )
+            else:
+                await callback.answer(
+                    MESSAGES['YOU_NEED_ACCEPT_PAYMENT'],
+                    show_alert=True
+                )
 
         @self.router.callback_query(F.data.startswith('accept_deny_payment'))
         async def accept_deny_payment(callback: CallbackQuery, state: FSMContext):
