@@ -295,17 +295,20 @@ async def get_latest_orders(
     limit: int = 5
 )->List[OrderOut]:
     with Session(engine, expire_on_commit=False) as session:
+
+        print('Querying orders')
         order_query = session.query(Orders).options(
             joinedload(Orders.payments),
             joinedload(Orders.address),
             joinedload(Orders.user)
         ).enable_eagerloads(False).order_by(desc(Orders.date_created)).limit(limit).all()
-
+        print("Processing order array...")
         return_data = []
         for order in order_query:
+            print(f"Processing order {order.order_num}")
             parent_data = jsonable_encoder(order)
             return_data.append(OrderOut(**parent_data))
             return_data[-1].address_data = order.address
             return_data[-1].user_data = order.user
-        
+
         return return_data
