@@ -516,7 +516,6 @@ class OrderHandler(Handler):
         async def accept_deny_payment(callback: CallbackQuery, state: FSMContext):
             flag = callback.data.split('_')[-2]
             order_id = callback.data.split('_')[-1]
-            await state.update_data(flag=flag)
             if flag == 'False':
                 await callback.bot.edit_message_reply_markup(
                     chat_id=callback.message.chat.id,
