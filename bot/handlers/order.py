@@ -515,20 +515,21 @@ class OrderHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('accept_deny_payment'))
         async def accept_deny_payment(callback: CallbackQuery, state: FSMContext):
-            flag = callback.data.split('_')[-1]
+            flag = callback.data.split('_')[-2]
+            order_id = callback.data.split('_')[-1]
             await state.update_data(flag=flag)
             if flag == 'False':
                 await callback.bot.edit_message_reply_markup(
                     chat_id=callback.message.chat.id,
                     message_id=callback.message.message_id,
-                    reply_markup=self.kb.accept_deny_payment_btn(BUTTONS['ACCEPT'], True)
+                    reply_markup=self.kb.accept_deny_payment_btn(BUTTONS['ACCEPT'], order_id, True)
                 )
                 await state.update_data(flag='True')
             else:
                 await callback.bot.edit_message_reply_markup(
                     chat_id=callback.message.chat.id,
                     message_id=callback.message.message_id,
-                    reply_markup=self.kb.accept_deny_payment_btn(BUTTONS['DENY'], False)
+                    reply_markup=self.kb.accept_deny_payment_btn(BUTTONS['DENY'], order_id,  False)
                 )
 
 
