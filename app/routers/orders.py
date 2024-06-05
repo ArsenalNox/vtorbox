@@ -36,7 +36,7 @@ from app.models import (
     IntervalStatuses, ROLE_ADMIN_NAME, Regions, WeekDaysWork,
     DaysWork, ORDER_STATUS_AWAITING_PAYMENT, Payments, PaymentClientData,
     OrderComments, get_user_from_db_secondary, OrderChangeHistory,
-    BotSettings
+    BotSettings, RegionalBoxPrices
     )
 
 from app.utils import (
@@ -532,11 +532,10 @@ async def set_order_status(
                     box_price = None
 
                     if not (order_query.box_count == None) and not (order_query.box_type_id == None):
-                        if len(order_query.box.regional_pricing) > 0:
-                            for regional_price in order_query.box.regional_pricing:
-                                if regional_price.region.id == order_query.address.region.id:
-                                    print("USING REGIONAL PRICING FOR BOX")
-                                    box_price = regional_price.price
+                        reg_price = session.query(RegionalBoxPrices).filter_by(box = order_query.box_type_id).\
+                            filter_by(region_id = order_query.address.region_id).first()
+                        if reg_price:
+                            box_price = reg_price.price
                         
                         if box_price == None:
                             print("USING DEFAULT PRICING FOR BOX")
