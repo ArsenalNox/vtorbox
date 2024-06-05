@@ -101,10 +101,10 @@ async def get_user_registration_stats(
         month_end_date   = month_start_date + relativedelta(months=1)
 
 
-        user_count_query = session.query(Users).filter_by(deleted_at = None).count() 
-        user_deleted_count_query = session.query(Users).filter(Users.deleted_at != None).count()
+        user_count_query = session.query(Users).filter_by(deleted_at = None).enable_eagerloads(False).count() 
+        user_deleted_count_query = session.query(Users).filter(Users.deleted_at != None).enable_eagerloads(False).count()
         users_registered_this_month = session.query(Users).\
-            filter(Users.date_created>=month_start_date, Users.date_created<=month_end_date).count()
+            filter(Users.date_created>=month_start_date, Users.date_created<=month_end_date).enable_eagerloads(False).count()
 
         registration_dates_count = []
 
@@ -113,7 +113,7 @@ async def get_user_registration_stats(
             month_date_query_date_end = month_date_query_date_start + relativedelta(days=+1)
             count_query = session.query(Users).filter(
                 Users.date_created>=month_date_query_date_start, Users.date_created<=month_date_query_date_end
-            ).count()
+            ).enable_eagerloads(False).count()
 
             registration_dates_count.append({
                 "date": month_date_query_date_start,
@@ -156,10 +156,10 @@ async def get_order_creation_stats(
         month_end_date   = month_start_date + relativedelta(months=1)
 
 
-        user_count_query = session.query(Orders).filter_by(deleted_at = None).count() 
-        user_deleted_count_query = session.query(Orders).filter(Orders.deleted_at != None).count()
+        user_count_query = session.query(Orders).enable_eagerloads(False).filter_by(deleted_at = None).count() 
+        user_deleted_count_query = session.query(Orders).enable_eagerloads(False).filter(Orders.deleted_at != None).count()
         users_registered_this_month = session.query(Orders).\
-            filter(Orders.date_created>=month_start_date, Orders.date_created<=month_end_date).count()
+            filter(Orders.date_created>=month_start_date, Orders.date_created<=month_end_date).enable_eagerloads(False).count()
 
         registration_dates_count = []
 
@@ -168,7 +168,7 @@ async def get_order_creation_stats(
             month_date_query_date_end = month_date_query_date_start + relativedelta(days=+1)
             count_query = session.query(Orders).filter(
                 Orders.date_created>=month_date_query_date_start, Orders.date_created<=month_date_query_date_end
-            ).count()
+            ).enable_eagerloads(False).count()
 
             registration_dates_count.append({
                 "date": month_date_query_date_start,
@@ -192,11 +192,11 @@ async def get_order_statuses_stats()->List[OrderStatusStatistic]:
     Получить статистику заявок по их статусам
     """
     with Session(engine, expire_on_commit=False) as session:
-        statuses_query = session.query(OrderStatuses).all()
+        statuses_query = session.query(OrderStatuses).enable_eagerloads(False).all()
         return_data = []
 
         for status in statuses_query:
-            order_count_by_status = session.query(Orders).filter(Orders.status == status.id).count()
+            order_count_by_status = session.query(Orders).filter(Orders.status == status.id).enable_eagerloads(False).count()
             return_data.append({
                 "name": status.status_name,
                 "value": order_count_by_status
@@ -212,15 +212,15 @@ async def get_order_region_stats()->List[OrderRegionStatistic]:
     Получить кол-во заявок по регионам, сбор заявок не учитывает даты создания/вывоза. Берутся только закрытые заявки
     """
     with Session(engine, expire_on_commit=False) as session:
-        regions_query = session.query(Regions).all()
+        regions_query = session.query(Regions).enable_eagerloads(False).all()
         return_data = []
         
         for region in regions_query:
-            order_count_by_region = session.query(Orders).join(Address).\
+            order_count_by_region = session.query(Orders).enable_eagerloads(False).join(Address).\
                 filter(
                     Address.region_id == region.id,
                     Orders.status == OrderStatuses.status_done().id
-                    ).count()
+                    ).enable_eagerloads(False).count()
 
             return_data.append({
                 "name": region.name_full,
