@@ -139,3 +139,19 @@ class BaseKeyboard:
             resize_keyboard=True,
             one_time_keyboard=True
         )
+
+    def accept_deny_payment_btn(self, text: str, flag: bool = False) -> InlineKeyboardMarkup:
+        """ Кнопки 'Согласен/Не согласен' при оплате заявки """
+
+        builder = InlineKeyboardBuilder()
+        builder.row(
+            InlineKeyboardButton(
+                text=text,
+                callback_data=f'accept_deny_payment_{flag}'
+            ),
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
