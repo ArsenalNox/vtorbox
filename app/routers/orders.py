@@ -556,12 +556,12 @@ async def set_order_status(
                         btn={
                             "inline_keyboard" : [
                                 [{
-                                    "text" : "Перейти к оплате",
-                                    "callback_data": f"payment_{order_query.id}",
-                                }],
-                                [{
                                     "text" : "❌ Не согласен",
                                     "callback_data": f"accept_deny_payment_False_{order_query.id}",
+                                }],
+                                [{
+                                    "text" : "Перейти к оплате",
+                                    "callback_data": f"payment_{order_query.id}",
                                 }],
                         ]}
                     )
