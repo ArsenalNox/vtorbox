@@ -320,3 +320,34 @@ class OrderKeyboard(BaseKeyboard):
             resize_keyboard=True,
             one_time_keyboard=True
         )
+
+    def payment_order_menu(self, order_id: str, order_menu: str, flag: bool = False) -> InlineKeyboardMarkup:
+        """КНопки для подтверждение оплаты"""
+
+        builder = InlineKeyboardBuilder()
+
+        builder.row(
+            InlineKeyboardButton(
+                text=BUTTONS['DENY'],
+                callback_data=f'accept_deny_{order_menu}_{flag}_{order_id}'
+            )
+        )
+
+        builder.row(
+            InlineKeyboardButton(
+                text='Оплатить',
+                callback_data=f'payment_{flag}_{order_id}'
+            )
+        )
+        builder.row(
+            InlineKeyboardButton(
+                text=BUTTONS['BACK_TO_ORDER'],
+                callback_data=f'backtoorder_{order_id}'
+            )
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
