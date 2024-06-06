@@ -52,7 +52,7 @@ from app.models import (
     Users, Session, engine, UsersAddress, 
     Address, IntervalStatuses, Roles, 
     Permissions, Regions, WEEK_DAYS_WORK_STR_LIST,
-    Payments, PaymentTerminals, PaymentClientData
+    Payments, PaymentTerminals, PaymentClientData, BotSettings, RegionalBoxPrices
     )
 
 from app.models import (
@@ -143,6 +143,7 @@ async def create_new_payment(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     for_order: UUID,
     terminal_id: Optional[UUID] = None,
+    send_link_message: bool = False
 ):
     """
     Ручное создание оплаты
@@ -170,12 +171,48 @@ async def create_new_payment(
         if not order_query.box:
             return JSONResponse({
                 "message": "No contaier set"
+            }, 422)
+
+        if order_query.box_count < 1:
+            return JSONResponse({
+                "message": "Не указано кол-во контейнеров у заявки"
             })
 
         new_payment = Payments.process_status_update(
             order=order_query
         )
+
         print(new_payment)
+
+        try:
+            if order_query.user.allow_messages_from_bot and send_link_message and new_payment:
+                amount = new_payment.amount
+                message_text = str(BotSettings.get_by_key('MESSAGE_PAYMENT_REQUIRED_ASK').value)
+                message_text = message_text.replace("%ORDER_NUM%", str(order_query.order_num))
+                message_text = message_text.replace("%ADDRESS_TEXT%", str(order_query.address.address))
+                message_text = message_text.replace("%AMOUNT%", f'{amount} руб.')
+                #"От вас требуется оплата заявки (%ORDER_NUM%) по адресу (%ADDRESS_TEXT%) на сумму %AMOUNT%"
+                send_message_through_bot(
+                    order_query.user.telegram_id,
+                    message=message_text,
+                    btn={
+                        "inline_keyboard" : [
+                            [{
+                                "text" : "❌ Не согласен",
+                                "callback_data": f"accept_deny_payment_False_{order_query.id}",
+                            }],
+                            [{
+                                "text" : "Перейти к оплате",
+                                "callback_data": f"payment_{order_query.id}",
+                            }],
+                    ]}
+                )
+
+
+        except Exception as err:
+            error_sending_message = True
+            print(f"Не удалось отправить сообщение пользователю: {err}")
+
         if not new_payment:
             return [new_payment, False]
 
