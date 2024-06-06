@@ -140,24 +140,31 @@ class BaseKeyboard:
             one_time_keyboard=True
         )
 
-    def accept_deny_payment_btn(self, text: str, order_id:str, flag: bool = False) -> InlineKeyboardMarkup:
+    def accept_deny_payment_btn(self, text: str, order_id: str, order_menu: str, flag: bool = False) -> InlineKeyboardMarkup:
         """ Кнопки 'Согласен/Не согласен' при оплате заявки """
 
         builder = InlineKeyboardBuilder()
-
         builder.row(
             InlineKeyboardButton(
                 text=text,
-                callback_data=f'accept_deny_payment_{flag}_{order_id}'
+                callback_data=f'accept_deny_{order_menu}_{flag}_{order_id}'
             ),
         )
 
         builder.row(
             InlineKeyboardButton(
                 text='Перейти к оплате',
-                callback_data=f'payment_{order_id}'
+                callback_data=f'payment_{flag}_{order_id}'
             ),
         )
+
+        if order_menu == 'True':
+            builder.row(
+                InlineKeyboardButton(
+                    text=BUTTONS['BACK_TO_ORDER'],
+                    callback_data=f'backtoorder_{order_id}'
+                )
+            )
 
         return builder.as_markup(
             resize_keyboard=True,
