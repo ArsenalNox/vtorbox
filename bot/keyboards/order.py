@@ -80,7 +80,7 @@ class OrderKeyboard(BaseKeyboard):
             builder.row(
                 InlineKeyboardButton(
                     text='Оплатить',
-                    callback_data=f'payment_{order_id}'
+                    callback_data=f'payment_False_{order_id}'
                 )
             )
 
