@@ -147,7 +147,7 @@ class BaseKeyboard:
         builder.row(
             InlineKeyboardButton(
                 text=text,
-                callback_data=f'accept_deny_{order_menu}_{flag}_{order_id}'
+                callback_data=f'accept_deny_{order_menu}_{order_id}'
             ),
         )
 
