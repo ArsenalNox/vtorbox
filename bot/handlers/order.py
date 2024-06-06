@@ -438,8 +438,8 @@ class OrderHandler(Handler):
             await state.update_data(chat_id=callback.message.chat.id)
             await state.update_data(msg=callback.message.message_id)
             data = await state.get_data()
-            flag = callback.data.split('_')[-2]
-            order_menu = callback.data.split('_')[-3]
+            flag = data.get('flag')
+            order_menu = callback.data.split('_')[-2]
             order_id = callback.data.split('_')[-1]
             status_code, order = await req_to_api(
                 method='get',
@@ -447,18 +447,18 @@ class OrderHandler(Handler):
             )
             order_status = order.get('status_data', {}).get('status_name').lower()
 
-            if order_menu == 'True':
+            if order_menu == 'True' and flag in ('False', None):
                 if data.get('order_msg'):
                     await callback.bot.edit_message_reply_markup(
                         chat_id=data.get('chat_id'),
                         message_id=data.get('order_msg'),
                         reply_markup=self.kb.payment_order_menu(
                             order_id=order_id,
-                            flag=False,
+                            flag=flag,
                             order_menu=order_menu
                         )
                     )
-                await state.update_data(order_menu='False')
+                await state.update_data(order_menu=None)
 
             else:
                 status_code, payment_msg = await req_to_api(
@@ -543,8 +543,8 @@ class OrderHandler(Handler):
         @self.router.callback_query(F.data.startswith('accept_deny'))
         async def accept_deny_payment(callback: CallbackQuery, state: FSMContext):
             data = await state.get_data()
-            order_menu = callback.data.split('_')[-3]
-            flag = callback.data.split('_')[-2]
+            order_menu = callback.data.split('_')[-2]
+            flag = data.get('flag')
             order_id = callback.data.split('_')[-1]
             if flag == 'False':
                 msg = await callback.bot.edit_message_reply_markup(

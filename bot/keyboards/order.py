@@ -80,7 +80,7 @@ class OrderKeyboard(BaseKeyboard):
             builder.row(
                 InlineKeyboardButton(
                     text='Оплатить',
-                    callback_data=f'payment_{order_id}'
+                    callback_data=f'payment_True_{order_id}'
                 )
             )
 
@@ -329,7 +329,7 @@ class OrderKeyboard(BaseKeyboard):
         builder.row(
             InlineKeyboardButton(
                 text=BUTTONS['DENY'],
-                callback_data=f'accept_deny_{order_menu}_{flag}_{order_id}'
+                callback_data=f'accept_deny_{order_menu}_{order_id}'
             )
         )
 
