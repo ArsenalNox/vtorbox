@@ -1,5 +1,6 @@
 import datetime
 import pprint
+import traceback
 from typing import Union
 
 from aiogram import Bot
@@ -43,13 +44,18 @@ def format_questionnaire(user: 'Users'):
 async def delete_messages_with_btn(data: dict, state: FSMContext, src: Message):
     """Удаление сообщений с кнопками"""
 
-    if data.get('msg'):
-        await src.bot.edit_message_reply_markup(
-            chat_id=data.get('chat_id'),
-            message_id=data.get('msg')
-        )
+    try:
+        if data.get('msg'):
+            await src.bot.edit_message_reply_markup(
+                chat_id=data.get('chat_id'),
+                message_id=data.get('msg'),
+                reply_markup=None
+            )
 
+
+    except Exception as e:
         await state.update_data(msg=None)
+        print(traceback.format_exc())
 
     if data.get('msg_ids'):
         for address_id, msg_id in data.get('msg_ids').items():
