@@ -357,6 +357,7 @@ class OrderHandler(Handler):
             """Просмотр активной заявки пользователя"""
 
             await state.update_data(chat_id=callback.message.chat.id)
+            await state.update_data(order_menu='True')
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -437,14 +438,8 @@ class OrderHandler(Handler):
             await state.update_data(chat_id=callback.message.chat.id)
             await state.update_data(msg=callback.message.message_id)
             data = await state.get_data()
-            flag = data.get('flag')
-            if data.get('order_msg'):
-                await callback.bot.edit_message_reply_markup(
-                    chat_id=data.get('chat_id'),
-                    message_id=data.get('order_msg'),
-                    reply_markup=None
-                )
-
+            flag = callback.data.split('_')[-2]
+            order_menu = callback.data.split('_')[-3]
             order_id = callback.data.split('_')[-1]
             status_code, order = await req_to_api(
                 method='get',
@@ -452,89 +447,127 @@ class OrderHandler(Handler):
             )
             order_status = order.get('status_data', {}).get('status_name').lower()
 
-            status_code, payment_msg = await req_to_api(
-                method='get',
-                url='bot/messages?message_key=PAYMENT_ORDER'
-            )
-
-            if flag == 'True':
-                await state.update_data(flag='False')
-                if data.get('accept_msg'):
+            if order_menu == 'True':
+                if data.get('order_msg'):
                     await callback.bot.edit_message_reply_markup(
                         chat_id=data.get('chat_id'),
-                        message_id=data.get('accept_msg'),
-                        reply_markup=None
-                    )
-                await callback.message.answer(
-                    payment_msg
-                )
-                status_code, response = await req_to_api(
-                    method='post',
-                    url=f'payment?for_order={order_id}'
-                )
-                logger.debug(f'Получена ссылка для оплаты заказа {order_id}: {response}')
-
-                if isinstance(response[0], dict) and order_status == 'ожидается оплата':
-                    status_code, link_payment_msg = await req_to_api(
-                        method='get',
-                        url='bot/messages?message_key=YOUR_LINK_PAYMENT'
-                    )
-                    await callback.message.answer(
-                        link_payment_msg.format(
-                            response[0].get('payment_url')
+                        message_id=data.get('order_msg'),
+                        reply_markup=self.kb.payment_order_menu(
+                            order_id=order_id,
+                            flag=False,
+                            order_menu=order_menu
                         )
                     )
-                    status_code, menu_msg = await req_to_api(
-                        method='get',
-                        url='bot/messages?message_key=MENU'
-                    )
+                await state.update_data(order_menu='False')
 
-                    await callback.message.answer(
-                        menu_msg,
-                        reply_markup=self.kb.start_menu_btn()
-                    )
-
-                elif order_status != 'ожидается оплата':
-                    await callback.message.answer(
-                        MESSAGES['ORDER_ALREADY_PAID']
-                    )
-                    status_code, menu_msg = await req_to_api(
-                        method='get',
-                        url='bot/messages?message_key=MENU'
-                    )
-
-                    await callback.message.answer(
-                        menu_msg,
-                        reply_markup=self.kb.start_menu_btn()
-                    )
-
-                else:
-                    await callback.message.answer(
-                        MESSAGES['PLEASE_ADD_NUMBER_OR_EMAIL'],
-                        reply_markup=self.kb.settings_btn()
-                    )
             else:
-                await callback.answer(
-                    MESSAGES['YOU_NEED_ACCEPT_PAYMENT'],
-                    show_alert=True
+                status_code, payment_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=PAYMENT_ORDER'
                 )
 
-        @self.router.callback_query(F.data.startswith('accept_deny_payment'))
+                if flag == 'True':
+                    if data.get('accept_msg'):
+                        await callback.bot.edit_message_reply_markup(
+                            chat_id=data.get('chat_id'),
+                            message_id=data.get('accept_msg'),
+                            reply_markup=None
+                        )
+                    await state.update_data(flag='False')
+
+                    status_code, response = await req_to_api(
+                        method='post',
+                        url=f'payment?for_order={order_id}'
+                    )
+                    logger.debug(f'Получена ссылка для оплаты заказа {order_id}: {response}')
+                    if response == {'message': 'No contaier set'} or response == {'message': 'No container set'}:
+                        await callback.message.answer(
+                            MESSAGES['NO_CONTAINER_SET']
+                        )
+                    elif isinstance(response[0], dict) and order_status == 'ожидается оплата':
+                        if data.get('order_msg'):
+                            await callback.bot.edit_message_reply_markup(
+                                chat_id=data.get('chat_id'),
+                                message_id=data.get('order_msg'),
+                                reply_markup=None
+                            )
+
+                        await callback.message.answer(
+                            payment_msg
+                        )
+
+                        status_code, link_payment_msg = await req_to_api(
+                            method='get',
+                            url='bot/messages?message_key=YOUR_LINK_PAYMENT'
+                        )
+                        await callback.message.answer(
+                            link_payment_msg.format(
+                                response[0].get('payment_url')
+                            )
+                        )
+                        status_code, menu_msg = await req_to_api(
+                            method='get',
+                            url='bot/messages?message_key=MENU'
+                        )
+
+                        await callback.message.answer(
+                            menu_msg,
+                            reply_markup=self.kb.start_menu_btn()
+                        )
+
+                    elif order_status != 'ожидается оплата':
+                        await callback.message.answer(
+                            MESSAGES['ORDER_ALREADY_PAID']
+                        )
+                        status_code, menu_msg = await req_to_api(
+                            method='get',
+                            url='bot/messages?message_key=MENU'
+                        )
+
+                        await callback.message.answer(
+                            menu_msg,
+                            reply_markup=self.kb.start_menu_btn()
+                        )
+
+                    else:
+                        await callback.message.answer(
+                            MESSAGES['PLEASE_ADD_NUMBER_OR_EMAIL'],
+                            reply_markup=self.kb.settings_btn()
+                        )
+                else:
+                    await callback.answer(
+                        MESSAGES['YOU_NEED_ACCEPT_PAYMENT'],
+                        show_alert=True
+                    )
+
+        @self.router.callback_query(F.data.startswith('accept_deny'))
         async def accept_deny_payment(callback: CallbackQuery, state: FSMContext):
+            data = await state.get_data()
+            order_menu = callback.data.split('_')[-3]
             flag = callback.data.split('_')[-2]
             order_id = callback.data.split('_')[-1]
             if flag == 'False':
                 msg = await callback.bot.edit_message_reply_markup(
                     chat_id=callback.message.chat.id,
                     message_id=callback.message.message_id,
-                    reply_markup=self.kb.accept_deny_payment_btn(BUTTONS['ACCEPT'], order_id, True)
+                    reply_markup=self.kb.accept_deny_payment_btn(
+                        text=BUTTONS['ACCEPT'],
+                        order_id=order_id,
+                        flag=True,
+                        order_menu=order_menu
+                    )
                 )
                 await state.update_data(flag='True')
             else:
                 msg = await callback.bot.edit_message_reply_markup(
                     chat_id=callback.message.chat.id,
                     message_id=callback.message.message_id,
-                    reply_markup=self.kb.accept_deny_payment_btn(BUTTONS['DENY'], order_id,  False)
+                    reply_markup=self.kb.accept_deny_payment_btn(
+                        text=BUTTONS['DENY'],
+                        order_id=order_id,
+                        flag=False,
+                        order_menu=order_menu
+                    )
                 )
                 await state.update_data(flag='False')
 
@@ -595,6 +628,8 @@ class OrderHandler(Handler):
             """Отлов кнопки 'Назад к просмотру заявки' """
 
             await state.update_data(chat_id=callback.message.chat.id)
+            await state.update_data(order_menu='True')
+            await state.update_data(flag='False')
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
