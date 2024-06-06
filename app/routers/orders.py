@@ -522,6 +522,11 @@ async def set_order_status(
 
         #если статус меняется в "ожидается оплата" - отправить сообщение об оплате
         if status_query.status_name == ORDER_STATUS_AWAITING_PAYMENT['status_name']: 
+            if not (order_query.box_type_id and order_query.box_count):
+                return JSONResponse({
+                    "detail": "Перед вызовом оплаты необходимо указать тип контейнера и кол-во контейнера"
+                }, 422)
+
             try:
                 if order_query.user.allow_messages_from_bot:
 
