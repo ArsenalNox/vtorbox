@@ -744,14 +744,10 @@ async def process_current_orders(
     """
         
     with Session(engine, expire_on_commit=False) as session:
-        orders = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
-            join(Address, Address.id == Orders.address_id).\
-            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-            join(OrderStatuses, OrderStatuses.id == Orders.status).\
-            join(Users, Users.id == Orders.from_user).\
+        orders = session.query(Orders).\
             filter(Orders.deleted_at == None).\
             filter(Orders.status == OrderStatuses.status_processing().id).\
-            order_by(asc(Orders.date_created)).all()
+            order_by(asc(Orders.date_created)).enable_eagerloads(False).all()
 
         date_today = datetime.now()
         date_today = date_today.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -770,7 +766,6 @@ async def process_current_orders(
         order_list_to_generate_time_ranges = []
 
         date_tommorrow = date_today + timedelta(days=1)
-        # date_tommorrow = datetime.datetime.strptime(date_tommorrow, '%Y-%m-%dT%H:%M:%S')
         weekday_tomorrow = str(date_tommorrow.strftime('%A')).lower()
         date_num_tommorrow = datetime.strftime(date_tommorrow, "%d-%m-%Y")
 
@@ -796,30 +791,30 @@ async def process_current_orders(
         for order in orders:
             flag_day_set = False
 
-            if order[1].region.work_days == None:
+            if order.address.region.work_days == None:
                 continue
 
-            days_allowed = str(order[1].region.work_days).split(' ')
+            days_allowed = str(order.address.region.work_days).split(' ')
             print(days_allowed)
-            if order[0].day > date_today:
+            if order.day > date_today:
                 print("DAY LARGER")
-                order_day_num = datetime.strftime(order[0].day, "%d-%m-%Y")
+                order_day_num = datetime.strftime(order.day, "%d-%m-%Y")
                 date_num_tommorrow = datetime.strftime(date_tommorrow, "%d-%m-%Y")
                 print(order_day_num, date_num_tommorrow)
                 if order_day_num == date_num_tommorrow:
                     print("ORDER DATE ALREADY SET TO TOMMORROW")
                     flag_day_set = True
             else:
-                match order[1].interval_type:
+                match order.address.interval_type:
                     case IntervalStatuses.MONTH_DAY:
-                        interval = [int(x) for x in str(order[1].interval).split(', ') ]
+                        interval = [int(x) for x in str(order.address.interval).split(', ') ]
                         if day_number_next in interval:
-                            print(f"Order {order[0].order_num} by month in interval")
+                            print(f"Order {order.order_num} by month in interval")
                             flag_day_set = True
-                            order[0].day = date_tommorrow
+                            order.day = date_tommorrow
 
                     case IntervalStatuses.WEEK_DAY:
-                        interval = [str(order[1].interval).split(', ')]
+                        interval = [str(order.address.interval).split(', ')]
 
                         if not(weekday_tomorrow in days_allowed):
                             continue
@@ -829,19 +824,19 @@ async def process_current_orders(
                         
                         print(f"Order {order[0].order_num} by weekday in interval")
                         flag_day_set = True
-                        order[0].day = date_tommorrow
+                        order.day = date_tommorrow
 
                     case _:
-                        if order[0].day == None:
+                        if order.day == None:
                             continue
-                        order_day_num = datetime.strftime(order[0].day, "%d-%m-%Y")
+                        order_day_num = datetime.strftime(order.day, "%d-%m-%Y")
                         if order_day_num == date_num_tommorrow:
                             print("ORDER DATE ALREADY SET TO TOMMORROW")
                             flag_day_set = True
             
 
             if flag_day_set:
-                order_list_to_generate_time_ranges.append(order[0])
+                order_list_to_generate_time_ranges.append(order)
 
         if len(order_list_to_generate_time_ranges) < 1:
             print("No orders to process, skip generation")
