@@ -574,7 +574,7 @@ async def set_order_status(
                 error_sending_message = True
                 print(f"Не удалось отправить сообщение пользователю: {err}")
 
-        old_status_query = session.query(OrderStatuses).filter_by(id=order_query.status).first()
+        old_status_query = session.query(OrderStatuses).filter_by(id=order_query.status).enable_eagerloads(False).first()
         new_data_change = OrderChangeHistory(
             from_user_id = current_user.id,
             order_id = order_query.id,
