@@ -173,19 +173,15 @@ async def get_order_by_id(
     with Session(engine, expire_on_commit=False) as session:
         #Получение конкретной заявки
 
-        order = session.query(Orders, Address, BoxTypes, OrderStatuses, Regions).\
-            join(Address, Address.id == Orders.address_id).\
-            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-            join(OrderStatuses, OrderStatuses.id == Orders.status).\
-            where(Orders.id == order_id).\
-            join(Regions, Regions.id == Address.region_id).first()
+        order = session.query(Orders).\
+            where(Orders.id == order_id).first()
         
         if not order:
             return JSONResponse({
                 "message": "not found"
             },status_code=404)
 
-        return_data = Orders.process_order_array([order])
+        return_data = Orders.process_order_array([[order]])
         return return_data[0]
 
 
@@ -335,6 +331,8 @@ async def create_order(
             user_order_num = count + 1,
             manager_id = Users.get_random_manager()
         )
+        if user.telegram_id:
+            new_order.tg_id = user.telegram_id
 
         print("adding container")
         print(container)
@@ -795,7 +793,11 @@ async def process_current_orders(
                 continue
 
             days_allowed = str(order.address.region.work_days).split(' ')
+
+            
+            print("Allowed days in order region:")
             print(days_allowed)
+            print(order.day)
             if order.day > date_today:
                 print("DAY LARGER")
                 order_day_num = datetime.strftime(order.day, "%d-%m-%Y")
