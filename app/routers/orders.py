@@ -476,7 +476,7 @@ async def set_order_status(
     status_text: str = None,
     status_id: UUID = None,
     send_message: bool = True
-)->OrderOut:
+):
     """
     Обновление/Установка статуса заявки
     - **order_id**: UUID заявки
