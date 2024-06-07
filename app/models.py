@@ -230,7 +230,7 @@ class Orders(Base):
         with Session(engine, expire_on_commit=False) as session:
 
             #Проверить, можно ли ставить статус из текущего            
-            status_data = session.query(OrderStatuses).filter_by(id=__self__.status).first()
+            status_data = session.query(OrderStatuses).filter_by(id=__self__.status).enable_eagerloads(False).first()
             allowed_statuses = []
             for status_allow_u in status_data.allow_to_list:
                 allowed_statuses.append(status_allow_u.status_to.id)
@@ -255,7 +255,7 @@ class Orders(Base):
                 if (not user.allow_messages_from_bot) or (not user.telegram_id):
                     return __self__
             
-                status_query = session.query(OrderStatuses).filter(OrderStatuses.id == status_id).first()
+                status_query = session.query(OrderStatuses).filter(OrderStatuses.id == status_id).enable_eagerloads(False).first()
                 send_message_through_bot(
                     receipient_id=user.telegram_id,
                     message=f"Ваша заявка №{__self__.order_num} изменила статус на '{status_query.status_name}'"
