@@ -169,6 +169,9 @@ class Orders(Base):
             parent_data = jsonable_encoder(order[0])
             order_data = OrderOut(**parent_data)
             order_data.tg_id = order[0].user.telegram_id
+
+            if not simple_load:
+                order_data.payments = order[0].payments
             
             if not simple_load:
                 if not(type(order[0].address.interval) == list):
@@ -207,15 +210,9 @@ class Orders(Base):
                 except IndexError:
                     order_data.box_data = None
             
-            if simple_load:
-                with Session(engine, expire_on_commit=False) as session:
-                    order_data.status_data = session.query(OrderStatuses).filter_by(id=order[0].status).first()
-            else:
-                try:
-                    order_data.status_data = order[3]
-                except IndexError:
-                    order_data.status_data = None
-            
+            with Session(engine, expire_on_commit=False) as session:
+                order_data.status_data = session.query(OrderStatuses).filter_by(id=order[0].status).first()
+
             try:
                 order_data.user_data = order[0].user
             except IndexError:
