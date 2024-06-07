@@ -568,8 +568,6 @@ async def set_order_status(
                         ]}
                     )
 
-
-                    
             except Exception as err:
                 error_sending_message = True
                 print(f"Не удалось отправить сообщение пользователю: {err}")
@@ -586,7 +584,7 @@ async def set_order_status(
         session.add(new_data_change)
         session.commit()
 
-        return jsonable_encoder(order_query)
+        return
 
 
 @router.put('/orders/{order_id}', tags=[Tags.bot, Tags.orders])
