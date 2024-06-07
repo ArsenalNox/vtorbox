@@ -306,7 +306,7 @@ async def get_latest_orders(
         for order in order_query:
             parent_data = jsonable_encoder(order)
             return_data.append(OrderOut(**parent_data))
-            parent_data[-1].payments = order.payments
+            return_data[-1].payments = order.payments
             return_data[-1].address_data = order.address
             return_data[-1].user_data = order.user
             if return_data[-1].payments == None:
