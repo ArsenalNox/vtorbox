@@ -219,6 +219,7 @@ async def generate_routes_today(
 
         if write_after_generation:
             await write_routes_to_db(routes)
+            #TODO: Сброс заявок со статусом ожидается на сегодня
 
         return {
             "global_count": global_orders_count,
