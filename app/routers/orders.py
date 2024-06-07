@@ -174,7 +174,7 @@ async def get_order_by_id(
         #Получение конкретной заявки
 
         order = session.query(Orders).\
-            where(Orders.id == order_id).first()
+            where(Orders.id == order_id).enable_eagerloads(False).first()
         
         if not order:
             return JSONResponse({
@@ -797,11 +797,11 @@ async def process_current_orders(
             
             print("Allowed days in order region:")
             print(days_allowed)
-            print(order.day)
+            print(order.day, date_today)
+            print(order.day > date_today)
             if order.day > date_today:
                 print("DAY LARGER")
                 order_day_num = datetime.strftime(order.day, "%d-%m-%Y")
-                date_num_tommorrow = datetime.strftime(date_tommorrow, "%d-%m-%Y")
                 print(order_day_num, date_num_tommorrow)
                 if order_day_num == date_num_tommorrow:
                     print("ORDER DATE ALREADY SET TO TOMMORROW")
@@ -832,6 +832,8 @@ async def process_current_orders(
                         if order.day == None:
                             continue
                         order_day_num = datetime.strftime(order.day, "%d-%m-%Y")
+                        print("Checking if order date is set to tommorrow")
+                        print(order_day_num, date_num_tommorrow)
                         if order_day_num == date_num_tommorrow:
                             print("ORDER DATE ALREADY SET TO TOMMORROW")
                             flag_day_set = True
