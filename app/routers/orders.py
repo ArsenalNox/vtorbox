@@ -494,9 +494,9 @@ async def set_order_status(
     with Session(engine, expire_on_commit=False) as session:
         
         if status_text:
-            status_query = session.query(OrderStatuses).filter_by(status_name = status_text).first()
+            status_query = session.query(OrderStatuses).filter_by(status_name = status_text).enable_eagerloads(False).first()
         elif status_id:
-            status_query = session.query(OrderStatuses).filter_by(id = status_id).first()
+            status_query = session.query(OrderStatuses).filter_by(id = status_id).enable_eagerloads(False).first()
 
         if not status_query:
             return JSONResponse({
@@ -504,7 +504,7 @@ async def set_order_status(
             },status_code=404)
         
         order_query = session.query(Orders).filter_by(id = order_id).\
-            where(Orders.deleted_at == None).first()
+            where(Orders.deleted_at == None).enable_eagerloads(False).first()
 
         if not order_query:
             return JSONResponse({
@@ -536,7 +536,7 @@ async def set_order_status(
 
                     if not (order_query.box_count == None) and not (order_query.box_type_id == None):
                         reg_price = session.query(RegionalBoxPrices).filter_by(box = order_query.box_type_id).\
-                            filter_by(region_id = order_query.address.region_id).first()
+                            filter_by(region_id = order_query.address.region_id).enable_eagerloads(False).first()
                         if reg_price:
                             box_price = reg_price.price
                         
