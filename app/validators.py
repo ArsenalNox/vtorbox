@@ -350,7 +350,7 @@ class OrderDataChange(BaseModel):
     id: UUID4
     from_user: Optional[UserOrderOutData] = None
 
-    attribute: str
+    attribute: Optional[str] = None
     new_content: Optional[str] = None
     old_content: Optional[str] = None
 
