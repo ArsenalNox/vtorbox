@@ -344,7 +344,7 @@ def generate_time_intervals(route_data):
 
     with Session(engine, expire_on_commit=False) as session:
         for wp in waypoints:
-            order_q = session.query(Orders).filter_by(order_num = wp['order_num']).first()
+            order_q = session.query(Orders).filter_by(order_num = wp['order_num']).enable_eagerloads(False).first()
             if not order_q:
                 continue
 
