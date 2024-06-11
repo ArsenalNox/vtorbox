@@ -407,9 +407,9 @@ class Users(Base):
         user_query = None
         with Session(engine, expire_on_commit=False) as session:
             if is_valid_uuid(user_id):
-                user_query = session.query(Users).filter_by(id=user_id).first()
+                user_query = session.query(Users).filter_by(id=user_id).enable_eagerloads(False).first()
             elif re.match(r'^[\d]*$', str(user_id)):
-                user_query = session.query(Users).filter_by(telegram_id=int(user_id)).first()
+                user_query = session.query(Users).filter_by(telegram_id=int(user_id)).enable_eagerloads(False).first()
 
             if user_query: 
                 user_query.last_action = datetime.now()
@@ -1498,6 +1498,9 @@ def get_user_from_db_secondary(user_id: m_uuid|int = None)->'Users':
 
 # === персистные данные/конфигурации
 Base.metadata.create_all(engine)
+import logging
+logging.basicConfig()
+logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 #Роли пользователей в системе
 ROLE_ADMIN_NAME = 'admin'
