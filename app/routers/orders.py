@@ -601,7 +601,7 @@ async def update_order_data(
     with Session(engine, expire_on_commit=False) as session:
 
         order_query = session.query(Orders).filter_by(id=order_id)\
-            .where(Orders.deleted_at == None).first()
+            .where(Orders.deleted_at == None).enable_eagerloads(False).first()
 
         if not order_query:
             return JSONResponse({
@@ -609,9 +609,9 @@ async def update_order_data(
             },status_code=404)
 
         address_query = session.query(Address).filter_by(id=new_order_data.address_id).\
-            where(Address.deleted_at == None).first()
+            where(Address.deleted_at == None).enable_eagerloads(False).first()
 
-        container = session.query(BoxTypes).filter_by(box_name = new_order_data.box_name).\
+        container = session.query(BoxTypes).enable_eagerloads(False).filter_by(box_name = new_order_data.box_name).\
             where(BoxTypes.deleted_at == None).first()
 
         #Обновляем данные адреса на новые  
@@ -670,17 +670,10 @@ async def update_order_data(
 
         session.commit()
 
-        order_query = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
-            join(Address, Address.id == Orders.address_id).\
-            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-            join(OrderStatuses, OrderStatuses.id == Orders.status).\
-            join(Users, Users.id == Orders.from_user).\
-            where(Orders.id == order_id).\
-            order_by(asc(Orders.date_created)).first()
+        order_query = session.query(Orders).where(Orders.id == order_id).\
+            order_by(asc(Orders.date_created)).enable_eagerloads(False).first()
 
-        return_data = Orders.process_order_array([order_query])
-
-        return return_data[0]
+        return jsonable_encoder(Orders)
 
 
 @router.post("/orders/{order_id}/accept", tags=[Tags.orders, Tags.bot])
