@@ -906,7 +906,11 @@ async def check_order_intervals():
         date_tommorrow = date_today + timedelta(days=1)
         weekday_tomorrow = str(date_tommorrow.strftime('%A')).lower()
 
-        addresses_query = session.query(Address).filter(Address.interval != None).all()
+        addresses_query = session.query(Address).filter(Address.interval != None).\
+        options(
+            joinedload(Address.region).\
+            joinedload(Address.orders)
+        ).enable_eagerloads(False).all()
         for address in addresses_query:
             print(f"address: {address.address}")
             print(f"inteval: {address.interval}")
@@ -941,7 +945,7 @@ async def check_order_intervals():
 
             #Если заявки нет - создать её в статус в работе
             user_id = session.query(UsersAddress).filter_by(address_id=address.id).first().user_id
-            count = session.query(Orders.id).where(Orders.from_user == user_id).count()
+            count = session.query(Orders.id).where(Orders.from_user == user_id).enable_eagerloads(False).count()
             new_order = Orders(
                 from_user   = user_id,
                 address_id  = address.id,
@@ -968,6 +972,9 @@ async def resend_order_confirm_notify(
         orders = session.query(Orders).\
             filter(Orders.deleted_at == None).\
             filter(Orders.status == OrderStatuses.status_awating_confirmation().id).\
+            options(
+                joinedload(Orders.user)
+            ).enable_eagerloads(False).\
             order_by(asc(Orders.date_created)).all()
         
         for order in orders:
