@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import desc, asc, desc, or_
+from sqlalchemy.orm import joinedload
 
 from app.validators import (
     Order as OrderValidator,

@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 import datetime as dt
 from datetime import datetime, timedelta
 
+from sqlalchemy.orm import joinedload
 
 from app import CODER_KEY, CODER_SETTINGS, COURIER_KEY
 
