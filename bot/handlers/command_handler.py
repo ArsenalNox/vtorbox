@@ -26,6 +26,7 @@ class CommandHandler(Handler):
         async def start(message: Message, state: FSMContext):
             """Отлов команды /start"""
 
+            await state.update_data(chat_id=message.chat.id)
 
             data = await state.get_data()
             await delete_messages_with_btn(
@@ -95,7 +96,7 @@ class CommandHandler(Handler):
 
                 print(f'{user=}')
 
-                if user and user != {'message': 'Not found'}:
+                if user and user != {'message': 'Not found'} and 'courier' not in user.get('roles'):
                     status_code, menu_msg = await req_to_api(
                         method='get',
                         url='bot/messages?message_key=MENU'
@@ -104,6 +105,16 @@ class CommandHandler(Handler):
                     await message.answer(
                         menu_msg,
                         reply_markup=self.kb.start_menu_btn()
+                    )
+
+                elif user and user != {'message': 'Not found'} and 'courier' in user.get('roles'):
+                    status_code, courier_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=COURIER'
+                    )
+                    await message.answer(
+                        courier_msg,
+                        reply_markup=self.kb.courier_btn()
                     )
 
                 else:
@@ -121,33 +132,15 @@ class CommandHandler(Handler):
                         data=user_data,
                     )
 
-                    status_code, user = await req_to_api(
+                    status_code, register_msg = await req_to_api(
                         method='get',
-                        url=f'user/me?tg_id={message.chat.id}'
+                        url='bot/messages?message_key=REGISTRATION_MENU'
                     )
+                    await message.answer(
+                        register_msg,
+                        reply_markup=self.kb.registration_btn()
+                    )
+                    await state.set_state(RegistrationUser.phone)
+                    await state.update_data(menu_view='registration')
 
-                if user.get('roles'):
-                    if 'courier' in user.get('roles'):
-                        status_code, courier_msg = await req_to_api(
-                            method='get',
-                            url='bot/messages?message_key=COURIER'
-                        )
-                        await message.answer(
-                            courier_msg,
-                            reply_markup=self.kb.courier_btn()
-                        )
 
-                    else:
-                        status_code, register_msg = await req_to_api(
-                            method='get',
-                            url='bot/messages?message_key=REGISTRATION_MENU'
-                        )
-                        await message.answer(
-                            register_msg,
-                            reply_markup=self.kb.registration_btn()
-                        )
-                        await state.set_state(RegistrationUser.phone)
-                        await state.update_data(menu_view='registration')
-
-                # сохраняем в состояние chat_id
-                await state.update_data(chat_id=message.chat.id)
