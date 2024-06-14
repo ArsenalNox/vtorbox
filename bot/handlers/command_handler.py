@@ -12,6 +12,7 @@ from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.states.states import RegistrationUser
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
+from bot.utils.handle_data import show_active_orders
 from bot.utils.requests_to_api import req_to_api
 
 
@@ -94,13 +95,24 @@ class CommandHandler(Handler):
                     url=f'user/me?tg_id={message.chat.id}'
                 )
 
-                print(f'{user=}')
-
                 if user and user != {'message': 'Not found'} and 'courier' not in user.get('roles'):
                     status_code, menu_msg = await req_to_api(
                         method='get',
                         url='bot/messages?message_key=MENU'
                     )
+
+                    status_code, orders = await req_to_api(
+                        method='get',
+                        url=f'users/orders/?tg_id={message.chat.id}',
+                    )
+
+                    if orders:
+                        await show_active_orders(
+                            message=message,
+                            orders=orders,
+                            state=state,
+                            self=self
+                        )
 
                     await message.answer(
                         menu_msg,
