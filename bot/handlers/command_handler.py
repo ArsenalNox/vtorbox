@@ -93,6 +93,32 @@ class CommandHandler(Handler):
                     url=f'user/me?tg_id={message.chat.id}'
                 )
 
+                if user:
+                    status_code, start_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=START'
+                    )
+                    status_code, about_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=ABOUT'
+                    )
+
+                    status_code, menu_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=MENU'
+                    )
+
+                    await message.answer(
+                        start_msg
+                    )
+                    await message.answer(
+                        about_msg
+                    )
+                    await message.answer(
+                        menu_msg,
+                        reply_markup=self.kb.start_menu_btn()
+                    )
+
                 if not user or user == {'message': 'Not found'}:
                     user_data = json.dumps({
                         'tg_id': message.from_user.id,
