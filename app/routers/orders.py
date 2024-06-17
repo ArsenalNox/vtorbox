@@ -909,8 +909,7 @@ async def check_order_intervals():
 
         addresses_query = session.query(Address).filter(Address.interval != None).\
         options(
-            joinedload(Address.region).\
-            joinedload(Address.orders)
+            joinedload(Address.region)
         ).enable_eagerloads(False).all()
         for address in addresses_query:
             print(f"address: {address.address}")
@@ -923,8 +922,9 @@ async def check_order_intervals():
 
             #Проверить, есть ли заявка на этот адрес (созданная)
             order_exists = False
-            if len(address.orders)>0:
-                for order in address.orders:
+            addr_orders = session.query(Orders).filter(Orders.address_id==address.id).enable_eagerloads(False).all()
+            if len(addr_orders)>0:
+                for order in addr_orders:
                     #Проверить, на сегодня ли эта заявка
                     order_day = order.day
                     order_day = order_day.replace(hour=0, minute=0, second=0, microsecond=0)
