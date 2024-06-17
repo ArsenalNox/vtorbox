@@ -909,7 +909,8 @@ async def check_order_intervals():
 
         addresses_query = session.query(Address).filter(Address.interval != None).\
         options(
-            joinedload(Address.region)
+            joinedload(Address.region).\
+            joinedload(Address.orders)
         ).enable_eagerloads(False).all()
         for address in addresses_query:
             print(f"address: {address.address}")
