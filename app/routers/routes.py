@@ -153,7 +153,8 @@ async def generate_routes_today(
             filter(Orders.deleted_at == None).\
             filter(Orders.status == OrderStatuses.status_confirmed().id).\
             filter(Orders.day >= date).\
-            filter(Orders.day <= date_tommorrow)
+            filter(Orders.day <= date_tommorrow).\
+            enable_eagerloads(False)
 
 
         if group_by == 'regions':
@@ -176,7 +177,10 @@ async def generate_routes_today(
         roles_user_query = session.query(Users.id).\
             join(Permissions, Permissions.user_id == Users.id).\
             join(Roles, Roles.id == Permissions.role_id).\
-            where(Roles.role_name == ROLE_COURIER_NAME).subquery()
+            where(Roles.role_name == ROLE_COURIER_NAME).\
+            enable_eagerloads(False).\
+            subquery()
+
         couriers = couriers.filter(Users.id.in_(roles_user_query))
         print(couriers_id)
         if couriers_id:
@@ -245,7 +249,7 @@ async def get_routes(
             joinedload(Routes.orders).\
             joinedload(RoutesOrders.order).\
             joinedload(Orders.payments)
-            )
+            ).enable_eagerloads(False)
 
         if date:
             date = date.replace(hour=0, minute=0)
