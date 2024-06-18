@@ -223,6 +223,10 @@ async def get_current_user_refresh(
     if user is None:
         raise credentials_exception
 
+    if user is False:
+        raise credentials_exception
+
+
     user.refresh_token = token
     return user
 
