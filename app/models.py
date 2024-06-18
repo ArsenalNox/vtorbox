@@ -902,8 +902,6 @@ class Payments(Base):
         notification_url = 'http://5.253.62.213:8000/api/payment/notify/auto'
 
         payment_data = {}
-        if 'tel:' in order.user.phone_number:
-            order.user.phone_number = str(order.user.phone_number).replace('tel:', '')
 
         if without_r_c:
             payment_data = {
@@ -914,12 +912,8 @@ class Payments(Base):
                 "Language": "ru", # The language code (ru or en)
                 "PayType": "O", # The payment type (O for one-time payment)
                 'DATA': {
-                        'Phone': order.user.phone_number,
-                        'Email': order.user.email,
                 },
                 'Receipt': {
-                        'Phone': str(order.user.phone_number),
-                        'Email': str(order.user.email),
                         'Taxation':'usn_income',#упрощёнка
                         'Items':[{  #https://www.tinkoff.ru/kassa/develop/api/receipt/#Items
                                 'Name':str(order.box.box_name),
@@ -946,12 +940,8 @@ class Payments(Base):
                     "Recurrent": "Y", # Indicates whether the payment is recurrent (N for no)
                     "CustomerKey": f"{order.user.id}",
                     'DATA': {
-                            'Phone': order.user.phone_number,
-                            'Email': order.user.email,
                     },
                     'Receipt': {
-                            'Phone': str(order.user.phone_number),
-                            'Email': str(order.user.email),
                             'Taxation':'usn_income',#упрощёнка
                             'Items':[{  #https://www.tinkoff.ru/kassa/develop/api/receipt/#Items
                                     'Name':str(order.box.box_name),
@@ -969,6 +959,14 @@ class Payments(Base):
 
         #путь по которому мы отправляем свой запрос, прописан в документации банка
         url = f"{TINKOFF_API_URL}/Init"
+
+        if order.user.phone_number:
+            payment_data['DATA']['Phone']= str(order.user.phone_number)
+            payment_data['Receipt']['Phone'] = str(order.user.phone_number)
+
+        if order.user.phone_number:
+            payment_data['Receipt']['DATA'] = str(order.user.email)
+            payment_data['Receipt']['Email'] = str(order.user.email)
 
         headers = {
             'Content-Type': 'application/json'
@@ -2007,7 +2005,7 @@ def add_default_messages_bot():
     'PRESS_BUTTONS_MENU': 'Нажмите кнопку на клавиатуре',
     'ADD_MANUALLY_ADDRESS': 'Введите ваш адрес',
     'BACK': 'Для возврата назад нажмите кнопку внизу',
-    'MESSAGE_PAYMENT_REQUIRED_ASK': "От вас требуется оплата заявки (%ORDER_NUM%) по адресу (%ADDRESS_TEXT%) на сумму %AMOUNT%"
+    'MESSAGE_PAYMENT_REQUIRED_ASK': "От вас требуется оплата заявки (%ORDER_NUM%) по адресу (%ADDRESS_TEXT%) на сумму %AMOUNT%\n\nДля совершения оплаты вам нужно согласиться с <a href=\"https://vtorbox.ru/politics\">политикой конфиденциальности</a>, <a href=\"https://vtorbox.ru/public\">публичной офертой</a> и <a href=\"https://vtorbox.ru/agreement_reccurent\">соглашением о подписке</a>\nВнимательно изучите данные документы и установите ниже галочку (нужно кликнуть по кнопке) и далее нажать кнопку Оплатить, после чего произвести оплату"
 }
 
     with Session(engine, expire_on_commit=False) as session:
