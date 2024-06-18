@@ -367,6 +367,8 @@ class TextHandler(Handler):
 
         @self.router.message(F.text)
         async def any_text(message: Message, state: FSMContext):
+            await state.update_data(chat_id=message.chat.id)
+
             data = await state.get_data()
             menu_view = data.get('menu_view')
 
