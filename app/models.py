@@ -1496,9 +1496,10 @@ def get_user_from_db_secondary(user_id: m_uuid|int = None)->'Users':
 
 # === персистные данные/конфигурации
 Base.metadata.create_all(engine)
-import logging
-logging.basicConfig()
-logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
+# import logging
+# logging.basicConfig()
+# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 #Роли пользователей в системе
 ROLE_ADMIN_NAME = 'admin'
