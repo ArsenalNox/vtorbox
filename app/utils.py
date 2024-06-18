@@ -350,6 +350,7 @@ def generate_time_intervals(route_data):
             order_q = session.query(Orders).options(joinedload(Orders.user)).filter_by(order_num = wp['order_num']).enable_eagerloads(False).first()
             if not order_q:
                 continue
+            order_q.user.telegram_id
 
             print(f"Order {order_q.order_num} found in db, ETA: {wp['eta']}")
             #Записываем сгенерированный временной интервал
