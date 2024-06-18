@@ -802,7 +802,7 @@ class Payments(Base):
 
             if rebuill_query:
                 #TODO: Создать платёж и вызвать charge
-                new_payment = Payments.create_new_payment(
+                new_payment, message = Payments.create_new_payment(
                     terminal=terminal,
                     order=order,
                     without_r_c=True
@@ -815,13 +815,14 @@ class Payments(Base):
                     new_payment.tinkoff_id,
                     rebuill_query.rebill_id,
                 )
-                return new_payment
+                return new_payment, message
+
             else:
-                new_payment = Payments.create_new_payment(
+                new_payment, message = Payments.create_new_payment(
                     terminal=terminal,
                     order=order,
                 )
-                return new_payment
+                return new_payment, message
 
 
     def query(id=None, tinkoff_id=None, terminal=None, terminal_id=None, mode='single'):
@@ -1033,11 +1034,11 @@ class Payments(Base):
             except Exception as err:
                 print(err)
 
-            return new_payment
+            return new_payment, 'ok'
 
         else:
             message = response.json()['Message']+' '+response.json()['Details']
-            return message
+            return None, message
             
 
     def check_order_status(payment_internal_id, order_id, terminal=None):

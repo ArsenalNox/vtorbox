@@ -185,7 +185,7 @@ async def create_new_payment(
                 "message": "Не указано кол-во контейнеров у заявки"
             })
 
-        new_payment = Payments.process_status_update(
+        new_payment, message = Payments.process_status_update(
             order=order_query
         )
 
@@ -214,21 +214,24 @@ async def create_new_payment(
                             }],
                     ]}
                 )
-
-
         except Exception as err:
             error_sending_message = True
             print(f"Не удалось отправить сообщение пользователю: {err}")
 
-        if not new_payment:
-            return [new_payment, False]
-
         try:
             set_timed_func('p', new_payment.id, "M:01")
         except Exception as err:
-            return [new_payment, False]
+            return {
+                "message": message,
+                "payment_data": new_payment,
+                "interval_created": True
+            }
 
-        return [new_payment, True]
+        return {
+            "message": message,
+            "payment_data": new_payment,
+            "interval_created": True
+        }
         
 
 @router.get('/terminals')
