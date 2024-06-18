@@ -75,7 +75,7 @@ async def get_list_of_couriers(
             user_data.roles = [role.role_name for role in scopes_query]
             return_data.append(user_data)
 
-            routes_query = session.query(Routes).filter_by(courier_id = user.id).all()
+            routes_query = session.query(Routes).enable_eagerloads(False).filter_by(courier_id = user.id).all()
             user_data.assigned_routes = routes_query
 
 
@@ -91,9 +91,9 @@ async def create_new_courier(
     """
     Назначить роль курьера пользователю
     """
-    user_query = Users.get_or_404(t_id=tg_id)
+    user_query = Users.get_user(tg_id)
     if not user_query:
-        user_query = Users.get_or_404(internal_id=user_id)
+        user_query = Users.get_user(user_id)
         if not user_query:
             return JSONResponse({
                 "message": "User not found"
