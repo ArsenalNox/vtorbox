@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import desc, asc, desc, or_
+from sqlalchemy.orm import joinedload
 
 from app.validators import (
     Order as OrderValidator,
@@ -601,7 +602,7 @@ async def update_order_data(
     with Session(engine, expire_on_commit=False) as session:
 
         order_query = session.query(Orders).filter_by(id=order_id)\
-            .where(Orders.deleted_at == None).first()
+            .where(Orders.deleted_at == None).enable_eagerloads(False).first()
 
         if not order_query:
             return JSONResponse({
@@ -609,9 +610,9 @@ async def update_order_data(
             },status_code=404)
 
         address_query = session.query(Address).filter_by(id=new_order_data.address_id).\
-            where(Address.deleted_at == None).first()
+            where(Address.deleted_at == None).enable_eagerloads(False).first()
 
-        container = session.query(BoxTypes).filter_by(box_name = new_order_data.box_name).\
+        container = session.query(BoxTypes).enable_eagerloads(False).filter_by(box_name = new_order_data.box_name).\
             where(BoxTypes.deleted_at == None).first()
 
         #Обновляем данные адреса на новые  
@@ -670,17 +671,10 @@ async def update_order_data(
 
         session.commit()
 
-        order_query = session.query(Orders, Address, BoxTypes, OrderStatuses, Users).\
-            join(Address, Address.id == Orders.address_id).\
-            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-            join(OrderStatuses, OrderStatuses.id == Orders.status).\
-            join(Users, Users.id == Orders.from_user).\
-            where(Orders.id == order_id).\
-            order_by(asc(Orders.date_created)).first()
+        order_query = session.query(Orders).where(Orders.id == order_id).\
+            order_by(asc(Orders.date_created)).enable_eagerloads(False).first()
 
-        return_data = Orders.process_order_array([order_query])
-
-        return return_data[0]
+        return jsonable_encoder(Orders)
 
 
 @router.post("/orders/{order_id}/accept", tags=[Tags.orders, Tags.bot])
@@ -741,6 +735,7 @@ async def process_current_orders(
         
     with Session(engine, expire_on_commit=False) as session:
         orders = session.query(Orders).\
+            options(joinedload(Orders.user)).\
             filter(Orders.deleted_at == None).\
             filter(Orders.status == OrderStatuses.status_processing().id).\
             order_by(asc(Orders.date_created)).enable_eagerloads(False).all()
@@ -913,7 +908,10 @@ async def check_order_intervals():
         date_tommorrow = date_today + timedelta(days=1)
         weekday_tomorrow = str(date_tommorrow.strftime('%A')).lower()
 
-        addresses_query = session.query(Address).filter(Address.interval != None).all()
+        addresses_query = session.query(Address).filter(Address.interval != None).\
+        options(
+            joinedload(Address.region)
+        ).enable_eagerloads(False).all()
         for address in addresses_query:
             print(f"address: {address.address}")
             print(f"inteval: {address.interval}")
@@ -925,8 +923,9 @@ async def check_order_intervals():
 
             #Проверить, есть ли заявка на этот адрес (созданная)
             order_exists = False
-            if len(address.orders)>0:
-                for order in address.orders:
+            addr_orders = session.query(Orders).filter(Orders.address_id==address.id).enable_eagerloads(False).all()
+            if len(addr_orders)>0:
+                for order in addr_orders:
                     #Проверить, на сегодня ли эта заявка
                     order_day = order.day
                     order_day = order_day.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -948,7 +947,7 @@ async def check_order_intervals():
 
             #Если заявки нет - создать её в статус в работе
             user_id = session.query(UsersAddress).filter_by(address_id=address.id).first().user_id
-            count = session.query(Orders.id).where(Orders.from_user == user_id).count()
+            count = session.query(Orders.id).where(Orders.from_user == user_id).enable_eagerloads(False).count()
             new_order = Orders(
                 from_user   = user_id,
                 address_id  = address.id,
@@ -975,6 +974,9 @@ async def resend_order_confirm_notify(
         orders = session.query(Orders).\
             filter(Orders.deleted_at == None).\
             filter(Orders.status == OrderStatuses.status_awating_confirmation().id).\
+            options(
+                joinedload(Orders.user)
+            ).enable_eagerloads(False).\
             order_by(asc(Orders.date_created)).all()
         
         for order in orders:

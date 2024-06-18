@@ -345,12 +345,42 @@ class PaymentOut(BaseModel):
     
     date_created: datetime
 
+    @validator('status', pre=True, always=True)
+    def replace_as_list(cls, v):
+        statuses= {
+            "NEW":	'Платёж создан',
+            "FORM_SHOWED":	'Страница загрузилась у клиента в браузере',
+            "AUTHORIZING":	'Платеж обрабатывается MAPI и платежной системой',
+            "3DS_CHECKING":	'Платеж проходит проверку 3D-Secure',
+            "3DS_CHECKED":	'Платеж успешно прошел проверку 3D-Secure',
+            "AUTHORIZED":	'Платеж авторизован, деньги заблокированы на карте клиента',
+            "CONFIRMING":	'Подтверждение платежа обрабатывается MAPI и платежной системой',
+            "CONFIRMED":	    'Платеж подтвержден, деньги списаны с карты клиента',
+            "REVERSING":	    'Мерчант запросил отмену авторизованного, но еще не подтвержденного платежа. Возврат обрабатывается MAPI и платежной системой',
+            "PARTIAL_REVERSED":	'Частичный возврат по авторизованному платежу завершился успешно',
+            "REVERSED":	'Полный возврат по авторизованному платежу завершился успешно',
+            "REFUNDING":	'Мерчант запросил отмену подтвержденного платежа. Возврат обрабатывается MAPI и платежной системой',
+            "PARTIAL_REFUNDED":	'Частичный возврат по подтвержденному платежу завершился успешно',
+            "REFUNDED":	'Полный возврат по подтвержденному платежу завершился успешно',
+            "СANCELED":	'Мерчант отменил платеж',
+            'DEADLINE_EXPIRED':	'Срок платежа истёк',
+            "REJECTED":	'Банк отклонил платеж',
+            "AUTH_FAIL":	'Платеж завершился ошибкой или не прошел проверку 3D-Secure'
+        }
+        if (v != None) and (v in statuses.keys()) :
+            return statuses[v]
+        else:
+            return v
+
+
+
+
 
 class OrderDataChange(BaseModel):
     id: UUID4
     from_user: Optional[UserOrderOutData] = None
 
-    attribute: str
+    attribute: Optional[str] = None
     new_content: Optional[str] = None
     old_content: Optional[str] = None
 

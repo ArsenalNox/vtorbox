@@ -66,7 +66,6 @@ async def show_active_orders(self: 'TextHandler', message: Message, orders: list
 async def show_order_info(self: 'OrderHandler', message: Message, order: dict, state: FSMContext):
     """Вывод 1 конкретной заявки"""
 
-
     data = await state.get_data()
 
     if data.get('order_msg'):

@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 import datetime as dt
 from datetime import datetime, timedelta
 
+from sqlalchemy.orm import joinedload
 
 from app import CODER_KEY, CODER_SETTINGS, COURIER_KEY
 
@@ -92,7 +93,7 @@ async def get_payment_info(
     - **payment_order_id**: UUID - по uuid заявки
     """
     with Session(engine, expire_on_commit=False) as session:
-        payments_query = session.query(Payments)
+        payments_query = session.query(Payments).enable_eagerloads(False)
 
         if payment_id:
             payments_query = payments_query.filter(Payments.id == payment_id)
@@ -131,7 +132,7 @@ async def get_payment_order_status(
     payment_id: UUID
 ):
     with Session(engine, expire_on_commit=False) as session:
-        payment_query = session.query(Payments).filter_by(id=payment_id).first()
+        payment_query = session.query(Payments).enable_eagerloads(False).filter_by(id=payment_id).first()
 
         payment_status = Payments.check_order_status(payment_id, order_id=payment_query.order_id)
 
@@ -153,16 +154,22 @@ async def create_new_payment(
     with Session(engine, expire_on_commit=False) as session:
         terimnal = None
         if not terminal_id:
-            terimnal = session.query(PaymentTerminals).filter(PaymentTerminals.default_terminal==True).first()
+            terimnal = session.query(PaymentTerminals).filter(PaymentTerminals.default_terminal==True).enable_eagerloads(False).first()
         else: 
-            terimnal = session.query(PaymentTerminals).filter(PaymentTerminals.id == terminal_id).first()
+            terimnal = session.query(PaymentTerminals).filter(PaymentTerminals.id == terminal_id).enable_eagerloads(False).first()
         
         if not terimnal:
             return JSONResponse({
                 "message": "No terminal found"
             }, 500)
         
-        order_query = session.query(Orders).filter_by(id=for_order).first()
+        order_query = session.query(Orders).\
+        options(
+            joinedload(Orders.address),
+            joinedload(Orders.user),
+            joinedload(Orders.box)
+        ).enable_eagerloads(False).filter_by(id=for_order).first()
+
         if not order_query:
             return JSONResponse({
                 "message": "No order found"

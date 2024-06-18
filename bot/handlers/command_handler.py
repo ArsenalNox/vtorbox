@@ -12,6 +12,7 @@ from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.states.states import RegistrationUser
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
+from bot.utils.handle_data import show_active_orders
 from bot.utils.requests_to_api import req_to_api
 
 
@@ -27,12 +28,14 @@ class CommandHandler(Handler):
             """Отлов команды /start"""
 
             await state.update_data(chat_id=message.chat.id)
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
                 data=data,
                 src=message
             )
+            await state.update_data(chat_id=message.chat.id)
 
             promocode_in_msg = message.text.split()[-1]
 
@@ -92,7 +95,41 @@ class CommandHandler(Handler):
                     url=f'user/me?tg_id={message.chat.id}'
                 )
 
-                if not user or user == {'message': 'Not found'}:
+                if user and user != {'message': 'Not found'} and 'courier' not in user.get('roles'):
+                    status_code, menu_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=MENU'
+                    )
+
+                    status_code, orders = await req_to_api(
+                        method='get',
+                        url=f'users/orders/?tg_id={message.chat.id}',
+                    )
+
+                    if orders:
+                        await show_active_orders(
+                            message=message,
+                            orders=orders,
+                            state=state,
+                            self=self
+                        )
+
+                    await message.answer(
+                        menu_msg,
+                        reply_markup=self.kb.start_menu_btn()
+                    )
+
+                elif user and user != {'message': 'Not found'} and 'courier' in user.get('roles'):
+                    status_code, courier_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=COURIER'
+                    )
+                    await message.answer(
+                        courier_msg,
+                        reply_markup=self.kb.courier_btn()
+                    )
+
+                else:
                     user_data = json.dumps({
                         'tg_id': message.from_user.id,
                         'username': message.from_user.username,
@@ -107,33 +144,15 @@ class CommandHandler(Handler):
                         data=user_data,
                     )
 
-                    status_code, user = await req_to_api(
+                    status_code, register_msg = await req_to_api(
                         method='get',
-                        url=f'user/me?tg_id={message.chat.id}'
+                        url='bot/messages?message_key=REGISTRATION_MENU'
                     )
+                    await message.answer(
+                        register_msg,
+                        reply_markup=self.kb.registration_btn()
+                    )
+                    await state.set_state(RegistrationUser.phone)
+                    await state.update_data(menu_view='registration')
 
-                if user.get('roles'):
-                    if 'courier' in user.get('roles'):
-                        status_code, courier_msg = await req_to_api(
-                            method='get',
-                            url='bot/messages?message_key=COURIER'
-                        )
-                        await message.answer(
-                            courier_msg,
-                            reply_markup=self.kb.courier_btn()
-                        )
 
-                    else:
-                        status_code, register_msg = await req_to_api(
-                            method='get',
-                            url='bot/messages?message_key=REGISTRATION_MENU'
-                        )
-                        await message.answer(
-                            register_msg,
-                            reply_markup=self.kb.registration_btn()
-                        )
-                        await state.set_state(RegistrationUser.phone)
-                        await state.update_data(menu_view='registration')
-
-                # сохраняем в состояние chat_id
-                await state.update_data(chat_id=message.chat.id)

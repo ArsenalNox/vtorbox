@@ -3,6 +3,8 @@ import time
 import datetime
 import hashlib
 
+
+
 from app import (
     CODER_KEY, CODER_SETTINGS, BOT_TOKEN,
     COURIER_API_ROOT_ENDPOINT as API_ROOT_ENDPOINT,
@@ -125,8 +127,8 @@ def generate_y_courier_json(route_data, vehicles=None):
         locations.append({
             "id": order_d.order_num,
             "point": {
-                "lon": float(order_d.address.latitude),
-                "lat": float(order_d.address.longitude)
+                "lon": float(order_d.address.longitude),
+                "lat": float(order_d.address.latitude)
             },
             "time_window": order_d_time_window,
             "hard_window": True
@@ -305,6 +307,7 @@ def generate_time_intervals(route_data):
     from time import sleep
     from sqlalchemy import desc, asc, desc, or_
     from app.models import Session, engine, Orders, Address
+    from sqlalchemy.orm import joinedload
 
     time_ranges = [
         ['10:00','13:00'],
@@ -344,9 +347,15 @@ def generate_time_intervals(route_data):
 
     with Session(engine, expire_on_commit=False) as session:
         for wp in waypoints:
-            order_q = session.query(Orders).filter_by(order_num = wp['order_num']).first()
+            order_q = session.query(Orders).options(
+                    joinedload(Orders.user),
+                    joinedload(Orders.address)
+                ).filter_by(order_num = wp['order_num']).enable_eagerloads(False).first()
             if not order_q:
                 continue
+
+            order_q.user.telegram_id
+            order_q.address
 
             print(f"Order {order_q.order_num} found in db, ETA: {wp['eta']}")
             #Записываем сгенерированный временной интервал
@@ -365,7 +374,10 @@ def generate_time_intervals(route_data):
                     print(start, end)
                     order_q.time_window = f"{start}-{end}"
 
-                    order_list_generated.append(order_q)
+                else:
+                    order_q.time_window = "10:00-13:00"
+
+                order_list_generated.append(order_q)
 
         #TODO: Обновление статуса
         session.commit()
