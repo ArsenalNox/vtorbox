@@ -31,6 +31,7 @@ class CourierHandler(Handler):
         async def get_route(message: Message, state: FSMContext):
             """Получение маршрута для курьера"""
 
+            await state.update_data(chat_id=message.chat.id)
             await state.update_data(menu_view='courier_menu')
             data = await state.get_data()
             await delete_messages_with_btn(
@@ -42,7 +43,6 @@ class CourierHandler(Handler):
                 f'Пользователь: {message.chat.id} зашел как курьер')
 
             # получаем маршрут для данного пользователя по tg_id
-            await state.update_data(chat_id=message.chat.id)
             status_code, routes = await req_to_api(
                 method='get',
                 url=f'bot/routes/?courier_id={message.chat.id}',
@@ -136,6 +136,8 @@ class CourierHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('finished'))
         async def mark_point_like_finished(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+
             data = await state.get_data()
             order_id = callback.data.split('_')[-1]
             status_code, order = await req_to_api(
@@ -194,6 +196,8 @@ class CourierHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('courier_no'))
         async def no_sure_courier_save(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -237,6 +241,8 @@ class CourierHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('container_type'))
         async def change_container_type(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -259,6 +265,8 @@ class CourierHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('box_id'), Courier.container_type)
         async def set_container_type(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -303,6 +311,8 @@ class CourierHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('container_count'))
         async def change_container_count(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -320,6 +330,8 @@ class CourierHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('box_count'), Courier.container_count)
         async def set_container_count(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -413,6 +425,8 @@ class CourierHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('back_order_list'))
         async def back_order_list(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -436,6 +450,8 @@ class CourierHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('cancel_change'))
         async def cancel_change_order(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
