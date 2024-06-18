@@ -348,7 +348,8 @@ class AddressHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('save_address'))
         async def save_address(callback: CallbackQuery, state: FSMContext):
-            
+
+            await state.update_data(chat_id=callback.message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -385,6 +386,8 @@ class AddressHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('manually_address'))
         async def get_manually_address(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
@@ -399,6 +402,7 @@ class AddressHandler(Handler):
 
         @self.router.message(AddAddressState.manually)
         async def save_manually_address(message: Message, state: FSMContext):
+            await state.update_data(chat_id=message.chat.id)
             await state.set_state(state=None)
 
             address = message.text
@@ -418,6 +422,7 @@ class AddressHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('found_address'))
         async def check_found_address_by_yandex(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
             await state.set_state(state=None)
             data = await state.get_data()
             await delete_messages_with_btn(

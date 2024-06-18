@@ -133,6 +133,7 @@ class OrderHandler(Handler):
 
         @self.router.message(CreateOrder.date)
         async def catch_order_date(message: Message, state: FSMContext):
+            await state.update_data(chat_id=message.chat.id)
 
             if message.text == BUTTONS['MENU']:
                 await state.set_state(state=None)
@@ -542,6 +543,8 @@ class OrderHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('accept_deny'))
         async def accept_deny_payment(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+
             data = await state.get_data()
             order_menu = callback.data.split('_')[-2]
             flag = data.get('flag')
@@ -572,7 +575,6 @@ class OrderHandler(Handler):
                 await state.update_data(flag='False')
 
             await state.update_data(accept_msg=msg.message_id)
-
 
         @self.router.callback_query(F.data.startswith('history'))
         async def history_order(callback: CallbackQuery, state: FSMContext):
@@ -722,6 +724,7 @@ class OrderHandler(Handler):
         @self.router.callback_query(F.data.startswith('order'))
         async def get_order(callback: CallbackQuery, state: FSMContext):
 
+            await state.update_data(chat_id=callback.message.chat.id)
             data = await state.get_data()
 
             await delete_messages_with_btn(
@@ -729,7 +732,6 @@ class OrderHandler(Handler):
                 data=data,
                 src=callback.message
             )
-            await state.update_data(chat_id=callback.message.chat.id)
             order_id = callback.data.split('_')[-1]
 
             # получаем заявку по ее id

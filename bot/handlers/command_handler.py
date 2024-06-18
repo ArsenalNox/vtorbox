@@ -26,14 +26,13 @@ class CommandHandler(Handler):
         async def start(message: Message, state: FSMContext):
             """Отлов команды /start"""
 
-
+            await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
                 state=state,
                 data=data,
                 src=message
             )
-            await state.update_data(chat_id=message.chat.id)
 
             promocode_in_msg = message.text.split()[-1]
 
