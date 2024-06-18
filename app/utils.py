@@ -365,7 +365,10 @@ def generate_time_intervals(route_data):
                     print(start, end)
                     order_q.time_window = f"{start}-{end}"
 
-                    order_list_generated.append(order_q)
+                else:
+                    order_q.time_window = "10:00-13:00"
+
+                order_list_generated.append(order_q)
 
         #TODO: Обновление статуса
         session.commit()
