@@ -52,10 +52,8 @@ async def delete_messages_with_btn(data: dict, state: FSMContext, src: Message):
                 reply_markup=None
             )
 
-
     except Exception as e:
         await state.update_data(msg=None)
-        print(traceback.format_exc())
 
     if data.get('msg_ids'):
         for address_id, msg_id in data.get('msg_ids').items():

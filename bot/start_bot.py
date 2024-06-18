@@ -11,6 +11,7 @@ from loguru import logger
 
 from bot.handlers.main_handler import MainHandler
 from bot.keyboards.base_keyboards import BaseKeyboard
+from bot.keyboards.courier_kb import CourierKeyboard
 from bot.settings import settings
 from bot.states.states import RegistrationUser
 from bot.utils.handle_data import show_active_orders
@@ -26,6 +27,7 @@ class MainBot:
         self.dp = Dispatcher(storage=MemoryStorage())
         self.handler = MainHandler(self.bot)
         self.kb = BaseKeyboard()
+        self.courier_kb = CourierKeyboard()
 
     async def start_logging(self):
         """Начала логгирования"""
@@ -56,8 +58,7 @@ class MainBot:
                     url=f'user/me?tg_id={chat_id}',
                 )
 
-                if user.get('id'):
-                    kb = self.kb.start_menu_btn
+                if user.get('id') and 'courier' not in user.get('roles'):
                     status_code, text = await req_to_api(
                         method='get',
                         url='bot/messages?message_key=MENU'
@@ -79,6 +80,40 @@ class MainBot:
                             message=message,
                             state=state
                         )
+
+                    await self.bot.send_message(
+                        chat_id=chat_id,
+                        text=MESSAGES['ERROR']
+                    )
+                    await self.bot.send_message(
+                        chat_id=chat_id,
+                        text=text,
+                        reply_markup=self.kb.start_menu_btn()
+                    )
+
+                elif user.get('id') and 'courier' in user.get('roles'):
+                    status_code, routes = await req_to_api(
+                        method='get',
+                        url=f'bot/routes/?courier_id={chat_id}',
+                    )
+                    route_link = 'https://yandex.ru/maps/'
+                    if routes:
+                        routes = routes[0]
+
+                        route_link = routes.get('route_link')
+                        if route_link is None:
+                            route_link = 'https://yandex.ru/maps/'
+
+                    await self.bot.send_message(
+                        chat_id=chat_id,
+                        text=MESSAGES['CURRENT_ROUTE'],
+                        reply_markup=self.courier_kb.routes_menu(route_link))
+
+                    await self.bot.send_message(
+                        chat_id=chat_id,
+                        text=MESSAGES['ERROR']
+                    )
+
                 else:
                     await state.set_state(RegistrationUser.phone)
                     await state.update_data(menu_view='registration')
@@ -86,17 +121,16 @@ class MainBot:
                         method='get',
                         url='bot/messages?message_key=REGISTRATION_MENU'
                     )
-                    kb = self.kb.registration_btn
 
-                await self.bot.send_message(
-                    chat_id=chat_id,
-                    text=MESSAGES['ERROR']
-                )
-                await self.bot.send_message(
-                    chat_id=chat_id,
-                    text=text,
-                    reply_markup=kb()
-                )
+                    await self.bot.send_message(
+                        chat_id=chat_id,
+                        text=MESSAGES['ERROR']
+                    )
+                    await self.bot.send_message(
+                        chat_id=chat_id,
+                        text=text,
+                        reply_markup=self.kb.registration_btn()
+                    )
 
             except Exception as e:
                 logger.warning(e)
