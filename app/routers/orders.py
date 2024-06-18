@@ -672,9 +672,9 @@ async def update_order_data(
         session.commit()
 
         order_query = session.query(Orders).where(Orders.id == order_id).\
-            order_by(asc(Orders.date_created)).enable_eagerloads(False).first()
+            enable_eagerloads(False).first()
 
-        return jsonable_encoder(Orders)
+        return jsonable_encoder(order_query)
 
 
 @router.post("/orders/{order_id}/accept", tags=[Tags.orders, Tags.bot])
