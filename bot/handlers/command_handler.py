@@ -93,7 +93,6 @@ class CommandHandler(Handler):
                     method='get',
                     url=f'user/me?tg_id={message.chat.id}'
                 )
-
                 if user and user != {'message': 'Not found'} and 'courier' not in user.get('roles'):
                     status_code, menu_msg = await req_to_api(
                         method='get',

@@ -82,8 +82,9 @@ class CourierKeyboard(BaseKeyboard):
         """Отметка точки как обработана/не обработана"""
 
         builder = InlineKeyboardBuilder()
-
         status = order.get('status_data', {}).get('status_name')
+        container_type = order.get('box_data', {}).get('box_name') if order.get('box_data') is not None else None
+        container_count = order.get('box_count') if order.get('box_count') is not None else None
 
         builder.add(
             InlineKeyboardButton(text='Тип',
@@ -94,7 +95,7 @@ class CourierKeyboard(BaseKeyboard):
                                  callback_data=f'container_count_{point_id}')
         )
 
-        if status != 'ожидается оплата':
+        if status != 'ожидается оплата' and container_type and container_count:
             builder.row(
                 InlineKeyboardButton(text='Обработан',
                                      callback_data=f'finished_{point_id}')

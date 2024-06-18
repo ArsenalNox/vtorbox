@@ -448,10 +448,17 @@ class OrderHandler(Handler):
             )
             order_status = order.get('status_data', {}).get('status_name').lower()
 
+            status_code, payment_req_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=TEST_MESSAGE_12'
+            )
+
             if order_menu == 'True' and flag in ('False', None):
+
                 if data.get('order_msg'):
-                    await callback.bot.edit_message_reply_markup(
+                    await callback.bot.edit_message_text(
                         chat_id=data.get('chat_id'),
+                        text=data.get('order_payment_text') + f'\n\n\n{payment_req_msg}',
                         message_id=data.get('order_msg'),
                         reply_markup=self.kb.payment_order_menu(
                             order_id=order_id,
@@ -459,6 +466,8 @@ class OrderHandler(Handler):
                             order_menu=order_menu
                         )
                     )
+                    await state.update_data(order_msg=None)
+
                 await state.update_data(order_menu=None)
 
             else:
@@ -468,30 +477,36 @@ class OrderHandler(Handler):
                 )
 
                 if flag == 'True':
-                    if data.get('accept_msg'):
-                        await callback.bot.edit_message_reply_markup(
-                            chat_id=data.get('chat_id'),
-                            message_id=data.get('accept_msg'),
-                            reply_markup=None
-                        )
+                    try:
+                        if data.get('accept_msg'):
+                            await callback.bot.edit_message_reply_markup(
+                                chat_id=data.get('chat_id'),
+                                message_id=data.get('accept_msg'),
+                                reply_markup=None
+                            )
+                    except Exception:
+                        pass
+
                     await state.update_data(flag='False')
 
                     status_code, response = await req_to_api(
                         method='post',
                         url=f'payment?for_order={order_id}'
                     )
+
                     logger.debug(f'Получена ссылка для оплаты заказа {order_id}: {response}')
-                    if response == {'message': 'No contaier set'} or response == {'message': 'No container set'}:
-                        await callback.message.answer(
-                            MESSAGES['NO_CONTAINER_SET']
-                        )
-                    elif isinstance(response[0], dict) and order_status == 'ожидается оплата':
-                        if data.get('order_msg'):
-                            await callback.bot.edit_message_reply_markup(
-                                chat_id=data.get('chat_id'),
-                                message_id=data.get('order_msg'),
-                                reply_markup=None
-                            )
+
+                    if response.get('payment_data') and response.get('message') == 'ok' and order_status == 'ожидается оплата':
+                        try:
+                            if data.get('order_msg'):
+                                await callback.bot.edit_message_reply_markup(
+                                    chat_id=data.get('chat_id'),
+                                    message_id=data.get('order_msg'),
+                                    reply_markup=None
+                                )
+                                await state.update_data(order_msg=None)
+                        except Exception:
+                            pass
 
                         await callback.message.answer(
                             payment_msg
@@ -503,7 +518,7 @@ class OrderHandler(Handler):
                         )
                         await callback.message.answer(
                             link_payment_msg.format(
-                                response[0].get('payment_url')
+                                response.get('payment_data', {}).get('payment_url')
                             )
                         )
                         status_code, menu_msg = await req_to_api(
@@ -516,7 +531,7 @@ class OrderHandler(Handler):
                             reply_markup=self.kb.start_menu_btn()
                         )
 
-                    elif order_status != 'ожидается оплата':
+                    elif response.get('payment_data') and order_status != 'ожидается оплата':
                         await callback.message.answer(
                             MESSAGES['ORDER_ALREADY_PAID']
                         )
@@ -530,10 +545,33 @@ class OrderHandler(Handler):
                             reply_markup=self.kb.start_menu_btn()
                         )
 
-                    else:
+                    elif not response.get('payment_data') and response.get('message') in ('Счет был отклонен', 'Неверный статус транзакции', 'Попробуйте повторить попытку позже', 'Операция отклонена, пожалуйста обратитесь в интернет-магазин или воспользуйтесь другой картой'):
+                        await callback.message.answer(
+                            MESSAGES['ERROR_FROM_TINKOFF'],
+                            reply_markup=self.kb.start_menu_btn()
+                        )
+
+                    elif not response.get('payment_data') and response.get('message') in ('Не указано кол-во контейнеров у заявки', 'Не указан контейнер'):
+                        await callback.message.answer(
+                            MESSAGES['NO_CONTAINER_SET']
+                        )
+
+                    elif not response.get('payment_data') and response.get('message') == 'Неверные параметры. Email или Phone обязательны при передаче чека':
                         await callback.message.answer(
                             MESSAGES['PLEASE_ADD_NUMBER_OR_EMAIL'],
                             reply_markup=self.kb.settings_btn()
+                        )
+
+                    elif not response.get('payment_data') and response.get('message') == 'Заявка не найдена':
+                        await callback.message.answer(
+                            MESSAGES['ORDER_NOT_FOUND'],
+                            reply_markup=self.kb.start_menu_btn()
+                        )
+
+                    else:
+                        await callback.message.answer(
+                           MESSAGES['ERROR_IN_HANDLER'],
+                           reply_markup=self.kb.start_menu_btn()
                         )
                 else:
                     await callback.answer(
@@ -549,7 +587,7 @@ class OrderHandler(Handler):
             order_menu = callback.data.split('_')[-2]
             flag = data.get('flag')
             order_id = callback.data.split('_')[-1]
-            if flag == 'False':
+            if flag == 'False' or flag is None:
                 msg = await callback.bot.edit_message_reply_markup(
                     chat_id=callback.message.chat.id,
                     message_id=callback.message.message_id,
@@ -755,13 +793,16 @@ class OrderHandler(Handler):
             await state.update_data(chat_id=callback.message.chat.id)
             data = await state.get_data()
 
-            if data.get('order_msg'):
-                await callback.bot.edit_message_reply_markup(
-                    chat_id=data.get('chat_id'),
-                    message_id=data.get('order_msg'),
-                    reply_markup=None
-                )
-                await state.update_data(order_msg=None)
+            try:
+                if data.get('order_msg'):
+                    await callback.bot.edit_message_reply_markup(
+                        chat_id=data.get('chat_id'),
+                        message_id=data.get('order_msg'),
+                        reply_markup=None
+                    )
+                    await state.update_data(order_msg=None)
+            except Exception:
+                pass
                 
             order_id = callback.data.split('_')[-1]
 
