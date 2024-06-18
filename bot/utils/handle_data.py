@@ -103,8 +103,7 @@ async def show_order_info(self: 'OrderHandler', message: Message, order: dict, s
         method='get',
         url='bot/messages?message_key=ORDER_INFO'
     )
-    order_msg = await message.answer(
-        order_info_msg.format(
+    text =  order_info_msg.format(
             order.get('order_num'),
             order.get('address_data', {}).get('address'),
             address_comment if address_comment != 'Без комментария' else '-',
@@ -116,9 +115,12 @@ async def show_order_info(self: 'OrderHandler', message: Message, order: dict, s
             order_sum,
             created_at
 
-        ),
+        )
+    order_msg = await message.answer(
+        text,
         reply_markup=self.kb.order_menu_btn(order, self.orders_list, self.index)
     )
+    await state.update_data(order_payment_text=text)
     await state.update_data(order_msg=order_msg.message_id)
     await state.update_data(order_msg_text=order_msg.text)
 

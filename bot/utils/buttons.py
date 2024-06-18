@@ -29,5 +29,5 @@ BUTTONS = {
     'BACK_QUESTIONNAIRE': '⬅ Назад ',
     'BACK_SCHEDULE': '⬅ Назад   ',
     'ACCEPT': '✅ Согласен',
-    'DENY': '❌ Не согласен',
+    'DENY': '❌ Согласиться',
 }
