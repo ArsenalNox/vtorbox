@@ -57,6 +57,7 @@ async def get_list_of_couriers(
         roles_user_query = session.query(Users.id).\
             join(Permissions, Permissions.user_id == Users.id).\
             join(Roles, Roles.id == Permissions.role_id).\
+            enable_eagerloads(False).\
             where(Roles.role_name == ROLE_COURIER_NAME).subquery()
 
         query = query.filter(Users.id.in_(roles_user_query))
