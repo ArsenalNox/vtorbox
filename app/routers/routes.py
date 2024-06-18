@@ -246,7 +246,6 @@ async def get_routes(
     """
     with Session(engine, expire_on_commit=False) as session:
         routes = session.query(Routes).\
-            enable_eagerloads(False).\
             options(
                 joinedload(Routes.orders).\
                 joinedload(RoutesOrders.order).\
