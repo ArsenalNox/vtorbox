@@ -245,11 +245,13 @@ async def get_routes(
     - **date**: [datetime] - дата на получение маршрутов, по умолчанию получаются все маршруты
     """
     with Session(engine, expire_on_commit=False) as session:
-        routes = session.query(Routes).options(
-            joinedload(Routes.orders).\
-            joinedload(RoutesOrders.order).\
-            joinedload(Orders.payments)
-            ).enable_eagerloads(False)
+        routes = session.query(Routes).\
+            enable_eagerloads(False).\
+            options(
+                joinedload(Routes.orders).\
+                joinedload(RoutesOrders.order).\
+                joinedload(Orders.payments)
+            )
 
         if date:
             date = date.replace(hour=0, minute=0)
@@ -257,7 +259,6 @@ async def get_routes(
             routes = routes.filter(Routes.date_created > date)
             routes = routes.filter(Routes.date_created < date_tommorrow)
             
-        
         if courier_id: 
             routes = routes.filter(Routes.courier_id == courier_id)
 
@@ -271,11 +272,6 @@ async def get_routes(
             return JSONResponse({
                 "detail": "Not found"
             }, 404)
-
-        # for route in routes:
-        #     route.orders
-        #     for routes_order in route.orders:
-        #         routes_order.order.payments
 
         return jsonable_encoder(routes)
     
