@@ -125,8 +125,8 @@ def generate_y_courier_json(route_data, vehicles=None):
         locations.append({
             "id": order_d.order_num,
             "point": {
-                "lon": float(order_d.address.latitude),
-                "lat": float(order_d.address.longitude)
+                "lon": float(order_d.address.longitude),
+                "lat": float(order_d.address.latitude)
             },
             "time_window": order_d_time_window,
             "hard_window": True
