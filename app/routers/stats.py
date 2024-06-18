@@ -216,7 +216,7 @@ async def get_order_region_stats()->List[OrderRegionStatistic]:
         return_data = []
         
         for region in regions_query:
-            order_count_by_region = session.query(Orders).enable_eagerloads(False).join(Address).\
+            order_count_by_region = session.query(Orders).join(Address).enable_eagerloads(False).\
                 filter(
                     Address.region_id == region.id,
                     Orders.status == OrderStatuses.status_done().id
