@@ -735,6 +735,7 @@ async def process_current_orders(
         
     with Session(engine, expire_on_commit=False) as session:
         orders = session.query(Orders).\
+            options(joinedload(Orders.user)).\
             filter(Orders.deleted_at == None).\
             filter(Orders.status == OrderStatuses.status_processing().id).\
             order_by(asc(Orders.date_created)).enable_eagerloads(False).all()
