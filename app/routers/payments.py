@@ -172,17 +172,23 @@ async def create_new_payment(
 
         if not order_query:
             return JSONResponse({
-                "message": "No order found"
+                "message": "No order found",
+                "payment_data": None,
+                "interval_created": False
             }, 404)
 
         if not order_query.box:
             return JSONResponse({
-                "message": "No contaier set"
+                "message": "No contaier set",
+                "payment_data": None,
+                "interval_created": False
             }, 422)
 
         if order_query.box_count < 1:
             return JSONResponse({
-                "message": "Не указано кол-во контейнеров у заявки"
+                "message": "Не указано кол-во контейнеров у заявки",
+                "payment_data": None,
+                "interval_created": False
             })
 
         new_payment, message = Payments.process_status_update(
