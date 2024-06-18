@@ -3,6 +3,8 @@ import time
 import datetime
 import hashlib
 
+
+
 from app import (
     CODER_KEY, CODER_SETTINGS, BOT_TOKEN,
     COURIER_API_ROOT_ENDPOINT as API_ROOT_ENDPOINT,
@@ -305,6 +307,7 @@ def generate_time_intervals(route_data):
     from time import sleep
     from sqlalchemy import desc, asc, desc, or_
     from app.models import Session, engine, Orders, Address
+    from sqlalchemy.orm import joinedload
 
     time_ranges = [
         ['10:00','13:00'],
@@ -344,7 +347,7 @@ def generate_time_intervals(route_data):
 
     with Session(engine, expire_on_commit=False) as session:
         for wp in waypoints:
-            order_q = session.query(Orders).filter_by(order_num = wp['order_num']).enable_eagerloads(False).first()
+            order_q = session.query(Orders).options(joinedload(Orders.user)).filter_by(order_num = wp['order_num']).enable_eagerloads(False).first()
             if not order_q:
                 continue
 
