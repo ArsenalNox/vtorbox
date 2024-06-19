@@ -42,7 +42,7 @@ class NotificationHandler(Handler):
 
             await callback.bot.edit_message_text(
                 chat_id=data.get('chat_id'),
-                message_id=callback.message.message_thread_id,
+                message_id=callback.inline_message_id,
                 text=approve_order_msg.format(order.get('order_num')),
                 reply_markup=None
             )
@@ -74,7 +74,7 @@ class NotificationHandler(Handler):
 
             await callback.bot.edit_message_text(
                 chat_id=data.get('chat_id'),
-                message_id=callback.message.message_thread_id,
+                message_id=callback.inline_message_id,
                 text=deny_order_msg.format(order.get('order_num')),
                 reply_markup=None
             )
