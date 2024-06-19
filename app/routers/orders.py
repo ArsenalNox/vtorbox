@@ -559,7 +559,7 @@ async def set_order_status(
                         btn={
                             "inline_keyboard" : [
                                 [{
-                                    "text" : "❌ Не согласен",
+                                    "text" : "❌ Согласиться",
                                     "callback_data": f'accept_deny_False_False_{order_id}',
                                 }],
                                 [{

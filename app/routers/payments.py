@@ -211,7 +211,7 @@ async def create_new_payment(
                     btn={
                         "inline_keyboard" : [
                             [{
-                                "text" : "❌ Не согласен",
+                                "text" : "❌ Согласиться",
                                 "callback_data": f"accept_deny_payment_False_{order_query.id}",
                             }],
                             [{
