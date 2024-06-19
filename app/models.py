@@ -1646,7 +1646,7 @@ ALLOWED_STATUS_TRANSITION_CFG = {
     s_st_l[4]['status_name']: {
         "ALLOW_FROM": [],
         "ALLOW_TO": [
-            s_st_l[5], s_st_l[3]
+            s_st_l[5], s_st_l[3],
             s_st_l[6], s_st_l[7],
             s_st_l[8], s_st_l[9]
         ],
