@@ -386,6 +386,25 @@ class OrderDataChange(BaseModel):
 
     date_created: datetime
 
+    @validator('from_user', pre=True, always=True)
+    def replace_tel(cls, v):
+        if v == None:
+            return UserOrderOutData(
+                id= "6f240f96-acb0-4f98-8f0a-534a592ee062",
+                email= "user3@example.com",
+                telegram_id= None,
+                telegram_username= None,
+                phone_number= None,
+                firstname=  None,
+                secondname= None,
+                patronymic= None,
+                deleted_at= None,
+                link_code= "ca740518-6"
+            )
+        return v
+
+
+
 
 class OrderOut(BaseModel):
     id: UUID4
