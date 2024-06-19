@@ -18,6 +18,7 @@ class NotificationHandler(Handler):
     def handle(self):
         @self.router.callback_query(F.data.startswith('confirm_order'))
         async def approve_order(callback: CallbackQuery, state: FSMContext):
+
             await state.update_data(chat_id=callback.message.chat.id)
             data = await state.get_data()
             order_id = callback.data.split('_')[-1]
@@ -42,7 +43,7 @@ class NotificationHandler(Handler):
 
             await callback.bot.edit_message_text(
                 chat_id=data.get('chat_id'),
-                message_id=callback.inline_message_id,
+                message_id=callback.message.message_id,
                 text=approve_order_msg.format(order.get('order_num')),
                 reply_markup=None
             )
@@ -74,7 +75,7 @@ class NotificationHandler(Handler):
 
             await callback.bot.edit_message_text(
                 chat_id=data.get('chat_id'),
-                message_id=callback.inline_message_id,
+                message_id=callback.message.message_id,
                 text=deny_order_msg.format(order.get('order_num')),
                 reply_markup=None
             )
