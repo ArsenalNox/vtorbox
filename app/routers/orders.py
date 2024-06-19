@@ -671,7 +671,7 @@ async def update_order_data(
 
         session.commit()
 
-        order_query = session.query(Orders).where(Orders.id == order_id).\
+        order_query = session.query(Orders).filter(Orders.id == order_id).\
             enable_eagerloads(False).first()
 
         return jsonable_encoder(order_query)
@@ -923,16 +923,31 @@ async def check_order_intervals():
 
             #Проверить, есть ли заявка на этот адрес (созданная)
             order_exists = False
-            addr_orders = session.query(Orders).filter(Orders.address_id==address.id).enable_eagerloads(False).all()
+            addr_orders = session.query(Orders).\
+                filter(Orders.address_id==address.id).\
+                enable_eagerloads(False).all()
             if len(addr_orders)>0:
                 for order in addr_orders:
-                    #Проверить, на сегодня ли эта заявка
+                    #Проверить, на завтра ли эта заявка
                     order_day = order.day
                     order_day = order_day.replace(hour=0, minute=0, second=0, microsecond=0)
                     if order_day == date_tommorrow:
-                        order_exists = True
-                        break
-            
+                        if order.status == OrderStatuses.status_default().id:
+                            order_exists = True
+                            break
+
+                        if order.status == OrderStatuses.status_awaiting_payment().id:
+                            order_exists = True
+                            break
+
+                        if order.status == OrderStatuses.status_confirmed().id:
+                            order_exists = True
+                            break
+
+                        if order.status == OrderStatuses.status_accepted_by_courier().id:
+                            order_exists = True
+                            break
+
             if order_exists: 
                 print("Order exists, skipping")
                 continue
@@ -952,7 +967,7 @@ async def check_order_intervals():
                 from_user   = user_id,
                 address_id  = address.id,
                 day         = date_tommorrow,
-                comment     = 'Создана из интервала',
+                comment     = 'Создана автоматически по расписанию',
                 status      = OrderStatuses.status_processing().id,
                 date_created = datetime.now(),
                 user_order_num = count + 1,
@@ -971,6 +986,7 @@ async def resend_order_confirm_notify(
     final_check: bool = False
 ):
     with Session(engine, expire_on_commit=False) as session:
+        #TODO: Добавить фильтр на дату
         orders = session.query(Orders).\
             filter(Orders.deleted_at == None).\
             filter(Orders.status == OrderStatuses.status_awating_confirmation().id).\
