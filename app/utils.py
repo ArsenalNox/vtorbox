@@ -351,6 +351,7 @@ def generate_time_intervals(route_data):
                     joinedload(Orders.user),
                     joinedload(Orders.address)
                 ).filter_by(order_num = wp['order_num']).enable_eagerloads(False).first()
+
             if not order_q:
                 continue
 
@@ -373,11 +374,12 @@ def generate_time_intervals(route_data):
                 if in_interval:
                     print(start, end)
                     order_q.time_window = f"{start}-{end}"
-
-                else:
+            
+            if order_q.time_window == None:
                     order_q.time_window = "10:00-13:00"
 
-                order_list_generated.append(order_q)
+            order_list_generated.append(order_q)
+            
 
         #TODO: Обновление статуса
         session.commit()
