@@ -33,18 +33,18 @@ class NotificationHandler(Handler):
                 url='bot/messages?message_key=ORDER_WAS_APPROVED'
             )
 
-            await callback.bot.edit_message_text(
-                chat_id=data.get('chat_id'),
-                message_id=callback.message.message_id,
-                text=approve_order_msg.format(order.get('order_num')),
-                reply_markup=None
-            )
-
             status = quote("подтверждена")
 
             await req_to_api(
                 method='put',
                 url=f'orders/{order_id}/status?status_text={status}',
+            )
+
+            await callback.bot.edit_message_text(
+                chat_id=data.get('chat_id'),
+                message_id=callback.message.message_thread_id,
+                text=approve_order_msg.format(order.get('order_num')),
+                reply_markup=None
             )
 
         @self.router.callback_query(F.data.startswith('deny_order'))
@@ -74,7 +74,7 @@ class NotificationHandler(Handler):
 
             await callback.bot.edit_message_text(
                 chat_id=data.get('chat_id'),
-                message_id=callback.message.message_id,
+                message_id=callback.message.message_thread_id,
                 text=deny_order_msg.format(order.get('order_num')),
                 reply_markup=None
             )

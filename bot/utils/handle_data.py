@@ -53,14 +53,14 @@ async def show_active_orders(self: 'TextHandler', message: Message, orders: list
         url='bot/messages?message_key=YOU_HAVE_ACTIVE_ORDERS'
     )
 
-    msg = await message.answer(
+    active_msg = await message.answer(
         active_order_msg.format(
             len(orders)
         ),
         reply_markup=self.kb.show_btn(first_order)
     )
 
-    await state.update_data(msg=msg.message_id)
+    await state.update_data(active_msg=active_msg.message_id)
 
 
 async def show_order_info(self: 'OrderHandler', message: Message, order: dict, state: FSMContext):
