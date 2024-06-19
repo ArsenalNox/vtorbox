@@ -28,25 +28,34 @@ class NotificationHandler(Handler):
                 method='get',
                 url=f'orders/{order_id}',
             )
+            order_status = order.get('status_data', {}).get('status_name')
 
-            status_code, approve_order_msg = await req_to_api(
-                method='get',
-                url='bot/messages?message_key=ORDER_WAS_APPROVED'
-            )
+            if order_status == 'ожидается подтверждение':
+                status_code, approve_order_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ORDER_WAS_APPROVED'
+                )
 
-            status = quote("подтверждена")
+                status = quote("подтверждена")
 
-            await req_to_api(
-                method='put',
-                url=f'orders/{order_id}/status?status_text={status}',
-            )
+                await req_to_api(
+                    method='put',
+                    url=f'orders/{order_id}/status?status_text={status}',
+                )
 
-            await callback.bot.edit_message_text(
-                chat_id=data.get('chat_id'),
-                message_id=callback.message.message_id,
-                text=approve_order_msg.format(order.get('order_num')),
-                reply_markup=None
-            )
+                await callback.bot.edit_message_text(
+                    chat_id=data.get('chat_id'),
+                    message_id=callback.message.message_id,
+                    text=approve_order_msg.format(order.get('order_num')),
+                    reply_markup=None
+                )
+
+            else:
+                await callback.bot.edit_message_reply_markup(
+                    chat_id=data.get('chat_id'),
+                    message_id=callback.message.message_id,
+                    reply_markup=None
+                )
 
         @self.router.callback_query(F.data.startswith('deny_order'))
         async def deny_order(callback: CallbackQuery, state: FSMContext):
@@ -60,24 +69,33 @@ class NotificationHandler(Handler):
                 method='get',
                 url=f'orders/{order_id}',
             )
+            order_status = order.get('status_data', {}).get('status_name')
 
-            status = quote("отменена")
+            if order_status == 'ожидается подтверждение':
+                status = quote("отменена")
 
-            await req_to_api(
-                method='put',
-                url=f'orders/{order_id}/status?status_text={status}',
-            )
+                await req_to_api(
+                    method='put',
+                    url=f'orders/{order_id}/status?status_text={status}',
+                )
 
-            status_code, deny_order_msg = await req_to_api(
-                method='get',
-                url='bot/messages?message_key=ORDER_WAS_DENY'
-            )
+                status_code, deny_order_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ORDER_WAS_DENY'
+                )
 
-            await callback.bot.edit_message_text(
-                chat_id=data.get('chat_id'),
-                message_id=callback.message.message_id,
-                text=deny_order_msg.format(order.get('order_num')),
-                reply_markup=None
-            )
+                await callback.bot.edit_message_text(
+                    chat_id=data.get('chat_id'),
+                    message_id=callback.message.message_id,
+                    text=deny_order_msg.format(order.get('order_num')),
+                    reply_markup=None
+                )
+
+            else:
+                await callback.bot.edit_message_reply_markup(
+                    chat_id=data.get('chat_id'),
+                    message_id=callback.message.message_id,
+                    reply_markup=None
+                )
 
 
