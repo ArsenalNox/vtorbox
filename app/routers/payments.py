@@ -172,14 +172,14 @@ async def create_new_payment(
 
         if not order_query:
             return JSONResponse({
-                "message": "No order found",
+                "message": "Заявка не найдена",
                 "payment_data": None,
                 "interval_created": False
             }, 404)
 
         if not order_query.box:
             return JSONResponse({
-                "message": "No contaier set",
+                "message": "Не указан контейнер",
                 "payment_data": None,
                 "interval_created": False
             }, 422)
@@ -225,7 +225,7 @@ async def create_new_payment(
             print(f"Не удалось отправить сообщение пользователю: {err}")
 
         try:
-            set_timed_func('p', new_payment.id, "M:01")
+            set_timed_func('p', new_payment.id, "M:05")
         except Exception as err:
             return {
                 "message": message,
