@@ -676,7 +676,8 @@ async def get_routes(
             joinedload(Routes.orders).\
             joinedload(RoutesOrders.order).\
             joinedload(Orders.payments)
-            )
+            ).filter(Routes.route_link != None)
+
         routes = routes.filter(Routes.courier_id == user.id)
 
         if not date:
