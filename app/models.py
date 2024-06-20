@@ -1445,7 +1445,7 @@ class BotSettings(Base):
     types = relationship(
         'SettingsTypes', 
         secondary='bot_settings_types', 
-        backref='botsettings', 
+        back_populates='settings', 
         lazy='joined', 
         overlaps="botsettings,types")
     date_created = Column(DateTime(), default=default_time)
@@ -1468,7 +1468,7 @@ class SettingsTypes(Base):
     settings = relationship(
         'BotSettings', 
         secondary='bot_settings_types', 
-        backref='settingstypes', 
+        back_populates='types', 
         overlaps="botsettings,types"
         )
     date_created = Column(DateTime(), default=default_time)
