@@ -935,6 +935,10 @@ async def check_order_intervals():
                         if order.status == OrderStatuses.status_default().id:
                             order_exists = True
                             break
+                        
+                        if order.status == OrderStatuses.status_processing().id:
+                            order_exists = True
+                            break
 
                         if order.status == OrderStatuses.status_awaiting_payment().id:
                             order_exists = True
