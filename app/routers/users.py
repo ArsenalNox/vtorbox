@@ -362,7 +362,7 @@ async def update_user_data(
 
                 continue
 
-            if value:
+            if value is not None: 
                 setattr(user_query, attr, value)
 
         session.add(user_query)
@@ -407,16 +407,6 @@ async def update_user_data(
         # user_data.orders = orders_out
 
         return user_data
-
-
-@router.put('/users', tags=[Tags.users])
-async def update_user_self_data(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["customer"])],
-    new_user_data: UserUpdateData
-):
-    """
-    Обновить свои данные пользователем
-    """
 
 
 @router.get('/users/bot_linked', tags=[Tags.bot, Tags.users])
