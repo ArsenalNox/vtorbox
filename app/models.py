@@ -15,6 +15,8 @@ from sqlalchemy.orm import declarative_base, relationship, backref, Session, Map
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import func
 
+from sqlalchemy import desc, asc, desc, or_, not_
+
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from os import getenv
@@ -383,16 +385,20 @@ class Users(Base):
         Получить айди случайного менеджера
         """
         with Session(engine, expire_on_commit=False) as session:
-            query_manager = session.query(Users.id).\
+            query_manager = session.query(Users.id, Users.telegram_id).\
+                where((Users.telegram_id != None) | (Users.telegram_username != None)).\
                 join(Permissions, Permissions.user_id == Users.id).\
                 join(Roles, Roles.id == Permissions.role_id).\
-                where(Roles.role_name == ROLE_MANAGER_NAME).all()
+                where(Roles.role_name == ROLE_MANAGER_NAME)
+
+            query_manager = query_manager.all()
 
             try:
                 if len(query_manager) < 1:
                     return None
 
                 return random.choice(query_manager)[0]
+
             except Exception as err:
                 print(err)
 
