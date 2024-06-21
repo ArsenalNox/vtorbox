@@ -1007,9 +1007,12 @@ async def resend_order_confirm_notify(
             if not order.user.allow_messages_from_bot and order.user.telegram_id:
                 continue
             else:
+                message_to_send = f"От вас требуется подверждение заявки ({order.order_num}) по адресу ({order.address.address})"
+                if order.time_window:
+                    message_to_send = f"От вас требуется подверждение заявки ({order.order_num}) по адресу ({order.address.address}) по временному итервалу {order.time_window}"
                 send_message_through_bot(
                     order.user.telegram_id,
-                    message=f"От вас требуется подверждение заявки ({order.order_num}) по адресу ({order.address.address}) по временному итервалу {order.time_window}",
+                    message=message_to_send,
                     btn={
                         "inline_keyboard" : [
                         [{
