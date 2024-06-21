@@ -227,16 +227,18 @@ async def create_user(
         query_user = session.query(Users).filter_by(email=new_user_data.email).first()
         if query_user: 
             return JSONResponse({
-                "message": "Email already taken",
+                "detail": "Email already taken",
             }, status_code=400)
 
         if not (new_user_data.telegram_id == None):
             query_user = session.query(Users).\
                     filter_by(telegram_id=new_user_data.telegram_id).first()
+
             if query_user:
                 return JSONResponse({
-                    "message": "Email already taken",
+                    "detail": "Telegram id is already taken",
                 }, status_code=400)
+
 
         password_plain = ''
         print(new_user_data.password)
@@ -342,7 +344,7 @@ async def update_user_data(
                 "message": "No such user"
                 }, status_code=404)
 
-        for attr, value in new_user_data.model_dump().items():
+        for attr, value in new_user_data.model_dump(exclude_unset=True).items():
             # print(attr)
             if attr == 'password' and value:
                 setattr(user_query, attr, get_password_hash(value))
@@ -362,8 +364,7 @@ async def update_user_data(
 
                 continue
 
-            if value is not None: 
-                setattr(user_query, attr, value)
+            setattr(user_query, attr, value)
 
         session.add(user_query)
         session.commit()
@@ -374,38 +375,6 @@ async def update_user_data(
                 filter_by(user_id=user_query.id).join(Roles).all()
         user_data.roles = [role.role_name for role in scopes_query]
         
-        # orders = session.query(Orders, Address, BoxTypes, OrderStatuses).\
-        #         join(Address, Address.id == Orders.address_id).\
-        #         outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id).\
-        #         join(OrderStatuses, OrderStatuses.id == Orders.status).\
-        #         where(Orders.from_user == user_query.id).order_by(asc(Orders.date_created)).all()
-        
-        # orders_out = []
-        # for order in orders:
-        #     order_data = OrderOut(**order[0].__dict__)
-        #     order_data.tg_id = user_query.telegram_id
-
-        #     try:
-        #         order_data.address_data = order[1]
-        #         order_data.interval = str(order[1].interval).split(', ')
-        #     except IndexError: 
-        #         order_data.address_data = None
-
-        #     try:
-        #         if not order[2] == None:
-        #             order_data.box_data = order[2]
-        #     except IndexError:
-        #         order_data.box_data = None
-
-        #     try:
-        #         order_data.status_data = order[3]
-        #     except IndexError:
-        #         order_data.status_data = None
-
-        #     orders_out.append(order_data)
-
-        # user_data.orders = orders_out
-
         return user_data
 
 
