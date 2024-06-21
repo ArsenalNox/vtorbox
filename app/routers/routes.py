@@ -224,6 +224,33 @@ async def generate_routes_today(
         if write_after_generation:
             await write_routes_to_db(routes)
             #TODO: Сброс заявок со статусом ожидается на сегодня
+            try:
+                orders = session.query(Orders).\
+                    filter(Orders.deleted_at == None).\
+                    filter(Orders.status == OrderStatuses.status_awating_confirmation().id).\
+                    filter(Orders.day >= date).\
+                    filter(Orders.day <= date_tommorrow).\
+                    enable_eagerloads(False)
+                for order_query in orders:
+                    old_status_query = session.query(OrderStatuses).filter_by(id=order_query.status).enable_eagerloads(False).first()
+                    new_data_change = OrderChangeHistory(
+                        from_user_id = current_user.id,
+                        order_id = order_query.id,
+                        attribute = 'status',
+                        old_content = old_status_query.status_name,
+                        new_content = status_query.status_name,
+                    )
+                    order_query = order_query.update_status(
+                        OrderStatuses.status_canceled().id, 
+                        (OrderStatuses.status_canceled().message_on_update)
+                        )
+
+                    session.add(new_data_change)
+                    session.commit()
+
+            except Exception as err:
+                print(err)
+
 
         return {
             "global_count": global_orders_count,
