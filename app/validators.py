@@ -7,7 +7,7 @@
 """
 import uuid
 
-from pydantic import BaseModel, EmailStr, UUID4, Field, ValidatorFunctionWrapHandler, validator
+from pydantic import BaseModel, EmailStr, UUID4, Field, ValidatorFunctionWrapHandler, validator, field_validator
 from typing import Optional, Annotated, Any, List, Union, Tuple
 from typing_extensions import TypedDict
 from datetime import datetime
@@ -172,7 +172,7 @@ class RegionOut(BaseModel):
     #work_days: Optional[List[str]]
     work_days: Optional[Any] = None
     
-    @validator('work_days', pre=True, always=True)
+    @field_validator('work_days')
     def replace_as_list(cls, v):
         if (v != None) and (type(v) == str):
             return v.split(' ')
@@ -345,7 +345,7 @@ class PaymentOut(BaseModel):
     
     date_created: datetime
 
-    @validator('status', pre=True, always=True)
+    @field_validator('status')
     def replace_as_list(cls, v):
         statuses= {
             "NEW":	'Платёж создан',
@@ -386,8 +386,10 @@ class OrderDataChange(BaseModel):
 
     date_created: datetime
 
-    @validator('from_user', pre=True, always=True)
+    @field_validator('from_user')
     def replace_tel(cls, v):
+        return v
+
         if v == None:
             return UserOrderOutData(
                 id= "6f240f96-acb0-4f98-8f0a-534a592ee062",
@@ -401,7 +403,6 @@ class OrderDataChange(BaseModel):
                 deleted_at= None,
                 link_code= "ca740518-6"
             )
-        return v
 
 
 
@@ -479,7 +480,7 @@ class UserOut(BaseModel):
     additional_info: Optional[str] = None
     date_created: datetime
 
-    @validator('roles', pre=True, always=True)
+    @field_validator('roles')
     def only_unique_roles(cls, v):
         if (v != None):
             set_v = set(v)
@@ -488,7 +489,7 @@ class UserOut(BaseModel):
         else:
             return v
 
-    @validator('phone_number', pre=True, always=True)
+    @field_validator('phone_number')
     def replace_tel(cls, v):
         if v == None:
             return
