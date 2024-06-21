@@ -170,3 +170,25 @@ class BaseKeyboard:
             resize_keyboard=True,
             one_time_keyboard=True
         )
+
+    def leave_door_yes_no_btn(self, order_id: str) -> InlineKeyboardMarkup:
+        """ Кнопки Да/Нет при вопросе 'Оставить у двери'  """
+
+        builder = InlineKeyboardBuilder()
+        builder.add(
+            InlineKeyboardButton(
+                text='Да',
+                callback_data=f'leave_door_yes_{order_id}'
+            ),
+        )
+        builder.add(
+            InlineKeyboardButton(
+                text='Нет',
+                callback_data=f'leave_door_no_{order_id}'
+            ),
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
