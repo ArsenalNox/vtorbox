@@ -96,6 +96,12 @@ class NotificationHandler(Handler):
             user_choose = callback.data.split('_')[-2]
             order_id = callback.data.split('_')[-1]
 
+            await callback.bot.edit_message_reply_markup(
+                chat_id=callback.message.chat.id,
+                message_id=callback.message.message_id,
+                reply_markup=None
+            )
+
             status_code, order = await req_to_api(
                 method='get',
                 url=f'orders/{order_id}',
