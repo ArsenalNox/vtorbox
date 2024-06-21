@@ -302,7 +302,7 @@ async def create_order(
             where(Users.id == user.id, Address.id == order_data.address_id).first()
         if not address:
             return JSONResponse({
-                "message": f"No user address with id '{order_data.from_user}' found"
+                "detail": f"No user address with id '{order_data.from_user}' found"
             }, status_code=422)
             
         warnings = []
@@ -332,6 +332,12 @@ async def create_order(
             user_order_num = count + 1,
             manager_id = Users.get_random_manager()
         )
+
+        if new_order.manager_id == None:
+            return JSONResponse({
+                "detail": F"Не удалось найти менеджера для заявки"
+            }, 422)
+
         if user.telegram_id:
             new_order.tg_id = user.telegram_id
 
@@ -688,7 +694,7 @@ async def accept_order_by_user(
     """
     if (not status_text) and (not status_id):
         return JSONResponse({
-            "message": "status_text or status_id required"
+            "detail": "status_text or status_id required"
         },status_code=422)
     
     status_query = None
@@ -701,7 +707,7 @@ async def accept_order_by_user(
 
         if not status_query:
             return JSONResponse({
-                "message": "status not found"
+                "detail": "status not found"
             },status_code=404)
         
         order_query = session.query(Orders).filter_by(id = order_id).\
@@ -709,7 +715,7 @@ async def accept_order_by_user(
 
         if not order_query:
             return JSONResponse({
-                "message": "order not found"
+                "detail": "order not found"
             },status_code=404)
 
         order_query.status = status_query.id
@@ -981,8 +987,6 @@ async def check_order_intervals():
             session.commit()
 
             print('')
-
-
 
 
 @router.post('/resend-notify')
