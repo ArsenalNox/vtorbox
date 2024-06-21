@@ -229,7 +229,7 @@ class OrderHandler(Handler):
 
             status_code, orders = await req_to_api(
                 method='get',
-                url=f'users/orders/?tg_id={message.from_user.id}',
+                url=f'users/orders/?tg_id={message.chat.id}',
             )
             if orders:
 
@@ -257,7 +257,7 @@ class OrderHandler(Handler):
                         method='get',
                         url='bot/messages?message_key=YOUR_ORDERS_BY_MONTH'
                     )
-
+                    logger.debug(f'User: {message.chat.id} получил историю за месяц: {result}')
                     msg = await message.answer(
                         orders_by_month_msg,
                         reply_markup=self.kb.order_list_by_month(result)
