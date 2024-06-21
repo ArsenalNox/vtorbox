@@ -190,7 +190,7 @@ if __name__ == '__main__':
 
     #Генерация пула
     trigger_p_g = CronTrigger(
-        year="*", month="*", day="*", hour="19", minute="01", second="*"
+        year="*", month="*", day="*", hour="19", minute="01", second="00"
     )
     scheduler.add_job(
         trigger_poll_generation,
@@ -201,7 +201,7 @@ if __name__ == '__main__':
 
     #Проверка интервалов. Создание заявок по адресам если соответсвует интервал
     trigger_gen_intervals = CronTrigger(
-        year="*", month="*", day="*", hour="19", minute="00", second="*"
+        year="*", month="*", day="*", hour="19", minute="00", second="00"
     )
     scheduler.add_job(
         check_intervals,
@@ -212,7 +212,7 @@ if __name__ == '__main__':
 
     #Формирование маршрутов, окончательное
     trigger_r_g = CronTrigger(
-        year="*", month="*", day="*", hour="10", minute="00", second="*"
+        year="*", month="*", day="*", hour="10", minute="00", second="00"
     )
     scheduler.add_job(
         trigger_route_generation,
@@ -223,7 +223,7 @@ if __name__ == '__main__':
 
     #Повторная отправка сообщения на подтверждение
     trigger_s_n = CronTrigger(
-        year="*", month="*", day="*", hour="9", minute="00", second="*"
+        year="*", month="*", day="*", hour="9", minute="00", second="00"
     ) 
     scheduler.add_job(
         resend_notify,
