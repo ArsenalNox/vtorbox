@@ -1058,7 +1058,9 @@ async def get_users_order_aggregate(
 
         return_data = {}
         for order in orders:
-            order_date = order.day.strftime("%B %Y")
+            
+            order_date = order.date_created.strftime("%B %Y")
+
             for m_d in en_to_ru:
                 if m_d in str(order_date):
                     order_date = order_date.replace(m_d, en_to_ru[m_d])
