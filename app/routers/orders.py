@@ -358,11 +358,15 @@ async def create_order(
         session.add(new_order)
         session.commit()
 
-        status_update = OrderStatusHistory(
+        new_data_change = OrderChangeHistory(
+            from_user_id = None,
             order_id = new_order.id,
-            status_id = new_order.status
+            attribute = 'status',
+            old_content = None,
+            new_content = OrderStatuses.status_default().status_name,
+            date_created = datetime.now()
         )
-        session.add(status_update)
+        session.add(new_data_change)
 
         session.commit()
     
@@ -988,6 +992,17 @@ async def check_order_intervals():
                 manager_id = Users.get_random_manager()
             )
             session.add(new_order)
+            session.commit()
+
+            new_data_change = OrderChangeHistory(
+                from_user_id = None,
+                order_id = new_order.id,
+                attribute = 'status',
+                old_content = None,
+                new_content = OrderStatuses.status_processing().status_name,
+                date_created = datetime.now()
+            )
+            session.add(new_data_change)
             session.commit()
 
             print('')
