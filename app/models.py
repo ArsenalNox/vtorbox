@@ -1547,8 +1547,8 @@ ORDER_STATUS_PAYED = {
     "description": "заявка оплачена"
     }
 ORDER_STATUS_DONE = {
-    "status_name": "обработанна",
-    "description": "обработанна"
+    "status_name": "обработана",
+    "description": "заявка обработана"
     }
 ORDER_STATUS_DELETED = {
     "status_name": "удалена",
