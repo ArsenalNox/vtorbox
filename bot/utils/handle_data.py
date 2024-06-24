@@ -103,7 +103,7 @@ async def show_order_info(self: 'OrderHandler', message: Message, order: dict, s
         method='get',
         url='bot/messages?message_key=ORDER_INFO'
     )
-    text =  order_info_msg.format(
+    text = order_info_msg.format(
             order.get('order_num'),
             order.get('address_data', {}).get('address'),
             address_comment if address_comment != 'Без комментария' else '-',
