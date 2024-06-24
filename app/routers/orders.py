@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from calendar import monthrange
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from uuid import UUID
 
 from sqlalchemy import desc, asc, desc, or_
@@ -1071,4 +1072,74 @@ async def get_users_order_aggregate(
             else:
                 return_data[order_date].append(order.order_num)
 
+        return return_data
+
+
+@router.get('/user/orders/by_month')
+async def get_users_order_in_month(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
+    user_id: int,
+    date: str
+)->List[OrderOut]:
+    ru_to_en = {
+        "Январь": 'January',   
+        "Февраль": 'February',
+        "Март": 'March',
+        "Апрель": 'April',
+        'Май': 'May',
+        "Июнь": 'June',
+        "Июль": 'July',
+        "Август": 'August',
+        "Сентябрь": 'September',
+        "Октябрь": 'October',
+        "Ноябрь": 'November',  
+        "Декабрь": 'December'
+    }
+
+    date = 'Июнь 2024'
+
+
+
+    for m_d in ru_to_en:
+        if m_d in str(date):
+            date = date.replace(m_d, ru_to_en[m_d])
+    
+    print(date)
+
+    date = datetime.strptime(date, "%B %Y")
+    month_start_date = date.replace(hour=0, minute=0, second=0, microsecond=0, day=1)
+    month_end_date   = month_start_date + relativedelta(months=1)
+
+    print(date, month_start_date, month_end_date)
+
+    with Session(engine, expire_on_commit=False) as session:
+        user = Users.get_user(user_id)
+        if not user:
+            return JSONResponse({
+                "detail": "Пользователь не найден"
+            }, 404)
+
+        orders = session.query(Orders).filter(Orders.from_user==user.id).\
+        filter(Orders.date_created>=month_start_date).\
+        filter(Orders.date_created<=month_end_date).all()
+
+
+        return_data = []
+        for order in orders:
+            order.manager_info
+            order_parent_data = jsonable_encoder(order)
+            order_data = OrderOut(**order_parent_data)
+
+            order_data.tg_id = user.telegram_id
+
+            order_data.address_data = order.address
+            order_data.interval = str(order.address.interval).split(', ')
+            order_data.user_data = user
+            order_data.box_data = order.box
+            
+            s_query = session.query(OrderStatuses).filter_by(id=order.status).first()
+            order_data.status_data = s_query
+
+            return_data.append(order_data)
+    
         return return_data
