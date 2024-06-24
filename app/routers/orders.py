@@ -607,7 +607,7 @@ async def set_order_status(
         session.add(new_data_change)
         session.commit()
 
-        return jsonable_encoder(order_query)
+        return Orders.process_order_array([[order_query]])[0]
 
 
 @router.put('/orders/{order_id}', tags=[Tags.bot, Tags.orders])
@@ -694,9 +694,9 @@ async def update_order_data(
         session.commit()
 
         order_query = session.query(Orders).filter(Orders.id == order_id).\
-            enable_eagerloads(False).first()
+            enable_eagerloads(True).first()
 
-        return jsonable_encoder(order_query)
+        return Orders.process_order_array([[order_query]])[0]
 
 
 @router.post("/orders/{order_id}/accept", tags=[Tags.orders, Tags.bot])
