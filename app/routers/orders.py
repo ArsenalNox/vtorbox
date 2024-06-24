@@ -415,11 +415,20 @@ async def get_order_status_history(
                 "message": "user's order not found"
             }, status_code=404)
 
-        history = session.query(OrderStatusHistory, OrderStatuses).\
-            join(OrderStatuses, OrderStatuses.id == OrderStatusHistory.status_id).\
-            where(OrderStatusHistory.order_id == order_id).order_by(desc(OrderStatusHistory.date)).all()
+        # history = session.query(OrderStatusHistory, OrderStatuses).\
+        #     join(OrderStatuses, OrderStatuses.id == OrderStatusHistory.status_id).\
+        #     where(OrderStatusHistory.order_id == order_id).order_by(desc(OrderStatusHistory.date)).all()
 
-        return_data = [(r[0].date, r[1].status_name, r[1].description) for r in history]
+        history = session.query(OrderChangeHistory).\
+            filter(OrderChangeHistory.attribute == "status").\
+            where(OrderChangeHistory.order_id == order_id).all()
+
+        return_data = []
+        for d_change in history:
+            status_query = session.query(OrderStatuses).filter(OrderStatuses.status_name == d_change.new_content).first()
+            return_data.append((d_change.date_created, status_query.status_name, status_query.description))
+
+        # return_data = [(r[0].date, r[1].status_name, r[1].description) for r in history]
 
         return return_data
 
