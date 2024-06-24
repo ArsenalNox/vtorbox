@@ -455,10 +455,6 @@ class OrderOut(BaseModel):
         if v == None:
             return v
 
-        for d_change in v:
-            print(d_change.date_created)
-        
-
         sorted_list = sorted(v, key=attrgetter('date_created'), reverse=True)
         return sorted_list
 
