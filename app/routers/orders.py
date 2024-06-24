@@ -283,6 +283,8 @@ async def create_order(
     """
     #TODO: Оповещение менеджера при создании заявки
     with Session(engine, expire_on_commit=False) as session:
+        print(order_data)
+
         user = Users.get_user(order_data.from_user)
         if not user:
             return JSONResponse({
