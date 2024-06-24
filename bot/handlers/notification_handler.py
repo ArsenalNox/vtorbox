@@ -7,6 +7,7 @@ from aiogram.types import CallbackQuery
 
 from bot.handlers.base_handler import Handler
 from bot.keyboards.base_keyboards import BaseKeyboard
+from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
 
@@ -157,8 +158,17 @@ class NotificationHandler(Handler):
             await state.update_data(chat_id=callback.message.chat.id)
             order_id = callback.data.split('_')[-1]
 
-            await callback.bot.edit_message_reply_markup(
+            status_code, order = await req_to_api(
+                method='get',
+                url=f'orders/{order_id}',
+            )
+
+            address = order.get('address_data', {}).get('address')
+            order_num = order.get('order_num')
+
+            await callback.bot.edit_message_text(
                 chat_id=callback.message.chat.id,
+                text=MESSAGES['ACCEPT_DENY_ORDER'].format(order_num, address),
                 message_id=callback.message.message_id,
                 reply_markup=self.kb.confirm_deny_order(order_id)
             )
