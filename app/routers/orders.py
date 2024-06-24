@@ -1068,5 +1068,7 @@ async def get_users_order_aggregate(
             if order_date not in return_data.keys():
                 return_data[order_date] = []
                 return_data[order_date].append(order.order_num)
-            
+            else:
+                return_data[order_date].append(order.order_num)
+
         return return_data
