@@ -421,7 +421,7 @@ async def get_order_status_history(
 
         history = session.query(OrderChangeHistory).\
             filter(OrderChangeHistory.attribute == "status").\
-            where(OrderChangeHistory.order_id == order_id).all()
+            where(OrderChangeHistory.order_id == order_id).order_by(asc(OrderChangeHistory.date_created)).all()
 
         return_data = []
         for d_change in history:
