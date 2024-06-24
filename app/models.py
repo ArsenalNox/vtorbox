@@ -406,16 +406,16 @@ class Users(Base):
 
 
     @staticmethod
-    def get_user(user_id, update_last_action: bool = False):
+    def get_user(user_id, update_last_action: bool = False, enable_eagerloads=False):
         """
         Получить пользователя по его uuid4 или telegram_id
         """
         user_query = None
         with Session(engine, expire_on_commit=False) as session:
             if is_valid_uuid(user_id):
-                user_query = session.query(Users).filter_by(id=user_id).enable_eagerloads(False).first()
+                user_query = session.query(Users).filter_by(id=user_id).enable_eagerloads(enable_eagerloads).first()
             elif re.match(r'^[\d]*$', str(user_id)):
-                user_query = session.query(Users).filter_by(telegram_id=int(user_id)).enable_eagerloads(False).first()
+                user_query = session.query(Users).filter_by(telegram_id=int(user_id)).enable_eagerloads(enable_eagerloads).first()
 
             if user_query: 
                 user_query.last_action = datetime.now()
