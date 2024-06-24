@@ -1030,7 +1030,7 @@ async def resend_order_confirm_notify(
 @router.get('/orders/aggregate')
 async def get_users_order_aggregate(
     current_user: Annotated[UserLoginSchema, Security(get_current_user)],
-    user_id: int|UUID
+    user_id: int
 ):
     with Session(engine, expire_on_commit=False) as session:
         user = Users.get_user(user_id, enable_eagerloads=False)
