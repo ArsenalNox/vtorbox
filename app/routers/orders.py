@@ -594,7 +594,7 @@ async def set_order_status(
         session.add(new_data_change)
         session.commit()
 
-        return
+        return jsonable_encoder(order_query)
 
 
 @router.put('/orders/{order_id}', tags=[Tags.bot, Tags.orders])
