@@ -1027,7 +1027,7 @@ async def resend_order_confirm_notify(
                 )
 
 
-@router.get('/orders/aggregate')
+@router.get('/user/orders/aggregate')
 async def get_users_order_aggregate(
     current_user: Annotated[UserLoginSchema, Security(get_current_user)],
     user_id: int
