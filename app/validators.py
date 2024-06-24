@@ -6,6 +6,7 @@
 Но как иначе? 
 """
 import uuid
+from operator import attrgetter       
 
 from pydantic import BaseModel, EmailStr, UUID4, Field, ValidatorFunctionWrapHandler, validator, field_validator
 from typing import Optional, Annotated, Any, List, Union, Tuple
@@ -449,6 +450,17 @@ class OrderOut(BaseModel):
     payments: Annotated[Optional[List[PaymentOut]], Field(None)]
     data_changes: Annotated[Optional[List[OrderDataChange]], Field(None)]
 
+    @field_validator("data_changes")
+    def sort_data_changes_by_date(cls, v):
+        if v == None:
+            return v
+
+        for d_change in v:
+            print(d_change.date_created)
+        
+
+        sorted_list = sorted(v, key=attrgetter('date_created'))
+        return sorted_list
 
 class UserOut(BaseModel):
     """
