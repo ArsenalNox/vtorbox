@@ -459,7 +459,7 @@ class OrderOut(BaseModel):
             print(d_change.date_created)
         
 
-        sorted_list = sorted(v, key=attrgetter('date_created'))
+        sorted_list = sorted(v, key=attrgetter('date_created'), reverse=True)
         return sorted_list
 
 class UserOut(BaseModel):
