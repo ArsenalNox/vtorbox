@@ -266,11 +266,10 @@ class OrderKeyboard(BaseKeyboard):
 
         builder = InlineKeyboardBuilder()
         for order in orders:
-            orders_id = '_'.join(orders[order])
             builder.row(
                 InlineKeyboardButton(
                     text=f'{order} ({len(orders[order])})',
-                    callback_data=f'ordershistory_{orders_id}'
+                    callback_data=f'ordershistory_{order}'
                 )
             )
 
