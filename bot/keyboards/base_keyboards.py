@@ -187,7 +187,7 @@ class BaseKeyboard:
                 callback_data=f'leave_door_no_{order_id}'
             ),
         )
-        builder.add(
+        builder.row(
             InlineKeyboardButton(
                 text='Назад',
                 callback_data=f'back_leave_door_no_{order_id}'
@@ -203,13 +203,13 @@ class BaseKeyboard:
         """ Кнопки подтверждения/отказаться  """
 
         builder = InlineKeyboardBuilder()
-        builder.add(
+        builder.row(
             InlineKeyboardButton(
                 text='Подтвердить',
                 callback_data=f'confirm_order_{order_id}'
             ),
         )
-        builder.add(
+        builder.row(
             InlineKeyboardButton(
                 text='Отказаться',
                 callback_data=f'deny_order_{order_id}'
