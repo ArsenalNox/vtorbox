@@ -1025,3 +1025,46 @@ async def resend_order_confirm_notify(
                         }]
                     ]}
                 )
+
+
+@router.get('orders/aggregate')
+async def get_users_order_aggregate(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
+    user_id: int|UUID
+):
+    with Session(engine, expire_on_commit=False) as session:
+        user = Users.get_user(user_id, enable_eagerloads=False)
+        if not user:
+            return JSONResponse({
+                "detail": "Пользователь не найден"
+            })
+
+        orders = session.query(Orders).filter(Orders.from_user == user.id).enable_eagerloads(False).all()
+
+        en_to_ru = {
+            'January': "Январь", 
+            'February': "Февраль", 
+            'March': "Март", 
+            'April': "Апрель", 
+            'May': 'Май', 
+            'June': "Июнь", 
+            'July': "Июль", 
+            'August': "Август", 
+            'September': "Сентябрь", 
+            'October': "Октябрь", 
+            'November': "Ноябрь", 
+            'December': "Декабрь"
+        }
+
+        return_data = {}
+        for order in orders:
+            order_date = order.day.strftime("%B %Y")
+            for m_d in en_to_ru:
+                if m_d in str(order_date):
+                    order_date = order_date.replace(m_d, en_to_ru[m_d])
+
+            if order_date not in return_data.keys():
+                return_data[order_date] = []
+                return_data[order_date].append(order.order_num)
+            
+        return return_data
