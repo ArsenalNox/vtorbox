@@ -229,8 +229,9 @@ async def generate_routes_today(
                     filter(Orders.deleted_at == None).\
                     filter(Orders.status == OrderStatuses.status_awating_confirmation().id).\
                     filter(Orders.day >= date).\
-                    filter(Orders.day <= date_tommorrow).\
+                    filter(Orders.day < date_tommorrow).\
                     enable_eagerloads(False)
+
                 for order_query in orders:
                     old_status_query = session.query(OrderStatuses).filter_by(id=order_query.status).enable_eagerloads(False).first()
                     new_data_change = OrderChangeHistory(
@@ -242,7 +243,7 @@ async def generate_routes_today(
                     )
                     order_query = order_query.update_status(
                         OrderStatuses.status_canceled().id, 
-                        (OrderStatuses.status_canceled().message_on_update)
+                        OrderStatuses.status_canceled().message_on_update
                         )
 
                     session.add(new_data_change)
