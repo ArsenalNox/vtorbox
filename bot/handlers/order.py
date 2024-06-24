@@ -237,7 +237,7 @@ class OrderHandler(Handler):
                 self.index = len(self.orders_list) - 1
                 logger.debug(f'История заявок:::Список заявок у {message.chat.id} = {[i.get("order_num") for i in self.orders_list]}(index={self.index})')
 
-                if len(orders) <= 3:
+                if len(orders) <= 5:
 
                     status_code, orders_msg = await req_to_api(
                         method='get',
@@ -251,7 +251,10 @@ class OrderHandler(Handler):
                     await state.update_data(msg=msg.message_id)
 
                 else:
-                    result = await group_orders_by_month(self.orders_list)
+                    status_code, result = await req_to_api(
+                        method='get',
+                        url=f'user/orders/aggregate?user_id={message.chat.id}'
+                    )
 
                     status_code, orders_by_month_msg = await req_to_api(
                         method='get',
@@ -298,18 +301,12 @@ class OrderHandler(Handler):
                 data=data,
                 src=callback.message
             )
+            month = callback.data.split('_')[-1]
+            month = quote(month)
 
-            orders_order_num: list[str] = callback.data.split('_')[1:]
-            params = ''  # параметр запроса со списком order_num
-            for order_num in orders_order_num:
-                params += f'order_nums={order_num}&'
-
-            params = params.rstrip('&')
-
-            # запрос на получение заказов по списку id
             status_code, orders = await req_to_api(
                 method='get',
-                url=f'users/orders/?tg_id={callback.message.chat.id}&{params}',
+                url=f'user/orders/by_month?user_id={callback.message.chat.id}&date={month}',
             )
 
             status_code, orders_msg = await req_to_api(
