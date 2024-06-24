@@ -187,6 +187,34 @@ class BaseKeyboard:
                 callback_data=f'leave_door_no_{order_id}'
             ),
         )
+        builder.add(
+            InlineKeyboardButton(
+                text='Назад',
+                callback_data=f'back_leave_door_no_{order_id}'
+            ),
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
+    def confirm_deny_order(self, order_id: str) -> InlineKeyboardMarkup:
+        """ Кнопки подтверждения/отказаться  """
+
+        builder = InlineKeyboardBuilder()
+        builder.add(
+            InlineKeyboardButton(
+                text='Подтвердить',
+                callback_data=f'confirm_order_{order_id}'
+            ),
+        )
+        builder.add(
+            InlineKeyboardButton(
+                text='Отказаться',
+                callback_data=f'deny_order_{order_id}'
+            ),
+        )
 
         return builder.as_markup(
             resize_keyboard=True,

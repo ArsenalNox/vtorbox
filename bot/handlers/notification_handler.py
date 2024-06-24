@@ -152,6 +152,17 @@ class NotificationHandler(Handler):
                     approve_order_msg.format(order.get('order_num'))
                 )
 
+        @self.router.callback_query(F.data.startswith('back_leave_door'))
+        async def back_leave_door(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+            order_id = callback.data.split('_')[-1]
+
+            await callback.bot.edit_message_reply_markup(
+                chat_id=callback.message.chat.id,
+                message_id=callback.message.message_id,
+                reply_markup=self.kb.confirm_deny_order(order_id)
+            )
+
 
 
 
