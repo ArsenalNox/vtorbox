@@ -124,7 +124,7 @@ async def get_filtered_orders(
             date = date.replace(hour=0, minute=0, second=0, microsecond=0)
             date_tommorrow = date + timedelta(days=1)
             orders = orders.filter(Orders.day >= date)
-            orders = orders.filter(Orders.day <= date_tommorrow)
+            orders = orders.filter(Orders.day < date_tommorrow)
 
         if region_id:
             orders = orders.filter(Regions.id == region_id)
@@ -972,7 +972,8 @@ async def check_order_intervals():
             if not weekday_tomorrow in address.region.work_days:
                 print("weekday tomorrow not in region workd days")
                 continue
-
+            
+            print("Creating order for address.")
             #Если заявки нет - создать её в статус в работе
             user_id = session.query(UsersAddress).filter_by(address_id=address.id).first().user_id
             count = session.query(Orders.id).where(Orders.from_user == user_id).enable_eagerloads(False).count()
