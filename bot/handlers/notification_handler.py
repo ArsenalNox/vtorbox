@@ -166,13 +166,19 @@ class NotificationHandler(Handler):
             address = order.get('address_data', {}).get('address')
             order_num = order.get('order_num')
 
-            await callback.bot.edit_message_text(
-                chat_id=callback.message.chat.id,
-                text=MESSAGES['ACCEPT_DENY_ORDER'].format(order_num, address),
-                message_id=callback.message.message_id,
-                reply_markup=self.kb.confirm_deny_order(order_id)
-            )
+            try:
+                await callback.bot.edit_message_text(
+                    chat_id=callback.message.chat.id,
+                    text=MESSAGES['ACCEPT_DENY_ORDER'].format(order_num, address),
+                    message_id=callback.message.message_id,
+                    reply_markup=self.kb.confirm_deny_order(order_id)
+                )
 
-
+            except Exception:
+                await callback.bot.edit_message_reply_markup(
+                    chat_id=callback.message.chat.id,
+                    message_id=callback.message.message_id,
+                    reply_markup=None
+                )
 
 
