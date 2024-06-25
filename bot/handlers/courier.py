@@ -140,6 +140,7 @@ class CourierHandler(Handler):
 
             data = await state.get_data()
             order_id = callback.data.split('_')[-1]
+
             status_code, order = await req_to_api(
                 method='get',
                 url=f'orders/{order_id}',
@@ -206,6 +207,7 @@ class CourierHandler(Handler):
             )
 
             order_id = callback.data.split('_')[-1]
+
             status_code, order = await req_to_api(
                 method='get',
                 url=f'orders/{order_id}',
@@ -249,7 +251,7 @@ class CourierHandler(Handler):
                 data=data,
                 src=callback.message
             )
-            order_id = data.get('order_id')
+            order_id = callback.data.split('_')[-1]
 
             status_code, box_types = await req_to_api(
                 method='get',
@@ -319,7 +321,7 @@ class CourierHandler(Handler):
                 data=data,
                 src=callback.message
             )
-            order_id = data.get('order_id')
+            order_id = callback.data.split('_')[-1]
 
             msg = await callback.message.answer(
                 MESSAGES['CHOOSE_BOX_COUNT'],
@@ -473,4 +475,54 @@ class CourierHandler(Handler):
                 self=self
             )
 
+        @self.router.callback_query(F.data.startswith('write_courier_comment'))
+        async def write_courier_comment(callback: CallbackQuery, state: FSMContext):
+            await state.update_data(chat_id=callback.message.chat.id)
+            order_id = callback.data.split('_')[-1]
+            await state.update_data(order_id=order_id)
 
+            await callback.bot.edit_message_reply_markup(
+                chat_id=callback.message.chat.id,
+                message_id=callback.message.message_id,
+                reply_markup=None
+            )
+
+            await callback.message.answer(
+                MESSAGES['WRITE_COURIER_COMMENT']
+            )
+            await state.set_state(Courier.comment)
+
+        @self.router.message(Courier.comment)
+        async def get_courier_comment(message: Message, state: FSMContext):
+            data = await state.get_data()
+            order_id = data.get('order_id')
+
+            await state.set_state(state=None)
+
+            status_code, order = await req_to_api(
+                method='get',
+                url=f'orders/{order_id}',
+            )
+
+            update_order_data = json.dumps(
+                {
+                    'comment_courier': message.text
+                }
+            )
+            await req_to_api(
+                method='put',
+                url=f'orders/{order_id}',
+                data=update_order_data,
+            )
+
+            await message.answer(
+                MESSAGES['YOUR_COMMENT_WAS_SAVED']
+            )
+
+            await show_courier_order(
+                order_id=order_id,
+                order=order,
+                state=state,
+                message=message,
+                self=self
+            )
