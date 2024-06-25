@@ -54,6 +54,7 @@ class Courier(StatesGroup):
     point = State()
     container_type = State()
     container_count = State()
+    comment = State()
 
 
 class SMSEmail(StatesGroup):

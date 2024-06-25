@@ -107,6 +107,11 @@ class CourierKeyboard(BaseKeyboard):
                 )
 
         builder.row(
+            InlineKeyboardButton(text='Оставить комментарий',
+                                 callback_data=f'write_courier_comment_{point_id}')
+        )
+
+        builder.row(
             InlineKeyboardButton(text='Назад к списку заявок',
                                  callback_data=f'back_order_list')
         )
