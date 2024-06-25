@@ -519,6 +519,11 @@ class CourierHandler(Handler):
                 MESSAGES['YOUR_COMMENT_WAS_SAVED']
             )
 
+            status_code, order = await req_to_api(
+                method='get',
+                url=f'orders/{order_id}',
+            )
+
             await show_courier_order(
                 order_id=order_id,
                 order=order,
