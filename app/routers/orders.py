@@ -685,7 +685,7 @@ async def update_order_data(
                     order_id = order_query.id,
                     attribute = attr,
                     old_content = getattr(order_query, attr),
-                    new_content = value,
+                    new_content = str(value) if value else None,
                     date_created = datetime.now()
                 )
                 session.add(new_data_change)
@@ -749,7 +749,7 @@ async def accept_order_by_user(
 
 @router.get("/process_orders", tags=[Tags.managers, Tags.admins])
 async def process_current_orders(
-
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=['admin'])]
 ):
     """
     Обработка всех доступных заявок, высчитывание следующего дня забора заявки
@@ -915,7 +915,9 @@ async def process_current_orders(
 
 
 @router.get('/check-intervals')
-async def check_order_intervals():
+async def check_order_intervals(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=['admin'])]
+):
     """
     Идентичная генерации пула, только создаёт заявку из интервала адресов
     """
@@ -1019,6 +1021,7 @@ async def check_order_intervals():
 
 @router.post('/resend-notify')
 async def resend_order_confirm_notify(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=['admin'])],
     final_check: bool = False
 ):
     with Session(engine, expire_on_commit=False) as session:
@@ -1030,7 +1033,7 @@ async def resend_order_confirm_notify(
                 joinedload(Orders.user)
             ).enable_eagerloads(False).\
             order_by(asc(Orders.date_created)).all()
-        
+        sent_to = []
         for order in orders:
             if not order.user.allow_messages_from_bot and order.user.telegram_id:
                 continue
@@ -1053,6 +1056,11 @@ async def resend_order_confirm_notify(
                         }]
                     ]}
                 )
+
+                sent_to.append({
+                    "user_id": order.user.id,
+                    "order_id": order.id
+                })
 
 
 @router.get('/user/orders/aggregate')
