@@ -9,9 +9,9 @@ from uuid import UUID as m_uuid
 from sqlalchemy import (
     create_engine, Column, Integer, String, 
     DateTime, Text, ForeignKey, Float, 
-    Boolean, BigInteger, UUID, Text)
+    Boolean, BigInteger, UUID, Text, Table)
 
-from sqlalchemy.orm import declarative_base, relationship, backref, Session, Mapped
+from sqlalchemy.orm import declarative_base, relationship, backref, Session, Mapped, joinedload
 from sqlalchemy.engine import URL
 from sqlalchemy.sql import func
 
@@ -49,6 +49,33 @@ connection_url = URL.create(
 
 engine = create_engine(connection_url)
 Base = declarative_base()
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections = {}
+
+    async def connect(self, websocket: WebSocket, user_id, user_roles):
+        await websocket.accept()
+        self.active_connections[str(user_id)] = {
+            'websocket': websocket,
+            'roles': user_roles
+            }
+
+    def disconnect(self, websocket: WebSocket, user_id):
+        del self.active_connections[str(user_id)]
+
+    async def send_personal_message(self, message: str, user_id):
+        await self.active_connections[str(user_id)]['websocket'].send_text(message)
+
+    async def broadcast(self, message: str, for_user_roles):
+        for connection in self.active_connections:
+            print(for_user_roles, self.active_connections[connection])
+            if for_user_roles in self.active_connections[connection]['roles']:
+                print('Sending')
+                await self.active_connections[connection]['websocket'].send_text(message)
+
+manager = ConnectionManager()
 
 
 def default_time():
@@ -1299,6 +1326,13 @@ class DaysWork(Base):
     date = Column(DateTime(), default=None, nullable=False)
 
 
+association_table = Table(
+    "association_table",
+    Base.metadata,
+    Column("left_id", ForeignKey("notifications.id")),
+    Column("right_id", ForeignKey("users.id")),
+)
+
 class Notifications(Base):
     """
     Пользовательские уведомления
@@ -1308,7 +1342,85 @@ class Notifications(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     deleted_at = Column(DateTime(), default=None, nullable=True)
+    content = Column(Text(), nullable=False)
+    resource_id = Column(UUID(as_uuid=True), nullable=True) #Айди ресурса для просмотра, например заявка
+    resource_type = Column(String(), nullable=True) #Тип ресурса (заявка, адрес, пользователь, итд)
+    sent_to_tg = Column(Boolean()) #Отправленно ли в тг (Для просмотра админами)
+    for_user = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True) #Айди пользователя, если не глобальное
+    for_user_group = Column(String(), nullable=True) #Группа пользователей, если глобальное
 
+    type_id = Column(UUID(as_uuid=True), ForeignKey('notification_types.id'), nullable=True) #Айди типа
+    n_type = relationship('NotificationTypes', lazy='joined') #Тип уведомления (Система, Сообщение от админа)
+
+    date_created = Column(DateTime(), default=default_time)
+    read_by_users: Mapped[List["Users"]] = relationship(secondary=association_table)
+
+    async def create_notification(
+            notification_data, 
+            session,
+            send_message: bool = True 
+        ):
+        print(notification_data)
+        type_data = notification_data['n_type']
+        type_query = session.query(NotificationTypes)
+        if 'type_name' in type_data:
+            type_query = type_query.filter(NotificationTypes.type_name == type_data['type_name']).first()
+
+
+        del notification_data['n_type']
+        del notification_data['read_by_user']
+        new_notification = Notifications(**notification_data)
+        
+        if type_query:
+            new_notification.n_type = type_query
+
+        session.add(new_notification)
+        session.commit()
+
+        if new_notification.for_user:
+            await Notifications.send_notification(
+                    new_notification.for_user, 
+                    jsonable_encoder(new_notification), 
+                    session=session,
+                    send_to_tg=new_notification.send_to_tg
+                )
+        
+        #TODO: Отправка сообщений по группам в тг
+        if new_notification.for_user_group:
+            await manager.broadcast(for_user_roles = new_notification.for_user_group, message=str(jsonable_encoder(new_notification)))
+
+        return new_notification
+
+    async def send_notification(user_id, message, session, send_to_tg: bool = False):
+        try:
+            user_query = session.query(Users).filter(Users.id==user_id).first()
+            if send_to_rg:
+                if user_query.telegram_id:
+                    if user_query.allow_messages_from_bot:
+                        send_message_through_bot(user_query.telegram_id, f"Новое уведомление: '{message['content']}'")
+
+            await manager.send_personal_message(str(message), user_id)
+        except KeyError:
+            print("User not connected to websocket")
+
+    
+    async def mark_notification_as_read(notification_id, user_id, session):
+        nt_query = session.query(Notifications).options(
+                joinedload(Notifications.read_by_users)
+            ).filter(Notifications.id == notification_id).first()
+        user_query = session.query(Users).filter(Users.id == user_id).enable_eagerloads(False).first()
+        print(nt_query)
+        print(nt_query.read_by_users)
+        if not nt_query:
+            print('Notification not found')
+        
+        if nt_query.read_by_users is None:
+            nt_query.read_by_users = [user_query]
+        else:
+            nt_query.read_by_users.append(user_query)
+
+        session.add(nt_query)
+        
 
 class NotificationTypes(Base):
     """

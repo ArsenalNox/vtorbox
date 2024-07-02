@@ -647,3 +647,26 @@ class OrderStatusStatistic(BaseModel):
 
 class OrderRegionStatistic(OrderStatusStatistic):
     pass
+
+
+
+class NotificationTypes(BaseModel):
+    id: Optional[UUID4] = None
+    type_name: Optional[str] = None
+
+
+class Notification(BaseModel):
+    content: str
+    resource_id: Optional[UUID4] = None
+    resource_type: Optional[str] = None
+    sent_to_tg: bool = False
+    for_user: Optional[UUID4] = None
+    for_user_group: Optional[str] = None
+
+    n_type: Optional[NotificationTypes] = None
+    date_created: Optional[datetime] = None
+    read_by_user: Optional[bool] = False
+
+
+class NotificationOut(Notification):
+    id: UUID4
