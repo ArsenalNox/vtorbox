@@ -68,7 +68,7 @@ async def get_all_statueses(
 
 @router.get('/statuses/name', tags=['statuses'])
 async def get_status_info_by_name(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     status_name: str
 ) -> StatusOut:
     """
@@ -82,7 +82,7 @@ async def get_status_info_by_name(
 
 @router.put('/statuses/{status_id}', tags=[Tags.statuses])
 async def change_status(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user)],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     status_id: UUID,
     allow_messages: bool,
     status_allow_to: List[UUID] = Query(None),
