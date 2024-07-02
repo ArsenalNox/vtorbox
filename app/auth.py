@@ -137,6 +137,35 @@ def authenticate_user(username: str, password: str):
     return user
 
 
+async def get_current_user_ws(
+    token: str
+):
+    """
+    Получение текущего пользователя
+    Проверка скоупов требует полного соответствия скоупов токена и эндпоинта
+    """
+    #DONE: Получение скоупов из бд а не токена
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+        token_scopes = payload.get("scopes", [])
+        token_data = TokenData(scopes=token_scopes, username=username)
+    except (JWTError, ValidationError) as error:
+        return None
+
+    user = get_user(username=token_data.username)
+
+    if user is None:
+        return None
+
+    user.access_token = token
+    user.roles = token_data.scopes
+    return user
+
+
 async def get_current_user(
     security_scopes: SecurityScopes, token: Annotated[str, Depends(oauth2_scheme)]
 ):
