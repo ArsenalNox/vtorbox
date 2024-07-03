@@ -670,3 +670,9 @@ class Notification(BaseModel):
 
 class NotificationOut(Notification):
     id: UUID4
+
+
+class NotificationCountOut(BaseModel):
+    global_count: int
+    count: int
+    data: Optional[List[NotificationOut]]

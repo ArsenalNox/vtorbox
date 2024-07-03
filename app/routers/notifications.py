@@ -45,7 +45,8 @@ from sqlalchemy.orm import joinedload
 
 from app.validators import (
     UserLogin as UserLoginSchema,
-    NotificationOut, Notification, NotificationTypes
+    NotificationOut, Notification, NotificationTypes,
+    NotificationCountOut
 )
 
 from app.auth import (
@@ -115,7 +116,7 @@ async def get_my_notifications(
     limit: int = 20,
     get_all: bool = False,
     only_unread: bool = False
-)->list[NotificationOut]:
+)->NotificationCountOut:
     """
     Получить уведомления 
 
@@ -159,10 +160,13 @@ async def get_my_notifications(
             user_query = session.query(association_table.c.left_id).filter_by(right_id=user_id).subquery()
             notification_query = notification_query.filter(Notifications.id.notin_(user_query))
 
+        nt_q_count_global = notification_query.count()
+
         if limit == 0:
             notification_query = notification_query.all()
         else:
             notification_query = notification_query.offset(page  * limit).limit(limit).all()
+
 
         return_data = []
 
@@ -174,7 +178,11 @@ async def get_my_notifications(
                     break
             return_data.append(nt_out)
 
-        return return_data
+        return {
+            "count": len(return_data),
+            "global_count": nt_q_count_global,
+            "data": return_data
+        }
 
 
 @router.patch('/mark-as-read')
