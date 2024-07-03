@@ -184,6 +184,15 @@ async def get_my_notifications(
             "data": return_data
         }
 
+@router.get('/types')
+async def get_notification_types(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+):
+    with Session(engine, expire_on_commit=False) as session:
+        types_query = session.query(NotificationTypes).all()
+
+        return jsonable_encoder(types_query)
+
 
 @router.patch('/mark-as-read')
 async def mark_notifications_as_read(
