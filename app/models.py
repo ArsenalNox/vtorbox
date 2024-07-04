@@ -1454,8 +1454,6 @@ class Notifications(Base):
             user_query = session.query(association_table.c.left_id).filter_by(right_id=user_id).subquery()
             notification_query = notification_query.filter(Notifications.id.notin_(user_query))
 
-        nt_q_count_global = notification_query.count()
-
         if limit == 0:
             notification_query = notification_query.all()
         else:

@@ -178,11 +178,6 @@ async def get_my_notifications(
                     break
             return_data.append(nt_out)
 
-        return_data = await Notifications.get_notifications(
-            session=session,
-            user_id=user_id,
-            only_unread=only_unread
-        )
 
         return {
             "count": len(return_data),
@@ -265,7 +260,23 @@ async def websocket_endpoint(
     print(user.id)
     
     await manager.connect(user_id = user.id, websocket=websocket, user_roles=user.roles)
-    print(manager.active_connections)
+
+
+    with Session(engine, expire_on_commit=False) as session:
+        nt_data = await Notifications.get_notifications(
+            session=session,
+            user_id=user.id,
+            only_unread=True
+        )
+
+        await Notifications.send_notification(
+                user.id, 
+                jsonable_encoder(nt_data), 
+                session=session,
+                send_to_tg=False
+        )
+
+    # print(manager.active_connections)
     try:
         while True:
             pass
