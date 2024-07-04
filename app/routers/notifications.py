@@ -178,11 +178,18 @@ async def get_my_notifications(
                     break
             return_data.append(nt_out)
 
+        return_data = await Notifications.get_notifications(
+            session=session,
+            user_id=user_id,
+            only_unread=only_unread
+        )
+
         return {
             "count": len(return_data),
             "global_count": nt_q_count_global,
             "data": return_data
         }
+
 
 @router.get('/types')
 async def get_notification_types(
@@ -239,8 +246,8 @@ async def create_new_notification(
 ):
     with Session(engine, expire_on_commit=False) as session:
         new_notification = await Notifications.create_notification(
-            notification_data = notification_data.model_dump(),
-            session=session
+                notification_data = notification_data.model_dump(),
+                session=session
             )
 
         return jsonable_encoder(new_notification)
@@ -257,7 +264,6 @@ async def websocket_endpoint(
     user = await get_current_user_ws(token=token)
     print(user.id)
     
-
     await manager.connect(user_id = user.id, websocket=websocket, user_roles=user.roles)
     print(manager.active_connections)
     try:
