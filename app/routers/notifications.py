@@ -149,8 +149,10 @@ async def get_my_notifications(
             notification_query = notification_query.filter(Notifications.for_user == user.id)
         else:
             notification_query = notification_query.filter(
-                or_(Notifications.for_user == current_user.id, Notifications.for_user == None),
-                Notifications.for_user_group.in_(current_user.roles)
+                or_(
+                    Notifications.for_user == current_user.id, 
+                    Notifications.for_user == None,
+                    Notifications.for_user_group.in_(current_user.roles))
                 )
 
         if user_id is None:
@@ -238,7 +240,7 @@ async def mark_notifications_as_read(
 async def create_new_notification(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
     notification_data: Notification,
-):
+)->NotificationOut:
     with Session(engine, expire_on_commit=False) as session:
         new_notification = await Notifications.create_notification(
                 notification_data = notification_data.model_dump(),
@@ -260,7 +262,6 @@ async def websocket_endpoint(
     print(user.id)
     
     await manager.connect(user_id = user.id, websocket=websocket, user_roles=user.roles)
-
 
     with Session(engine, expire_on_commit=False) as session:
         nt_data = await Notifications.get_notifications(

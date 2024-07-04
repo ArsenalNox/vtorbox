@@ -1363,8 +1363,14 @@ class Notifications(Base):
         print(notification_data)
         type_data = notification_data['n_type']
         type_query = session.query(NotificationTypes)
-        if 'type_name' in type_data:
+
+        if type_data['type_name'] != None:
+            print(f'Getting type by type name {type_data["type_name"]}')
             type_query = type_query.filter(NotificationTypes.type_name == type_data['type_name']).first()
+
+        if type_data['id'] != None:
+            print('Getting type by id')
+            type_query = type_query.filter(NotificationTypes.id == type_data['id']).first()
 
 
         del notification_data['n_type']
@@ -1377,12 +1383,18 @@ class Notifications(Base):
         session.add(new_notification)
         session.commit()
 
+        print('created')
+        print(new_notification)
+        print(new_notification.id)
+
         if new_notification.for_user:
+            print('Getting all notifications...')
             nt_data = await Notifications.get_notifications(
                 session=session,
                 user_id=new_notification.for_user,
                 only_unread=True
             )
+
 
             await Notifications.send_notification(
                     new_notification.for_user, 
@@ -1446,9 +1458,11 @@ class Notifications(Base):
 
         setattr(current_user, 'roles', roles)
         notification_query = notification_query.filter(
-            or_(Notifications.for_user == current_user.id, Notifications.for_user == None),
-            Notifications.for_user_group.in_(current_user.roles)
-            )
+            or_(
+                    Notifications.for_user == current_user.id, 
+                    Notifications.for_user == None,
+                    Notifications.for_user_group.in_(current_user.roles))
+                )
 
         if only_unread:
             user_query = session.query(association_table.c.left_id).filter_by(right_id=user_id).subquery()
