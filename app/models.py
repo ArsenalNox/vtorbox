@@ -1378,23 +1378,29 @@ class Notifications(Base):
         session.commit()
 
         if new_notification.for_user:
+            nt_data = await Notifications.get_notifications(
+                session=session,
+                user_id=new_notification.for_user,
+                only_unread=True
+            )
+
             await Notifications.send_notification(
                     new_notification.for_user, 
-                    jsonable_encoder(new_notification), 
+                    jsonable_encoder(nt_data), 
                     session=session,
-                    send_to_tg=new_notification.send_to_tg
+                    send_to_tg=new_notification.sent_to_tg
                 )
         
         #TODO: Отправка сообщений по группам в тг
-        if new_notification.for_user_group:
-            await manager.broadcast(for_user_roles = new_notification.for_user_group, message=str(jsonable_encoder(new_notification)))
+        # if new_notification.for_user_group:
+            # await manager.broadcast(for_user_roles = new_notification.for_user_group, message=str(jsonable_encoder(new_notification)))
 
         return new_notification
 
     async def send_notification(user_id, message, session, send_to_tg: bool = False):
         try:
             user_query = session.query(Users).filter(Users.id==user_id).first()
-            if send_to_rg:
+            if send_to_tg:
                 if user_query.telegram_id:
                     if user_query.allow_messages_from_bot:
                         send_message_through_bot(user_query.telegram_id, f"Новое уведомление: '{message['content']}'")
@@ -1421,6 +1427,53 @@ class Notifications(Base):
 
         session.add(nt_query)
         
+
+    async def get_notifications(
+        session,
+        user_id: int|UUID,
+        only_unread: bool = False,
+        page: int = 0,
+        limit: int = 0,
+    ):
+        from app.validators import NotificationOut
+
+        notification_query = session.query(Notifications).options(joinedload(Notifications.read_by_users))
+
+        current_user = Users.get_user(user_id)
+        
+        roles_q = session.query(Permissions, Roles.role_name).filter_by(user_id=user_id).join(Roles).all()
+        roles = [role.role_name for role in roles_q]
+
+        setattr(current_user, 'roles', roles)
+        notification_query = notification_query.filter(
+            or_(Notifications.for_user == current_user.id, Notifications.for_user == None),
+            Notifications.for_user_group.in_(current_user.roles)
+            )
+
+        if only_unread:
+            user_query = session.query(association_table.c.left_id).filter_by(right_id=user_id).subquery()
+            notification_query = notification_query.filter(Notifications.id.notin_(user_query))
+
+        nt_q_count_global = notification_query.count()
+
+        if limit == 0:
+            notification_query = notification_query.all()
+        else:
+            notification_query = notification_query.offset(page  * limit).limit(limit).all()
+
+        return_data = []
+
+        for nt in notification_query:
+            nt_out = NotificationOut(**jsonable_encoder(nt))
+            for user in nt.read_by_users:
+                if user.id == user_id:
+                    nt_out.read_by_user = True
+                    break
+            return_data.append(nt_out)
+
+        return return_data
+
+
 
 class NotificationTypes(Base):
     """
