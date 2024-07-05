@@ -74,6 +74,19 @@ class ConnectionManager:
             if for_user_roles in self.active_connections[connection]['roles']:
                 print('Sending')
                 await self.active_connections[connection]['websocket'].send_text(message)
+    
+
+    async def broadcast_all_to_all(self):
+        #TODO: Отправка всех сообщений для всех пользователей, по ролям
+        with Session(engine, expire_on_commit=False) as session:
+            for connection in self.active_connections:
+                msg_data = await Notifications.get_notifications(
+                        user_id=connection,
+                        session=session,
+                        only_unread=True
+                    )
+                await self.active_connections[connection]['websocket'].send_text(str(msg_data))
+    
 
 manager = ConnectionManager()
 
@@ -1387,7 +1400,12 @@ class Notifications(Base):
         print(new_notification)
         print(new_notification.id)
 
-        if new_notification.for_user:
+
+        #TODO: Отправка сообщений по группам
+        if new_notification.for_user_group:
+            #Если была указанна группа для сообщения, повтороно отправить всем пользователям все сообщения
+            await manager.broadcast_all_to_all()
+        elif new_notification.for_user:
             print('Getting all notifications...')
             nt_data = await Notifications.get_notifications(
                 session=session,
@@ -1403,9 +1421,6 @@ class Notifications(Base):
                     send_to_tg=new_notification.sent_to_tg
                 )
         
-        #TODO: Отправка сообщений по группам в тг
-        # if new_notification.for_user_group:
-            # await manager.broadcast(for_user_roles = new_notification.for_user_group, message=str(jsonable_encoder(new_notification)))
 
         return new_notification
 
