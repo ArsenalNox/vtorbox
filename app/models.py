@@ -1376,6 +1376,7 @@ class Notifications(Base):
         print(notification_data)
         type_data = notification_data['n_type']
         type_query = session.query(NotificationTypes)
+        type_query_data = None
 
         del notification_data['n_type']
         del notification_data['read_by_user']
@@ -1384,14 +1385,18 @@ class Notifications(Base):
         if type_data != None:
             if type_data['type_name'] != None:
                 print(f'Getting type by type name {type_data["type_name"]}')
-                type_query = type_query.filter(NotificationTypes.type_name == type_data['type_name']).first()
+                type_query_data = type_query.filter(NotificationTypes.type_name == type_data['type_name']).first()
 
             if type_data['id'] != None:
                 print('Getting type by id')
-                type_query = type_query.filter(NotificationTypes.id == type_data['id']).first()
-        else:
+                type_query_data = type_query.filter(NotificationTypes.id == type_data['id']).first()
+
+
+        if type_query_data == None:
             new_notification.n_type = type_query.filter(NotificationTypes.type_name == "система").first()
-        
+        else:
+            new_notification.n_type = type_query_data
+
         session.add(new_notification)
         session.commit()
 
