@@ -33,7 +33,7 @@ from app.validators import (
 
 from app import Tags
 
-from fastapi import APIRouter, Body, Security, Query
+from fastapi import APIRouter, Body, Security, Query, WebSocketException, status
 from fastapi.responses import JSONResponse
 
 from calendar import monthrange
@@ -125,7 +125,8 @@ async def get_my_notifications(
     - **only_unread**: [bool] - Получить только не прочитанные уведомления
     """
     with Session(engine, expire_on_commit=False) as session:
-        notification_query = session.query(Notifications).options(joinedload(Notifications.read_by_users))
+        notification_query = session.query(Notifications).options(joinedload(Notifications.read_by_users)).\
+            order_by(desc(Notifications.date_created))
         print(current_user.id)
 
         if get_all:
@@ -259,8 +260,9 @@ async def websocket_endpoint(
     ):
 
     user = await get_current_user_ws(token=token)
-    print(user.id)
-    
+    if not user:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+
     await manager.connect(user_id = user.id, websocket=websocket, user_roles=user.roles)
 
     with Session(engine, expire_on_commit=False) as session:

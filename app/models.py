@@ -1464,7 +1464,8 @@ class Notifications(Base):
     ):
         from app.validators import NotificationOut
 
-        notification_query = session.query(Notifications).options(joinedload(Notifications.read_by_users))
+        notification_query = session.query(Notifications).options(joinedload(Notifications.read_by_users)).\
+            order_by(desc(Notifications.date_created))
 
         current_user = Users.get_user(user_id)
         
