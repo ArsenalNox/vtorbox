@@ -258,9 +258,11 @@ async def websocket_endpoint(
         websocket: WebSocket, 
         token: Annotated[Union[str, None], Query()] = None,
     ):
-
+    print("New connection")
     user = await get_current_user_ws(token=token)
     if not user:
+        print(user)
+        print("User with token not found")
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
     await manager.connect(user_id = user.id, websocket=websocket, user_roles=user.roles)
