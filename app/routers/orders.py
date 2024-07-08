@@ -23,7 +23,8 @@ from app.validators import (
     Order as OrderValidator,
     UserLogin as UserLoginSchema,
     OrderOut,
-    OrderUpdate, FilteredOrderOut, UserIdMultiple
+    OrderUpdate, FilteredOrderOut, UserIdMultiple,
+    Notification
 )
 
 from app.auth import (
@@ -38,7 +39,7 @@ from app.models import (
     IntervalStatuses, ROLE_ADMIN_NAME, Regions, WeekDaysWork,
     DaysWork, ORDER_STATUS_AWAITING_PAYMENT, Payments, PaymentClientData,
     OrderComments, get_user_from_db_secondary, OrderChangeHistory,
-    BotSettings, RegionalBoxPrices
+    BotSettings, RegionalBoxPrices, Notifications
     )
 
 from app.utils import (
@@ -369,7 +370,22 @@ async def create_order(
         session.add(new_data_change)
 
         session.commit()
-    
+
+        notification_data = Notification(
+                content = "На вас была назначена заявка",
+                resource_id = new_order.id,
+                resource_type = 'заявка',
+                sent_to_tg = True,
+                for_user = new_order.manager_id
+        )
+
+        await Notifications.create_notification(
+            notification_data = notification_data.model_dump(), 
+            session = session,
+            send_message = True
+        )
+
+
     return {
         "status": 'created',
         "content": new_order,
@@ -1025,7 +1041,7 @@ async def resend_order_confirm_notify(
     final_check: bool = False
 ):
     with Session(engine, expire_on_commit=False) as session:
-        #TODO: Добавить фильтр на дату
+        #DONE: Добавить фильтр на дату
         orders = session.query(Orders).\
             filter(Orders.deleted_at == None).\
             filter(Orders.status == OrderStatuses.status_awating_confirmation().id).\

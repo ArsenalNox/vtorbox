@@ -1377,22 +1377,21 @@ class Notifications(Base):
         type_data = notification_data['n_type']
         type_query = session.query(NotificationTypes)
 
-        if type_data['type_name'] != None:
-            print(f'Getting type by type name {type_data["type_name"]}')
-            type_query = type_query.filter(NotificationTypes.type_name == type_data['type_name']).first()
-
-        if type_data['id'] != None:
-            print('Getting type by id')
-            type_query = type_query.filter(NotificationTypes.id == type_data['id']).first()
-
-
         del notification_data['n_type']
         del notification_data['read_by_user']
         new_notification = Notifications(**notification_data)
-        
-        if type_query:
-            new_notification.n_type = type_query
 
+        if type_data != None:
+            if type_data['type_name'] != None:
+                print(f'Getting type by type name {type_data["type_name"]}')
+                type_query = type_query.filter(NotificationTypes.type_name == type_data['type_name']).first()
+
+            if type_data['id'] != None:
+                print('Getting type by id')
+                type_query = type_query.filter(NotificationTypes.id == type_data['id']).first()
+        else:
+            new_notification.n_type = type_query.filter(NotificationTypes.type_name == "система").first()
+        
         session.add(new_notification)
         session.commit()
 
@@ -1405,6 +1404,7 @@ class Notifications(Base):
         if new_notification.for_user_group:
             #Если была указанна группа для сообщения, повтороно отправить всем пользователям все сообщения
             await manager.broadcast_all_to_all()
+
         elif new_notification.for_user:
             print('Getting all notifications...')
             nt_data = await Notifications.get_notifications(
@@ -1412,29 +1412,43 @@ class Notifications(Base):
                 user_id=new_notification.for_user,
                 only_unread=True
             )
-
-
             await Notifications.send_notification(
                     new_notification.for_user, 
                     jsonable_encoder(nt_data), 
                     session=session,
                     send_to_tg=new_notification.sent_to_tg
                 )
-        
 
+        if new_notification.sent_to_tg:
+            await Notifications.send_notification_to_tg(
+                    new_notification.for_user, 
+                    message=str(new_notification.content), 
+                    session=session,
+                    send_to_tg=new_notification.sent_to_tg
+            )
+        
         return new_notification
 
-    async def send_notification(user_id, message, session, send_to_tg: bool = False):
+    async def send_notification(user_id, message, session, send_to_tg):
+        try:
+            user_query = session.query(Users).filter(Users.id==user_id).first()
+            await manager.send_personal_message(str(message), user_id)
+        except KeyError:
+            print("User not connected to websocket")
+
+
+    async def send_notification_to_tg(user_id, message, session, send_to_tg: bool = False):
         try:
             user_query = session.query(Users).filter(Users.id==user_id).first()
             if send_to_tg:
                 if user_query.telegram_id:
                     if user_query.allow_messages_from_bot:
-                        send_message_through_bot(user_query.telegram_id, f"Новое уведомление: '{message['content']}'")
+                        send_message_through_bot(user_query.telegram_id, f"Новое уведомление: '{message}'")
 
             await manager.send_personal_message(str(message), user_id)
         except KeyError:
             print("User not connected to websocket")
+
 
     
     async def mark_notification_as_read(notification_id, user_id, session):
