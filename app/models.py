@@ -946,7 +946,7 @@ class Payments(Base):
         print('---')
 
         # notification_url = 'http://94.41.188.133:8000/api/payment/notify/auto'
-        notification_url = 'http://5.253.62.213:8000/api/payment/notify/auto'
+        notification_url = 'http://94.41.188.133:8000/api/payment/notify/auto'
 
         payment_data = {}
 
@@ -1382,7 +1382,10 @@ class Notifications(Base):
         del notification_data['read_by_user']
         new_notification = Notifications(**notification_data)
 
+        print("Getting type")
         if type_data != None:
+            print("Type data is not none")
+
             if type_data['type_name'] != None:
                 print(f'Getting type by type name {type_data["type_name"]}')
                 type_query_data = type_query.filter(NotificationTypes.type_name == type_data['type_name']).first()
@@ -1393,8 +1396,10 @@ class Notifications(Base):
 
 
         if type_query_data == None:
+            print("Failed to get nt type, setting default")
             new_notification.n_type = type_query.filter(NotificationTypes.type_name == "система").first()
         else:
+            print("Setting type data")
             new_notification.n_type = type_query_data
 
         session.add(new_notification)
