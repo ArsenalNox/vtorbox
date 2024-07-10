@@ -1147,10 +1147,6 @@ async def get_users_order_in_month(
         "Декабрь": 'December'
     }
 
-    date = 'Июнь 2024'
-
-
-
     for m_d in ru_to_en:
         if m_d in str(date):
             date = date.replace(m_d, ru_to_en[m_d])
