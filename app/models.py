@@ -1199,7 +1199,7 @@ class Payments(Base):
                 payment_query.status = response.json()['Status']
 
                 if r_data['Success'] and r_data['Status'] == "CONFIRMED":
-                    payment_query.order.update_status(OrderStatuses.status_payed().id)
+                    payment_query.order.update_status(OrderStatuses.status_payed().id, send_message=True)
 
                 session.commit()
             
