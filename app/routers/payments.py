@@ -396,6 +396,10 @@ async def process_notification_from_tinkoff(requestd_data: Request):
                 payment.rebill_id = payment_data["RebillId"]
 
             payment.status = payment_data['Status']
+  
+            if payment_data['Success'] and payment_data['Status'] == "CONFIRMED":
+                payment.order.update_status(OrderStatuses.status_payed().id, send_message=True)
+
             session.commit()
         except Exception as err:
             print(err)
