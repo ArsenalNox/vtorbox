@@ -493,7 +493,13 @@ class OrderHandler(Handler):
 
                     logger.debug(f'Получена ссылка для оплаты заказа {order_id}: {response}')
 
-                    if response.get('payment_data') and response.get('message') == 'ok' and order_status == 'ожидается оплата':
+                    if response.get('payment_data') and response.get('message') == 'Заказ оплачен автоматически' and response.get('payment_data', {}).get('status') == 'CONFIRMED':
+                        await callback.message.answer(
+                            MESSAGES['PAYMENT_WAS_AUTO_PAY'],
+                            reply_markup=self.kb.start_menu_btn()
+                        )
+
+                    elif response.get('payment_data') and response.get('message') == 'ok' and order_status == 'ожидается оплата':
                         try:
                             if data.get('order_msg'):
                                 await callback.bot.edit_message_reply_markup(
