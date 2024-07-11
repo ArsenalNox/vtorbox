@@ -1104,9 +1104,8 @@ class Payments(Base):
                 'Content-Type': 'application/json'
             }
 
-            terminal_key = '1690270113071DEMO'
-            # Replace with your Tinkoff Merchant Secret Key
-            secret_key = '22vjtguawas9bqw6'
+            terminal_key = terminal.terminal
+            secret_key = terminal.password
 
             values = {
                     'OrderId': str(payment_query.order_id),
