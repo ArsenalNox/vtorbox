@@ -855,13 +855,20 @@ class Payments(Base):
                 )
 
                 print('Charging')
-                Payments.bill_payment(
+                bill_attmp = Payments.bill_payment(
                     terminal,
                     order,
                     new_payment.tinkoff_id,
                     rebuill_query.rebill_id,
                 )
-                return new_payment, message
+                if bill_attmp:
+                    Payments.check_payment_status(new_payment.id)
+                    with Session(engine, expire_on_commit=False) as session:
+                        payment = session.query(Payments).filter(Payments.id==new_payment.id).first()
+                        return payment, 'Заказ оплачен автоматически'
+
+                else:
+                    return new_payment, message
 
             else:
                 new_payment, message = Payments.create_new_payment(
@@ -1065,16 +1072,6 @@ class Payments(Base):
                 session.add(new_payment)
                 session.commit()
 
-                # send_message_through_bot(
-                #     order.user.telegram_id,
-                #     message=f"От вас требуется оплата заявки ({order.order_num}) по адресу ({order.address.address})",
-                #     btn={
-                #         "inline_keyboard" : [[{
-                #         "text" : "Перейти к оплате",
-                #         "url": payment_url,
-                #     }]]}
-                # )
-
             try:
                 set_timed_func('p', new_payment.id, 'M:01')
             except Exception as err:
@@ -1233,6 +1230,11 @@ class Payments(Base):
         print(p_data)
         print(response.status_code)
         print(response.text)
+
+        if response.json()['Success'] and response.json()['Status'] == 'CONFIRMED':
+            return response.json()
+        else:
+            return None
 
 
 class PaymentClientData(Base):
