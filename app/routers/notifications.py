@@ -208,7 +208,7 @@ async def mark_notifications_as_read(
     """
     Отметить уведомления прочитанными
     """
-    if len(notification_ids)<1:
+    if len(notification_ids.ids)<1:
         return JSONResponse({
             "detail": "Требуется указать как минимум одно уведомление"
         })
