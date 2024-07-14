@@ -28,7 +28,7 @@ from app.validators import (
     AddressUpdate as AddressUpdateValidator,
     UserLogin as UserLoginSchema,
     AddressSchedule, CreateUserData, UpdateUserDataFromTG, AddressOut,
-    RegionOut, AddressDaysWork, UserOut, RouteOut
+    RegionOut, AddressDaysWork, UserOut, RouteOut, NotificationsAsRead
 )
 
 from app import Tags
@@ -202,7 +202,7 @@ async def get_notification_types(
 @router.patch('/mark-as-read')
 async def mark_notifications_as_read(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
-    notification_ids: List[UUID] = Query(None),
+    notification_ids: NotificationsAsRead,
     user_id: Optional[UUID] = None
 ):
     """
@@ -218,7 +218,7 @@ async def mark_notifications_as_read(
 
     with Session(engine, expire_on_commit=False) as session:
         try:
-            for notification_id in notification_ids:
+            for notification_id in notification_ids.ids:
                 print(notification_id)
                 await Notifications.mark_notification_as_read(
                         notification_id=notification_id, 

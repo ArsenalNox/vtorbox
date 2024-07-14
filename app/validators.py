@@ -676,3 +676,7 @@ class NotificationCountOut(BaseModel):
     global_count: int
     count: int
     data: Optional[List[NotificationOut]]
+
+
+class NotificationsAsRead(BaseModel):
+    ids: List[UUID4]
