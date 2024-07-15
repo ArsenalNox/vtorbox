@@ -191,7 +191,7 @@ async def create_new_payment(
                 "interval_created": False
             })
 
-        new_payment, message = Payments.process_status_update(
+        new_payment, message = await Payments.process_status_update(
             order=order_query
         )
 
@@ -205,7 +205,7 @@ async def create_new_payment(
                 message_text = message_text.replace("%ADDRESS_TEXT%", str(order_query.address.address))
                 message_text = message_text.replace("%AMOUNT%", f'{amount} руб.')
                 #"От вас требуется оплата заявки (%ORDER_NUM%) по адресу (%ADDRESS_TEXT%) на сумму %AMOUNT%"
-                send_message_through_bot(
+                await send_message_through_bot(
                     order_query.user.telegram_id,
                     message=message_text,
                     btn={
@@ -225,7 +225,7 @@ async def create_new_payment(
             print(f"Не удалось отправить сообщение пользователю: {err}")
 
         try:
-            set_timed_func('p', new_payment.id, "M:05")
+            await set_timed_func('p', new_payment.id, "M:05")
         except Exception as err:
             return {
                 "message": message,

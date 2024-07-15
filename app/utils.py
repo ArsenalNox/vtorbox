@@ -2,7 +2,7 @@ import uuid, os, requests
 import time
 import datetime
 import hashlib
-
+import httpx
 
 
 from app import (
@@ -24,10 +24,13 @@ def is_valid_uuid(value):
         return False
 
 
-def get_lang_long_from_text_addres(address):
+async def get_lang_long_from_text_addres(address):
     url = f"https://geocode-maps.yandex.ru/1.x/?apikey={CODER_KEY}&geocode={address}{CODER_SETTINGS}"
     
-    data = requests.request("GET", url).json()
+    async with httpx.AsyncClient() as client:
+        data = await client.get(url)
+        data = data.json()
+
     data = dict(data)
     longtitude = 0
     latitude = 0
@@ -44,10 +47,12 @@ def get_lang_long_from_text_addres(address):
         return None, None
 
 
-def get_addresses_collection_from_text_address(address: str):
+async def get_addresses_collection_from_text_address(address: str):
     url = f"https://geocode-maps.yandex.ru/1.x/?apikey={CODER_KEY}&geocode={address}{CODER_SETTINGS}"
     print(url)
-    data = requests.request("GET", url).json()
+    async with httpx.AsyncClient() as client:
+        data = await client.get(url)
+        data = data.json()
     print(data)
     # address_collection = data.get('response', {}). \
         # get('GeoObjectCollection', {}). \
@@ -74,7 +79,7 @@ def get_addresses_collection_from_text_address(address: str):
     return return_data
 
 
-def send_message_through_bot(receipient_id:int, message, btn=None):
+async def send_message_through_bot(receipient_id:int, message, btn=None):
     """
     Отправить сообщение пользователю через тг бота 
     """
@@ -96,9 +101,11 @@ def send_message_through_bot(receipient_id:int, message, btn=None):
         }
 
     try:
-        test_request = requests.post(
-            url='https://api.telegram.org/bot{0}/{1}'.format(token, method), json=b
-        ).json()
+        async with httpx.AsyncClient() as client:
+            test_request = client.post(
+                url='https://api.telegram.org/bot{0}/{1}'.format(token, method), json=b
+            )
+            test_request = test_request.json()
 
     except Exception as err:
         print(err)
@@ -176,7 +183,7 @@ def generate_y_courier_json(route_data, vehicles=None):
     return payload
 
 
-def get_result_by_id(request_id):
+async def get_result_by_id(request_id):
     poll_stop_codes = {
         requests.codes.ok,
         requests.codes.gone,
@@ -185,10 +192,12 @@ def get_result_by_id(request_id):
 
     poll_url = '{}/result/mvrp/{}'.format(API_ROOT_ENDPOINT, request_id)
 
-    response = requests.get(poll_url)
-    while response.status_code not in poll_stop_codes:
-        time.sleep(1)
-        response = requests.get(poll_url)
+    async with httpx.AsyncClient() as client:
+        response = client.get(poll_url)
+
+        while response.status_code not in poll_stop_codes:
+            time.sleep(1)
+            response = client.get(poll_url)
 
     urls = []
     # Вывод информации в пользовательском формате.
@@ -222,7 +231,7 @@ def get_result_by_id(request_id):
     return None
 
 
-def gen_intermediate_route(request_id):
+async def gen_intermediate_route(request_id):
     """
     Генерирует один промежуточный маршрут, исходя из результатов которого формируются остальные маршруты
     """
@@ -234,10 +243,12 @@ def gen_intermediate_route(request_id):
 
     poll_url = '{}/result/mvrp/{}'.format(API_ROOT_ENDPOINT, request_id)
 
-    response = requests.get(poll_url)
-    while response.status_code not in poll_stop_codes:
-        time.sleep(1)
-        response = requests.get(poll_url)
+    async with httpx.AsyncClient() as client:
+        response = client.get(poll_url)
+
+        while response.status_code not in poll_stop_codes:
+            time.sleep(1)
+            response = client.get(poll_url)
 
     waypoints = []
     # Вывод информации в пользовательском формате.
@@ -293,14 +304,15 @@ def create_tinkoff_token(data_dict: dict, terminal_key)->str:
     return token
 
 
-def set_timed_func(func_type, resource_id, time):
+async def set_timed_func(func_type, resource_id, time):
 
-    request = requests.get(f'http://{SCHEDULER_HOST}:{SCHEDULER_PORT}/add_timer/{resource_id}/{time}?job_type={func_type}')
+    async with httpx.AsyncClient() as client:
+        request = client.get(f'http://{SCHEDULER_HOST}:{SCHEDULER_PORT}/add_timer/{resource_id}/{time}?job_type={func_type}')
     
     return request.status_code
 
 
-def generate_time_intervals(route_data):
+async def generate_time_intervals(route_data):
     from datetime import datetime
     import datetime as dt 
     import requests
@@ -317,18 +329,19 @@ def generate_time_intervals(route_data):
 
     order_list_generated = []
     #Получаем временные интервалы заявок
-    def set_route_generation_task(route_data):
+    async def set_route_generation_task(route_data):
         payload = generate_y_courier_json(route_data)
 
-        response = requests.post(
-            API_ROOT_ENDPOINT + '/add/mvrp',
-            params={'apikey': COURIER_KEY}, json=payload)
+        async with httpx.AsyncClient() as client:
+            response = client.post(
+                API_ROOT_ENDPOINT + '/add/mvrp',
+                params={'apikey': COURIER_KEY}, json=payload)
 
         print(response.status_code)
         return response.json()
         
 
-    return_data = set_route_generation_task(route_data)
+    return_data = await set_route_generation_task(route_data)
     print(return_data)
     print(return_data['status'])
     print('completed' in return_data['status'])
@@ -340,10 +353,10 @@ def generate_time_intervals(route_data):
         date_estimate = datetime.fromtimestamp(return_data['status']['estimate'])
         print(f"Job queued. Estimate completion : {date_estimate}, in ({(date_estimate-date_queued).total_seconds()})")
         sleep((date_estimate-date_queued).total_seconds())
-        waypoints = gen_intermediate_route(return_data['id'])
+        waypoints = await gen_intermediate_route(return_data['id'])
     else:
         print("Job completed")
-        waypoints = gen_intermediate_route(return_data['id'])
+        waypoints = await gen_intermediate_route(return_data['id'])
 
     with Session(engine, expire_on_commit=False) as session:
         for wp in waypoints:

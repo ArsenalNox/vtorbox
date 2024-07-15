@@ -781,7 +781,7 @@ async def import_clients(
                 first()
 
             if not new_address:
-                longitude, latitude = get_lang_long_from_text_addres(sheet_obj.cell(row,7).value)
+                longitude, latitude = await get_lang_long_from_text_addres(sheet_obj.cell(row,7).value)
                 if (latitude == None) or (longitude == None):
                     error_data.append({
                         "message": f"No data found for address {sheet_obj.cell(row, 7).value}",

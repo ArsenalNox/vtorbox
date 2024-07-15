@@ -591,7 +591,7 @@ async def set_order_status(
 
                     #"От вас требуется оплата заявки (%ORDER_NUM%) по адресу (%ADDRESS_TEXT%) на сумму %AMOUNT%"
 
-                    send_message_through_bot(
+                    await send_message_through_bot(
                         order_query.user.telegram_id,
                         message=message_text,
                         btn={
@@ -883,7 +883,7 @@ async def process_current_orders(
         route_data = Route_data()
         route_data.orders = order_list_to_generate_time_ranges
 
-        order_list_to_generate_time_ranges = generate_time_intervals(route_data)
+        order_list_to_generate_time_ranges = await generate_time_intervals(route_data)
 
         for order in order_list_to_generate_time_ranges:
             print("Updating order status")
@@ -909,7 +909,7 @@ async def process_current_orders(
             if not order.user.allow_messages_from_bot and order.user.telegram_id:
                 continue
             else:
-                send_message_through_bot(
+                await send_message_through_bot(
                     order.user.telegram_id,
                     message=f"От вас требуется подверждение заявки ({order.order_num}) по адресу ({order.address.address}) по временному итервалу {order.time_window}",
                     btn={
@@ -1057,7 +1057,7 @@ async def resend_order_confirm_notify(
                 message_to_send = f"От вас требуется подверждение заявки ({order.order_num}) по адресу ({order.address.address})"
                 if order.time_window:
                     message_to_send = f"От вас требуется подверждение заявки ({order.order_num}) по адресу ({order.address.address}) по временному итервалу {order.time_window}"
-                send_message_through_bot(
+                await send_message_through_bot(
                     order.user.telegram_id,
                     message=message_to_send,
                     btn={

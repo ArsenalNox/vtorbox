@@ -265,7 +265,7 @@ class Orders(Base):
         return return_data
 
 
-    def update_status(__self__, status_id, send_message=False) -> Optional['Orders']:
+    async def update_status(__self__, status_id, send_message=False) -> Optional['Orders']:
         """
         Указать новый статус зявки с записью изменения в историю заявки
         """
@@ -298,7 +298,7 @@ class Orders(Base):
                     return __self__
             
                 status_query = session.query(OrderStatuses).filter(OrderStatuses.id == status_id).enable_eagerloads(False).first()
-                send_message_through_bot(
+                await send_message_through_bot(
                     receipient_id=user.telegram_id,
                     message=f"Ваша заявка №{__self__.order_num} изменила статус на '{status_query.status_name}'"
                 )
@@ -837,7 +837,7 @@ class Payments(Base):
     date_created = Column(DateTime(), default=default_time)
 
 
-    def process_status_update(order):
+    async def process_status_update(order):
         #Если у пользователя есть карта с rebuill_id возвать init с charge
         #Если нет, вызвать init 
         
@@ -848,7 +848,7 @@ class Payments(Base):
 
             if rebuill_query:
                 #TODO: Создать платёж и вызвать charge
-                new_payment, message = Payments.create_new_payment(
+                new_payment, message = await Payments.create_new_payment(
                     terminal=terminal,
                     order=order,
                     without_r_c=True
@@ -871,7 +871,7 @@ class Payments(Base):
                     return new_payment, message
 
             else:
-                new_payment, message = Payments.create_new_payment(
+                new_payment, message = await Payments.create_new_payment(
                     terminal=terminal,
                     order=order,
                 )
@@ -916,7 +916,7 @@ class Payments(Base):
             order_payments = order_payments.all()
             return 
     
-    def create_new_payment(terminal: 'PaymentTerminals', order: 'Orders', without_r_c=False) -> 'Payments':
+    async def create_new_payment(terminal: 'PaymentTerminals', order: 'Orders', without_r_c=False) -> 'Payments':
         """
         Создаёт новый рекуррентный платёж пользователю
         """
@@ -1073,7 +1073,7 @@ class Payments(Base):
                 session.commit()
 
             try:
-                set_timed_func('p', new_payment.id, 'M:01')
+                await set_timed_func('p', new_payment.id, 'M:01')
             except Exception as err:
                 print(err)
 
@@ -1425,9 +1425,14 @@ class Notifications(Base):
                 user_id=new_notification.for_user,
                 only_unread=True
             )
+
+            nt_list = []
+            for nt_ in nt_data:
+                nt_list.append(jsonable_encoder(nt_.model_dump()))
+
             await Notifications.send_notification(
                     new_notification.for_user, 
-                    jsonable_encoder(nt_data), 
+                    json.dumps(nt_list), 
                     session=session,
                     send_to_tg=new_notification.sent_to_tg
                 )
@@ -1456,7 +1461,7 @@ class Notifications(Base):
             if send_to_tg:
                 if user_query.telegram_id:
                     if user_query.allow_messages_from_bot:
-                        send_message_through_bot(user_query.telegram_id, f"Новое уведомление: '{message}'")
+                        await send_message_through_bot(user_query.telegram_id, f"Новое уведомление: '{message}'")
 
             await manager.send_personal_message(str(message), user_id)
         except KeyError:
@@ -1481,6 +1486,23 @@ class Notifications(Base):
 
         session.add(nt_query)
         
+
+    async def mark_notification_as_unread(notification_id, user_id, session):
+        nt_query = session.query(Notifications).options(
+                joinedload(Notifications.read_by_users)
+            ).filter(Notifications.id == notification_id).first()
+        user_query = session.query(Users).filter(Users.id == user_id).enable_eagerloads(False).first()
+        print(nt_query)
+        print(nt_query.read_by_users)
+        if not nt_query:
+            print('Notification not found')
+        
+        if nt_query.read_by_users:
+            nt_query.read_by_users.remove(user_query)
+
+        session.add(nt_query)
+        
+
 
     async def get_notifications(
         session,

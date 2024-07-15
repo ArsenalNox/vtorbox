@@ -6,6 +6,7 @@ import requests
 import os, uuid
 import re 
 import math
+import json
 
 from typing import Annotated, List, Tuple, Dict, Optional, Union
 from fastapi.responses import JSONResponse
@@ -199,6 +200,44 @@ async def get_notification_types(
         return jsonable_encoder(types_query)
 
 
+@router.patch('/mark-as-unread')
+async def mark_notifications_as_unread(
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    notification_ids: NotificationsAsRead,
+    user_id: Optional[UUID] = None
+):
+    """
+    Отметить уведомления не прочитанными
+    """
+    if len(notification_ids.ids)<1:
+        return JSONResponse({
+            "detail": "Требуется указать как минимум одно уведомление"
+        })
+
+    if user_id is None:
+        user_id = current_user.id
+
+    with Session(engine, expire_on_commit=False) as session:
+        try:
+            for notification_id in notification_ids.ids:
+                print(notification_id)
+                await Notifications.mark_notification_as_unread(
+                        notification_id=notification_id, 
+                        user_id=user_id, 
+                        session=session
+                    )
+
+            session.commit()
+
+        except Exception as err:
+            print(err)
+            return JSONResponse({
+                "detail": 'an error occured'
+            }, 503)
+
+    return
+
+
 @router.patch('/mark-as-read')
 async def mark_notifications_as_read(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
@@ -274,9 +313,14 @@ async def websocket_endpoint(
             only_unread=True
         )
 
+        nt_list = []
+        for nt_ in nt_data:
+            nt_list.append(jsonable_encoder(nt_.model_dump()))
+
+
         await Notifications.send_notification(
                 user.id, 
-                jsonable_encoder(nt_data), 
+                json.dumps(nt_list), 
                 session=session,
                 send_to_tg=False
         )
