@@ -745,7 +745,7 @@ async def check_given_address(
             "address": address,
         },status_code=422)
 
-    possible_addresses = get_addr_coll(f"{long},{lat}")
+    possible_addresses = await get_addr_coll(f"{long},{lat}")
 
     return JSONResponse({
         "message": address,
@@ -815,7 +815,7 @@ async def check_given_address_by_text(
             "addresses": None
         },status_code=422)
 
-    possible_addresses = get_addr_coll(text)
+    possible_addresses = await get_addr_coll(text)
 
     return JSONResponse({
         "address": address,

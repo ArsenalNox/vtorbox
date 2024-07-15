@@ -114,7 +114,7 @@ async def write_routes_to_db(routes):
 
             courier_query = session.query(Users).filter(Users.id==route['courier']).first()
             if (not courier_query.allow_messages_from_bot) and (not courier_query.telegram_id):
-                send_message_through_bot(
+                await send_message_through_bot(
                     receipient_id=courier_query.telegram_id,
                     message="Вам назначен маршрут"
                 )
@@ -458,12 +458,12 @@ async def get_route_y_map(
             return route_query.route_link
         
         if route_query.route_task_id:
-            result = get_result_by_id(route_query.route_task_id)
+            result = await get_result_by_id(route_query.route_task_id)
             route_query.route_link = result
             session.commit()
             return result
         
-        payload = generate_y_courier_json(route_query)
+        payload = await generate_y_courier_json(route_query)
 
         response = requests.post(
             API_ROOT_ENDPOINT + '/add/mvrp',
@@ -474,7 +474,7 @@ async def get_route_y_map(
             return response.json()
 
         try:
-            result = set_timed_func('r', route_query.id, 'M:01')
+            result = await set_timed_func('r', route_query.id, 'M:01')
             print(result)
         except Exception as err:
             print(err)
