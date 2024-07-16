@@ -235,6 +235,22 @@ async def mark_notifications_as_unread(
                 "detail": 'an error occured'
             }, 503)
 
+        nt_data = await Notifications.get_notifications(
+            session=session,
+            user_id=user_id,
+            only_unread=True
+        )
+
+        nt_list = []
+        for nt_ in nt_data:
+            nt_list.append(jsonable_encoder(nt_.model_dump()))
+        await Notifications.send_notification(
+                user_id, 
+                json.dumps(nt_list), 
+                session=session,
+                send_to_tg=False
+        )
+
     return
 
 
@@ -273,8 +289,23 @@ async def mark_notifications_as_read(
                 "detail": 'an error occured'
             }, 503)
 
-    return
+        nt_data = await Notifications.get_notifications(
+            session=session,
+            user_id=user_id,
+            only_unread=True
+        )
 
+        nt_list = []
+        for nt_ in nt_data:
+            nt_list.append(jsonable_encoder(nt_.model_dump()))
+        await Notifications.send_notification(
+                user_id, 
+                json.dumps(nt_list), 
+                session=session,
+                send_to_tg=False
+        )
+
+    return
 
 @router.post('/')
 async def create_new_notification(
@@ -316,8 +347,6 @@ async def websocket_endpoint(
         nt_list = []
         for nt_ in nt_data:
             nt_list.append(jsonable_encoder(nt_.model_dump()))
-
-
         await Notifications.send_notification(
                 user.id, 
                 json.dumps(nt_list), 
