@@ -119,7 +119,7 @@ async def get_filtered_orders(
                 date = datetime.strptime(filter_date, "%Y-%m-%d")
             except Exception as err:
                 return JSONResponse({
-                    "message": f"{err}"
+                    "detail": f"{err}"
                 }, 422)
 
             date = date.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -781,6 +781,11 @@ async def process_current_orders(
         date_today = datetime.now()
         date_today = date_today.replace(hour=0, minute=0, second=0, microsecond=0)
 
+        if not await DaysWork.is_work_day_today(session=session, date=date_today):
+            return JSONResponse({
+                "detail": "Текущая дата отмеченна как нерабочий день"
+            }, status_code=422)
+        
         day_number_now = datetime.strftime(date_today, "%d")
         month_now_str = datetime.strftime(date_today, "%m")
         year_now_str = datetime.strftime(date_today, "%Y")
@@ -941,6 +946,11 @@ async def check_order_intervals(
         date_today = datetime.now()
         date_today = date_today.replace(hour=0, minute=0, second=0, microsecond=0)
 
+        if not await DaysWork.is_work_day_today(session=session, date=date_today):
+            return JSONResponse({
+                "detail": "Текущая дата отмеченна как нерабочий день"
+            }, status_code=422)
+        
         day_number_now = datetime.strftime(date_today, "%d")
         month_now_str = datetime.strftime(date_today, "%m")
         year_now_str = datetime.strftime(date_today, "%Y")

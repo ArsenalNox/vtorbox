@@ -32,7 +32,7 @@ from app.validators import (
     RegionOut, AddressDaysWork, UserOut, RouteOut
 )
 
-from app import Tags
+from app import Tags, logger
 
 from fastapi import APIRouter, Body, Security, Query
 from fastapi.responses import JSONResponse
@@ -55,7 +55,8 @@ from app.auth import (
 
 from app.models import (
     Users, Session, engine, UsersAddress, 
-    Address, IntervalStatuses, Roles, Permissions, Regions, WEEK_DAYS_WORK_STR_LIST
+    Address, IntervalStatuses, Roles, Permissions, Regions, WEEK_DAYS_WORK_STR_LIST,
+    DaysWork
     )
 
 
@@ -142,6 +143,12 @@ async def generate_routes_today(
         date = datetime.now()
         date = date.replace(hour=0, minute=0, second=0, microsecond=0)
         date_tommorrow = date + timedelta(days=1)
+
+        if not await DaysWork.is_work_day_today(session=session, date=date):
+            return JSONResponse({
+                "detail": "Текущая дата отмеченна как нерабочий день"
+            }, status_code=422)
+        
 
         order_pool_awaliable = [] #список доступных для вывоза заявок
 
