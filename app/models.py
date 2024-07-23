@@ -37,6 +37,8 @@ from app.utils import send_message_through_bot, create_tinkoff_token, set_timed_
 from app import T_BOT_URL
 from app import TIKOFF_API_URL_TEST as TINKOFF_API_URL
 
+from app import logger
+
 load_dotenv()
 connection_url = URL.create(
     drivername="postgresql",
@@ -70,14 +72,11 @@ class ConnectionManager:
 
     async def broadcast(self, message: str, for_user_roles):
         for connection in self.active_connections:
-            print(for_user_roles, self.active_connections[connection])
             if for_user_roles in self.active_connections[connection]['roles']:
-                print('Sending')
                 await self.active_connections[connection]['websocket'].send_text(message)
     
-
     async def broadcast_all_to_all(self):
-        #TODO: Отправка всех сообщений для всех пользователей, по ролям
+        #TODO: Отправка всех сообщений для всех пользователей
         with Session(engine, expire_on_commit=False) as session:
             for connection in self.active_connections:
                 msg_data = await Notifications.get_notifications(
@@ -1329,7 +1328,9 @@ class WeekDaysWork(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     weekday = Column(String(), nullable=False)
-
+    
+    async def is_work_day_today(session, date=datetime.now()):
+        pass
 
 class DaysWork(Base):
     """
@@ -1340,6 +1341,46 @@ class DaysWork(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     date = Column(DateTime(), default=None, nullable=False)
+
+    async def get_work_dates(session, dates_ahead: int):
+        dates_query = session.query(DaysWork).all()
+        work_dates = []
+        for date in dates_query:
+            logger.debug(date.date)
+            work_dates.append({
+                "date": date.date,
+                "id": date.id
+            })
+
+            for i in range(0, dates_ahead):
+                next_date = date.date.replace(year=date.date.year+i)
+                logger.debug(f"next date: {next_date}")
+                work_dates.append({
+                    "date": next_date,
+                    "id": date.id
+                })
+
+        return work_dates
+
+    async def is_work_day_today(session, date: datetime = datetime.now()):
+
+        dates_set = session.query(DaysWork).all()
+        date_today = datetime.now()
+        logger.debug(f"date today: {date_today}")
+        for date_set in dates_set:
+            date_set = date_set.date.replace(year=date_today.year)
+            if date_set.day == date_today.day and date_set.month == date_today.month:
+                logger.debug('Day same by date')
+                return False
+
+        weekday_today = str(date_today.strftime('%A')).lower()
+        weekdays_set = session.query(WeekDaysWork).all()
+        for weekday in weekdays_set:
+            if weekday_today == str(weekday.weekday).lower():
+                logger.debug('Day same by weekday')
+                return False
+
+        return True
 
 
 association_table = Table(
