@@ -32,7 +32,7 @@ from app.validators import (
     RegionOut, AddressDaysWork, UserOut, RouteOut, NotificationsAsRead
 )
 
-from app import Tags
+from app import Tags, logger
 
 from fastapi import APIRouter, Body, Security, Query, WebSocketException, status
 from fastapi.responses import JSONResponse
@@ -116,11 +116,15 @@ async def get_my_notifications(
     page: int = 0,
     limit: int = 20,
     get_all: bool = False,
-    only_unread: bool = False
+    only_unread: bool = False,
+    nt_type_name: str = None,
+    nt_resource_name: str = None,
+    date_filter_start: str = None,
+    date_filter_end: str = None
+#Фильтр по типу, по типу ресурса, по дате
 )->NotificationCountOut:
     """
     Получить уведомления 
-
     - **user_id**: [int|UUID] - Если None то получаются уведомления текущего авторизованного пользователя
     - **get_all**: [bool] - Получить все существующие уведомления, доступно только админам (не реализовано)
     - **only_unread**: [bool] - Получить только не прочитанные уведомления
@@ -163,6 +167,27 @@ async def get_my_notifications(
         if only_unread:
             user_query = session.query(association_table.c.left_id).filter_by(right_id=user_id).subquery()
             notification_query = notification_query.filter(Notifications.id.notin_(user_query))
+
+        if nt_type_name:
+            notification_query = notification_query.join(NotificationTypes).filter(NotificationTypes.type_name==nt_type_name)
+
+        if nt_resource_name:
+            notification_query = notification_query.filter(Notifications.resource_type==nt_resource_name)
+
+        if date_filter_start:
+            try:
+                date_start = datetime.strptime(date_filter_start, "%Y-%m-%d")
+                date_end = datetime.strptime(date_filter_end, "%Y-%m-%d")
+            except Exception as err:
+                return JSONResponse({
+                    "detail": f"{err}"
+                }, 422)
+
+            date_start = date_start.replace(hour=0, minute=0, second=0, microsecond=0)
+            logger.debug(f"start: {date_start} end: {date_end}")
+            notification_query = notification_query.filter(Notifications.date_created >= date_start)
+            notification_query = notification_query.filter(Notifications.date_created < date_end)
+
 
         nt_q_count_global = notification_query.count()
 
@@ -307,6 +332,7 @@ async def mark_notifications_as_read(
 
     return
 
+
 @router.post('/')
 async def create_new_notification(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
@@ -347,6 +373,7 @@ async def websocket_endpoint(
         nt_list = []
         for nt_ in nt_data:
             nt_list.append(jsonable_encoder(nt_.model_dump()))
+
         await Notifications.send_notification(
                 user.id, 
                 json.dumps(nt_list), 
