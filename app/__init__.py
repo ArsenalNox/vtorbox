@@ -2,6 +2,7 @@ import os
 
 from enum import Enum
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -52,3 +53,5 @@ class Scopes(Enum):
     customer = 'customer'
     manager = 'manager'
     courier = 'courier'
+
+logger = logging.getLogger('uvicorn.error')
