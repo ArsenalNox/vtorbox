@@ -248,12 +248,10 @@ async def get_bot_messages(
         return query.value
 
 
-    pass
-
-
 @router.get("/work_days", tags=[Tags.settings])
 async def get_work_days(
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    dates_ahead: int = 5
 ):
     """
     Получить настройки рабочих дней
@@ -262,12 +260,10 @@ async def get_work_days(
         weekdays_query = session.query(WeekDaysWork).all()
         weekdays_query = [weekday for weekday in weekdays_query]
 
-        dates_query = session.query(DaysWork).all()
-        dates_query = [day for day in dates_query]
+        work_dates = await DaysWork.get_work_dates(session, dates_ahead)
 
-        print(dates_query, weekdays_query)
         return {
-            "date_days": dates_query,
+            "date_days": work_dates,
             "weekdays": weekdays_query
         }
 
