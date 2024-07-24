@@ -183,7 +183,8 @@ async def get_all_users(
 
                 user_data.orders = []
                 for order in orders:
-
+                    order_data = order[0].__dict__
+                    del order_data['manager_info']
                     order_data = OrderOut(**order[0].__dict__)
 
                     try:
