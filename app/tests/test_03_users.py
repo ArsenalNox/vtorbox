@@ -27,6 +27,7 @@ def test_user_creation():
     assert request.status_code == 200
     test_globals['created_user_id'] = request.json()['id']
     test_globals['created_user_tg_id'] = request.json()['telegram_id']
+    assert request.json()['email'] is not None
 
     json = {
         "user_id": test_globals['created_user_id'],
