@@ -48,7 +48,7 @@ def test_user_profile_edit():
         "patronymic": "test_patronymic",
         "email": "user3@example.com",
         "allow_messages_from_bot": False,
-        "roles": ["bot", "customer", "admin"],
+        "roles": ["bot", "customer", "admin", "manager"],
         "link_code": "TEST_LINK_CODE",
         "additional_info": "TEST_ADD_INFO"
     }
