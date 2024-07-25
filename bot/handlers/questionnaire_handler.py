@@ -224,24 +224,32 @@ class QuestionnaireHandler(Handler):
             else:
                 check_phone = re.search(phone_pattern, message.text)
 
-            status_code, sms_msg = await req_to_api(
-                method='get',
-                url='bot/messages?message_key=SEND_SMS'
-            )
-
-            if phone:
-                await message.answer(
-                    sms_msg
+            if phone or (check_phone and len(message.text) == 11):
+                status_code, user_data = await req_to_api(
+                    method='get',
+                    url=f'bot/users/telegram?tg_id={message.from_user.id}',
                 )
-                await state.update_data(phone_number=phone)
-                await state.set_state(EditQuestionnaireState.approve_phone)
 
-            elif check_phone and len(message.text) == 11:
-                await message.answer(
-                    sms_msg
+                # запрос на изменение номера телефона у пользователя в БД
+                new_user_data = json.dumps({
+                    'telegram_id': message.from_user.id,
+                    'phone_number': phone or message.text,
+                    'user_id': user_data.get('id')
+                })
+
+                await req_to_api(
+                    method='put',
+                    url='user',
+                    data=new_user_data,
                 )
-                await state.update_data(phone_number=message.text)
-                await state.set_state(EditQuestionnaireState.approve_phone)
+
+                await state.set_state(state=None)
+
+                # переходим к выводу анкеты
+                await get_questionnaire(
+                    message=message,
+                    state=state
+                )
 
             elif message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
                 status_code, back_msg = await req_to_api(
@@ -263,67 +271,6 @@ class QuestionnaireHandler(Handler):
 
                 await message.answer(
                     wrong_phone_msg
-                )
-
-        @self.router.message(EditQuestionnaireState.approve_phone)
-        async def approve_phone_number(message: Message, state: FSMContext):
-            """Подтверждение номера телефона"""
-
-            await state.update_data(chat_id=message.chat.id)
-            data = await state.get_data()
-
-            if message.text == '123':
-
-                status_code, user_data = await req_to_api(
-                    method='get',
-                    url=f'bot/users/telegram?tg_id={message.from_user.id}',
-                )
-
-                # запрос на изменение номера телефона у пользователя в БД
-                new_user_data = json.dumps({
-                    'telegram_id': message.from_user.id,
-                    'phone_number': data.get('phone_number'),
-                    'user_id': user_data.get('id')
-                })
-
-                await req_to_api(
-                    method='put',
-                    url='user',
-                    data=new_user_data,
-                )
-
-                await state.set_state(state=None)
-                # переходим к выводу анкеты
-                await get_questionnaire(
-                    message=message,
-                    state=state
-                )
-
-            elif message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
-                status_code, back_msg = await req_to_api(
-                    method='get',
-                    url='bot/messages?message_key=BACK'
-
-                )
-                await message.answer(
-                    back_msg,
-                    reply_markup=self.kb.questionnaire_btn()
-                )
-                await state.set_state(state=None)
-
-            else:
-
-                status_code, wrong_code_msg = await req_to_api(
-                    method='get',
-                    url='bot/messages?message_key=WRONG_CODE'
-                )
-
-                await message.answer(
-                    wrong_code_msg
-                )
-                await get_questionnaire(
-                    message=message,
-                    state=state
                 )
 
         @self.router.message(F.text.startswith(BUTTONS['EMAIL']))
@@ -350,17 +297,29 @@ class QuestionnaireHandler(Handler):
             await state.update_data(chat_id=message.chat.id)
             check_email = re.search(email_pattern, message.text)
             if check_email:
-
-                status_code, send_email_msg = await req_to_api(
+                status_code, user_data = await req_to_api(
                     method='get',
-                    url='bot/messages?message_key=SEND_EMAIL'
+                    url=f'bot/users/telegram?tg_id={message.from_user.id}',
                 )
 
-                await message.answer(
-                    send_email_msg
+                new_user_data = json.dumps({
+                    'telegram_id': message.from_user.id,
+                    'email': message.text,
+                    'user_id': user_data.get('id')
+                })
+
+                await req_to_api(
+                    method='put',
+                    url='user',
+                    data=new_user_data,
                 )
-                await state.update_data(email=message.text)
-                await state.set_state(EditQuestionnaireState.approve_email)
+
+                await state.set_state(state=None)
+                # переходим к выводу анкеты
+                await get_questionnaire(
+                    message=message,
+                    state=state
+                )
 
             elif message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
                 status_code, back_msg = await req_to_api(
@@ -383,70 +342,3 @@ class QuestionnaireHandler(Handler):
                 await message.answer(
                     wrong_email_msg,
                 )
-
-        @self.router.message(EditQuestionnaireState.approve_email)
-        async def approve_phone_number(message: Message, state: FSMContext):
-            """Подтверждение email"""
-
-            await state.update_data(chat_id=message.chat.id)
-            data = await state.get_data()
-
-            if message.text == '123':
-                # запрос на изменение email у пользователя в БД
-                status_code, user_data = await req_to_api(
-                    method='get',
-                    url=f'bot/users/telegram?tg_id={message.from_user.id}',
-                )
-
-                new_user_data = json.dumps({
-                    'telegram_id': message.from_user.id,
-                    'email': data.get('email'),
-                    'user_id': user_data.get('id')
-                })
-
-                await req_to_api(
-                    method='put',
-                    url='user',
-                    data=new_user_data,
-                )
-
-                await state.set_state(state=None)
-                # переходим к выводу анкеты
-                await get_questionnaire(
-                    message=message,
-                    state=state
-                )
-
-            elif message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
-                status_code, back_msg = await req_to_api(
-                    method='get',
-                    url='bot/messages?message_key=BACK'
-
-                )
-                await message.answer(
-                    back_msg,
-                    reply_markup=self.kb.questionnaire_btn()
-                )
-                await state.set_state(state=None)
-
-            else:
-
-                status_code, wrong_code_msg = await req_to_api(
-                    method='get',
-                    url='bot/messages?message_key=WRONG_CODE'
-                )
-
-                status_code, menu_msg = await req_to_api(
-                    method='get',
-                    url='bot/messages?message_key=MENU'
-                )
-
-                await message.answer(
-                    wrong_code_msg
-                )
-                await message.answer(
-                    menu_msg,
-                    reply_markup=self.kb.start_menu_btn()
-                )
-
-

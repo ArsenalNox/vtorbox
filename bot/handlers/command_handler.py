@@ -9,7 +9,6 @@ from aiogram.types import Message
 from bot.handlers.base_handler import Handler
 from bot.keyboards.base_keyboards import BaseKeyboard
 
-from bot.states.states import RegistrationUser
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
 from bot.utils.handle_data import show_active_orders
@@ -104,7 +103,6 @@ class CommandHandler(Handler):
                         method='get',
                         url=f'users/orders/?tg_id={message.chat.id}',
                     )
-
                     if orders:
                         await show_active_orders(
                             message=message,
@@ -143,15 +141,11 @@ class CommandHandler(Handler):
                         data=user_data,
                     )
 
-                    status_code, register_msg = await req_to_api(
+                    status_code, menu_msg = await req_to_api(
                         method='get',
-                        url='bot/messages?message_key=REGISTRATION_MENU'
+                        url='bot/messages?message_key=MENU'
                     )
                     await message.answer(
-                        register_msg,
-                        reply_markup=self.kb.registration_btn()
+                        menu_msg,
+                        reply_markup=self.kb.start_menu_btn()
                     )
-                    await state.set_state(RegistrationUser.phone)
-                    await state.update_data(menu_view='registration')
-
-
