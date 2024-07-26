@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from uuid import UUID
 
+from sqlalchemy import func
 from sqlalchemy import desc, asc, desc, or_
 from sqlalchemy.orm import joinedload
 
@@ -323,6 +324,9 @@ async def create_order(
         order_data.day = datetime.strptime(order_data.day, "%Y-%m-%d").date()
 
         count = session.query(Orders.id).where(Orders.from_user == user.id).count()
+        count_by_max = session.query(func.max(Orders.order_num)).first()
+        if count_by_max > count:
+            count = count_by_max
 
         new_order = Orders(
             from_user   = user.id,
