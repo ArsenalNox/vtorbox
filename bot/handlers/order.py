@@ -174,6 +174,8 @@ class OrderHandler(Handler):
             await state.update_data(chat_id=message.chat.id)
             comment = message.text
             data = await state.get_data()
+            await state.set_state(state=None)
+
 
             # получаем данные из состояния и отправляем запрос в бэк на создание заявки
             create_order_data = json.dumps(
