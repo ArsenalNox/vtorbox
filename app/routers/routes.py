@@ -56,7 +56,7 @@ from app.auth import (
 from app.models import (
     Users, Session, engine, UsersAddress, 
     Address, IntervalStatuses, Roles, Permissions, Regions, WEEK_DAYS_WORK_STR_LIST,
-    DaysWork
+    DaysWork, Notifications
     )
 
 
