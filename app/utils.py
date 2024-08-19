@@ -8,7 +8,7 @@ import httpx
 from app import (
     CODER_KEY, CODER_SETTINGS, BOT_TOKEN,
     COURIER_API_ROOT_ENDPOINT as API_ROOT_ENDPOINT,
-    SCHEDULER_HOST, SCHEDULER_PORT, COURIER_KEY
+    SCHEDULER_HOST, SCHEDULER_PORT, COURIER_KEY, logger
     )
 
 token = BOT_TOKEN
@@ -86,6 +86,7 @@ async def send_message_through_bot(receipient_id:int, message, btn=None):
 
     method = 'sendMessage'
 
+    logger.debug("Sending message...")
     if btn:
         b = {
             "chat_id" : receipient_id,
@@ -102,13 +103,15 @@ async def send_message_through_bot(receipient_id:int, message, btn=None):
 
     try:
         async with httpx.AsyncClient() as client:
-            test_request = client.post(
+            test_request = await client.post(
                 url='https://api.telegram.org/bot{0}/{1}'.format(token, method), json=b
             )
             test_request = test_request.json()
+            logger.debug("Message request responce data: ")
+            logger.debug(test_request)
 
     except Exception as err:
-        print(err)
+        logger.error("An error occured, message not sent: {err}")
 
 
 def generate_y_courier_json(route_data, vehicles=None):

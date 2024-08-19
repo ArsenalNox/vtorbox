@@ -27,7 +27,7 @@ from app.validators import (
     OrderUpdate, FilteredOrderOut, UserIdMultiple,
     Notification
 )
-
+from app import logger
 from app.auth import (
     get_current_user
 )
@@ -324,15 +324,30 @@ async def create_order(
         order_data.day = datetime.strptime(order_data.day, "%Y-%m-%d").date()
 
         count = session.query(Orders.id).where(Orders.from_user == user.id).count()
-        count_by_max = session.query(func.max(Orders.order_num)).first()
-        if count_by_max > count:
-            count = count_by_max
+
+        try:
+            count_global = session.query(func.max(Orders.order_num)).first()[0]+1
+        except Exception as err:
+            count_global = 1
+
+        #TODO: Переписать проверку на существующий order_num
+        pre_check_count = session.query(Orders).filter(Orders.order_num == count_global+1).first()
+        if pre_check_count:
+            for i in range(1, 200):
+                post_check_count = session.query(Orders).filter(Orders.order_num == count_global+i).first()
+                if not post_check_count:
+                    logger.info(f"order num {count_global+i} is free")
+                    print(f"order num {count_global+i} is free")
+                    count_global = count_global+i
+                    break
+
 
         new_order = Orders(
             from_user   = user.id,
             address_id  = order_data.address_id,
             day         = order_data.day,
             comment     = order_data.comment,
+            order_num = count_global,
             # box_type_id = container.id,
             # box_count   = order_data.box_count,
             status      = OrderStatuses.status_default().id,
@@ -376,7 +391,7 @@ async def create_order(
         session.commit()
 
         notification_data = Notification(
-                content = "На вас была назначена заявка",
+                content = f"На вас была назначена заявка {new_order.order_num}",
                 resource_id = new_order.id,
                 resource_type = 'заявка',
                 sent_to_tg = True,
@@ -623,7 +638,7 @@ async def set_order_status(
             old_content = old_status_query.status_name,
             new_content = status_query.status_name,
         )
-        order_query = order_query.update_status(status_query.id, (status_query.message_on_update and send_message))
+        order_query = await order_query.update_status(status_query.id, (status_query.message_on_update and send_message))
         session.add(new_data_change)
         session.commit()
 

@@ -32,7 +32,7 @@ from calendar import monthrange
 from passlib.context import CryptContext
 from shapely.geometry import Point, shape
 
-from app.validators import OrderOut, RegionOut
+from app.validators import OrderOut, RegionOut, Notification
 from app.utils import send_message_through_bot, create_tinkoff_token, set_timed_func
 from app import T_BOT_URL
 from app import TIKOFF_API_URL_TEST as TINKOFF_API_URL
@@ -99,8 +99,17 @@ def order_order_num():
     получить кол-во заявок в таблице (учитывая удалённые)
     """
     with Session(engine, expire_on_commit=False) as session:
-        count = session.query(Orders.id).count()
-        return count + 1
+        count_global = session.query(func.max(Orders.order_num)).first()[0]+1
+        #TODO: Переписать проверку на существующий order_num
+        pre_check_count = session.query(Orders).filter(Orders.order_num == count_global+1).first()
+        if pre_check_count:
+            for i in range(1, 200):
+                post_check_count = session.query(Orders).filter(Orders.order_num == count_global+i).first()
+                if not post_check_count:
+                    logger.info(f"order num {count_global+i} is free")
+                    print(f"order num {count_global+i} is free")
+                    return count_global+i  
+        return count_global
 
 
 def generate_route_short_name()->str:
@@ -285,18 +294,57 @@ class Orders(Base):
 
             __self__.status = status_id
 
+            status_query = session.query(OrderStatuses).filter(OrderStatuses.id == status_id).enable_eagerloads(False).first()
+            logger.info("Checking for notification...")
+            match str(status_query.status_name).lower():
+                case x if x in ['подтверждена', 'подтверждена курьером', 'оплачена']:
+                    logger.info(x)
+                    notification_data = Notification(
+                        content = f"Заявка {__self__.order_num} изменила статус на '{x}'",
+                        resource_id = __self__.id,
+                        resource_type = 'заявка',
+                        sent_to_tg = True,
+                        for_user = __self__.manager_id
+                    )
+                    logger.info("Notification created")
+                    await Notifications.create_notification(
+                        notification_data = notification_data.model_dump(), 
+                        session = session,
+                        send_message = True
+                    )
+
+                case 'отменена':
+                    notification_data = Notification(
+                        content = f"Заявка {__self__.order_num} изменила статус на 'Отменена'. Комментарий курьера: '{__self__.comment_courier}'",
+                        resource_id = __self__.id,
+                        resource_type = 'заявка',
+                        sent_to_tg = True,
+                        for_user = __self__.manager_id
+                    )
+                    await Notifications.create_notification(
+                        notification_data = notification_data.model_dump(), 
+                        session = session,
+                        send_message = True
+                    )
+
+                case _:
+                    pass
+
+            logger.debug(f"SEND_MESSAGE: {send_message}")
             if send_message:
                 if not __self__.from_user:
+                    logger.debug(f"no user id set")
                     return __self__
 
                 user = Users.get_user(str(__self__.from_user))
                 if not user:
+                    logger.debug(f"unable to find linked user")
                     return __self__
 
                 if (not user.allow_messages_from_bot) or (not user.telegram_id):
+                    logger.debug(f"sending messasges not allowed: allow {user.allow_messages_from_bot}; user_tgid {user.telegram_id}")
                     return __self__
-            
-                status_query = session.query(OrderStatuses).filter(OrderStatuses.id == status_id).enable_eagerloads(False).first()
+                
                 await send_message_through_bot(
                     receipient_id=user.telegram_id,
                     message=f"Ваша заявка №{__self__.order_num} изменила статус на '{status_query.status_name}'"
