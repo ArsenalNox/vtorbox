@@ -325,7 +325,6 @@ class Orders(Base):
                     )
 
                 case _:
-                    break
             
 
             if send_message:
