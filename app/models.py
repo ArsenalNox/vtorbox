@@ -294,6 +294,7 @@ class Orders(Base):
 
             __self__.status = status_id
 
+            status_query = session.query(OrderStatuses).filter(OrderStatuses.id == status_id).enable_eagerloads(False).first()
             logger.info("Checking for notification...")
             match status_query.status_name:
                 case x if x in ['Подтверждена', 'Подтверждена курьером', 'Оплачена']:
@@ -338,7 +339,6 @@ class Orders(Base):
                 if (not user.allow_messages_from_bot) or (not user.telegram_id):
                     return __self__
             
-                status_query = session.query(OrderStatuses).filter(OrderStatuses.id == status_id).enable_eagerloads(False).first()
                 await send_message_through_bot(
                     receipient_id=user.telegram_id,
                     message=f"Ваша заявка №{__self__.order_num} изменила статус на '{status_query.status_name}'"
