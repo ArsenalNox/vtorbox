@@ -102,7 +102,7 @@ async def send_message_through_bot(receipient_id:int, message, btn=None):
 
     try:
         async with httpx.AsyncClient() as client:
-            test_request = client.post(
+            test_request = await client.post(
                 url='https://api.telegram.org/bot{0}/{1}'.format(token, method), json=b
             )
             test_request = test_request.json()
