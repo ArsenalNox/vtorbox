@@ -296,8 +296,8 @@ class Orders(Base):
 
             status_query = session.query(OrderStatuses).filter(OrderStatuses.id == status_id).enable_eagerloads(False).first()
             logger.info("Checking for notification...")
-            match status_query.status_name:
-                case x if x in ['Подтверждена', 'Подтверждена курьером', 'Оплачена']:
+            match str(status_query.status_name).lower():
+                case x if x in ['подтверждена', 'подтверждена курьером', 'оплачена']:
                     logger.info(x)
                     notification_data = Notification(
                         content = f"Заявка {__self__.order_num} изменила статус на '{x}'",
@@ -330,17 +330,21 @@ class Orders(Base):
                 case _:
                     pass
 
+            logger.debug(f"SEND_MESSAGE: {send_message}")
             if send_message:
                 if not __self__.from_user:
+                    logger.debug(f"no user id set")
                     return __self__
 
                 user = Users.get_user(str(__self__.from_user))
                 if not user:
+                    logger.debug(f"unable to find linked user")
                     return __self__
 
                 if (not user.allow_messages_from_bot) or (not user.telegram_id):
+                    logger.debug(f"sending messasges not allowed: allow {user.allow_messages_from_bot}; user_tgid {user.telegram_id}")
                     return __self__
-            
+                
                 await send_message_through_bot(
                     receipient_id=user.telegram_id,
                     message=f"Ваша заявка №{__self__.order_num} изменила статус на '{status_query.status_name}'"
