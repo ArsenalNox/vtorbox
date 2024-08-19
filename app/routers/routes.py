@@ -257,7 +257,7 @@ async def generate_routes_today(
                     session.commit()
 
                 notification_data = Notification(
-                    content = f"Маршруты сформированы и требуют подтверждения. <a>посмотреть</a>",
+                    content = f"Маршруты сформированы и требуют подтверждения.",
                     resource_type = 'маршрут',
                     sent_to_tg = True,
                     for_user_group = 'manager'
