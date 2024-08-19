@@ -175,11 +175,16 @@ async def get_order_creation_stats(
                 "count": count_query
             })
 
+        try:
+            percentage = users_registered_this_month/(user_count_query+user_deleted_count_query)
+        except Exception as err:
+            percentage = 0
+
         return_data = {
             "number": user_count_query+user_deleted_count_query,
             "deleted_count": user_deleted_count_query,
             "registered_in_month": users_registered_this_month,
-            "percentage": users_registered_this_month/(user_count_query+user_deleted_count_query),
+            "percentage": percentage,
             "chartData": registration_dates_count
         }
 
