@@ -391,7 +391,7 @@ async def create_order(
         session.commit()
 
         notification_data = Notification(
-                content = "На вас была назначена заявка",
+                content = f"На вас была назначена заявка {new_order.order_num}",
                 resource_id = new_order.id,
                 resource_type = 'заявка',
                 sent_to_tg = True,
