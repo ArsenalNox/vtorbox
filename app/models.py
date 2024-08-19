@@ -325,7 +325,7 @@ class Orders(Base):
                     )
 
                 case _:
-            
+                    pass
 
             if send_message:
                 if not __self__.from_user:
