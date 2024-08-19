@@ -32,7 +32,7 @@ from calendar import monthrange
 from passlib.context import CryptContext
 from shapely.geometry import Point, shape
 
-from app.validators import OrderOut, RegionOut
+from app.validators import OrderOut, RegionOut, Notification
 from app.utils import send_message_through_bot, create_tinkoff_token, set_timed_func
 from app import T_BOT_URL
 from app import TIKOFF_API_URL_TEST as TINKOFF_API_URL
@@ -298,6 +298,7 @@ class Orders(Base):
             logger.info("Checking for notification...")
             match status_query.status_name:
                 case x if x in ['Подтверждена', 'Подтверждена курьером', 'Оплачена']:
+                    logger.info(x)
                     notification_data = Notification(
                         content = f"Заявка {__self__.order_num} изменила статус на '{x}'",
                         resource_id = __self__.id,
@@ -305,6 +306,7 @@ class Orders(Base):
                         sent_to_tg = True,
                         for_user = __self__.manager_id
                     )
+                    logger.info("Notification created")
                     await Notifications.create_notification(
                         notification_data = notification_data.model_dump(), 
                         session = session,
