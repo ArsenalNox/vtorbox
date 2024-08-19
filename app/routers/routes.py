@@ -46,7 +46,7 @@ from app.validators import (
     Order as OrderValidator,
     UserLogin as UserLoginSchema,
     OrderOut,
-    OrderUpdate
+    OrderUpdate, Notification
 )
 
 from app.auth import (
