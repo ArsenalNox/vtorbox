@@ -6,6 +6,8 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from datetime import datetime
 
+from loguru import logger
+
 from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.utils.buttons import BUTTONS
 from bot.utils.handle_data import convert_date, translate_day
@@ -47,6 +49,7 @@ class OrderKeyboard(BaseKeyboard):
         manager_username = order.get('manager_info', {}).get('telegram_username')
         manager_link = f'https://t.me/{manager_username}' if manager_username else f'tg://user?id={manager_id}'
 
+        logger.debug(f'Order info: id={order_id}, order_num={order_num}, manager_id={manager_id}, manager_username={manager_username}, manager_link={manager_link}')
         # ---------------------------Логика вывода стрелочек для переключения--------------------------------------
         try:
             orders_list[index + 1]
