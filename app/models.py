@@ -313,7 +313,7 @@ class Orders(Base):
                         send_message = True
                     )
 
-                case 'Отменена':
+                case 'отменена':
                     notification_data = Notification(
                         content = f"Заявка {__self__.order_num} изменила статус на 'Отменена'. Комментарий курьера: '{__self__.comment_courier}'",
                         resource_id = __self__.id,
