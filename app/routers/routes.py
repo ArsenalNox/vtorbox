@@ -371,7 +371,7 @@ async def update_route_orders(
                 delete_query = session.query(RoutesOrders).where(RoutesOrders.order_id == order_id).delete()
 
                 order_query = session.query(Orders).where(Orders.id==order_id).first()
-                order_query = order_query.update_status(OrderStatuses.status_confirmed().id)
+                order_query = await order_query.update_status(OrderStatuses.status_confirmed().id)
                 session.add(order_query)
 
                 session.commit()
