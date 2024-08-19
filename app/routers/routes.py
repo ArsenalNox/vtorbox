@@ -256,6 +256,18 @@ async def generate_routes_today(
                     session.add(new_data_change)
                     session.commit()
 
+                    notification_data = Notification(
+                        content = f"Маршруты сформированы и требуют подтверждения. <a>посмотреть</a>",
+                        resource_type = 'маршрут',
+                        sent_to_tg = True,
+                        for_user_group = 'manager'
+                    )
+                    await Notifications.create_notification(
+                        notification_data = notification_data.model_dump(), 
+                        session = session,
+                        send_message = True
+                    )
+
             except Exception as err:
                 print(err)
 

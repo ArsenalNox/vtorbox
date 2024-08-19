@@ -294,6 +294,40 @@ class Orders(Base):
 
             __self__.status = status_id
 
+            logger.info("Checking for notification...")
+            match status_query.status_name:
+                case x if x in ['Подтверждена', 'Подтверждена курьером', 'Оплачена']:
+                    notification_data = Notification(
+                        content = f"Заявка {__self__.order_num} изменила статус на '{x}'",
+                        resource_id = __self__.id,
+                        resource_type = 'заявка',
+                        sent_to_tg = True,
+                        for_user = __self__.manager_id
+                    )
+                    await Notifications.create_notification(
+                        notification_data = notification_data.model_dump(), 
+                        session = session,
+                        send_message = True
+                    )
+
+                case 'Отменена':
+                    notification_data = Notification(
+                        content = f"Заявка {__self__.order_num} изменила статус на 'Отменена'. Комментарий курьера: '{__self__.comment_courier}'",
+                        resource_id = __self__.id,
+                        resource_type = 'заявка',
+                        sent_to_tg = True,
+                        for_user = __self__.manager_id
+                    )
+                    await Notifications.create_notification(
+                        notification_data = notification_data.model_dump(), 
+                        session = session,
+                        send_message = True
+                    )
+
+                case _:
+                    break
+            
+
             if send_message:
                 if not __self__.from_user:
                     return __self__
