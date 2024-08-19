@@ -325,7 +325,11 @@ async def create_order(
 
         count = session.query(Orders.id).where(Orders.from_user == user.id).count()
 
-        count_global = session.query(func.max(Orders.order_num)).first()[0]+1
+        try:
+            count_global = session.query(func.max(Orders.order_num)).first()[0]+1
+        except Exception as err:
+            count_global = 1
+
         #TODO: Переписать проверку на существующий order_num
         pre_check_count = session.query(Orders).filter(Orders.order_num == count_global+1).first()
         if pre_check_count:
