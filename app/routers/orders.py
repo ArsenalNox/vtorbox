@@ -638,7 +638,7 @@ async def set_order_status(
             old_content = old_status_query.status_name,
             new_content = status_query.status_name,
         )
-        order_query = order_query.update_status(status_query.id, (status_query.message_on_update and send_message))
+        order_query = await order_query.update_status(status_query.id, (status_query.message_on_update and send_message))
         session.add(new_data_change)
         session.commit()
 
