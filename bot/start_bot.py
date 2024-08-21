@@ -60,6 +60,9 @@ class MainBot:
                     method='get',
                     url=f'user/me?tg_id={chat_id}',
                 )
+                message = event.update.message
+                if not message:
+                    message = event.update.callback_query.message
 
                 if user.get('id') and 'courier' not in user.get('roles'):
                     status_code, text = await req_to_api(
@@ -67,15 +70,15 @@ class MainBot:
                         url='bot/messages?message_key=MENU'
                     )
 
-                    message = event.update.message
-                    if not message:
-                        message = event.update.callback_query.message
-
                     status_code, orders = await req_to_api(
                         method='get',
                         url=f'users/orders/?tg_id={chat_id}',
                     )
 
+                    await self.bot.send_message(
+                        chat_id=chat_id,
+                        text=MESSAGES['ERROR']
+                    )
                     if orders and status_code == 200:
                         await show_active_orders(
                             orders=orders,
@@ -83,11 +86,6 @@ class MainBot:
                             message=message,
                             state=state
                         )
-
-                    await self.bot.send_message(
-                        chat_id=chat_id,
-                        text=MESSAGES['ERROR']
-                    )
                     await self.bot.send_message(
                         chat_id=chat_id,
                         text=text,
@@ -109,30 +107,27 @@ class MainBot:
 
                     await self.bot.send_message(
                         chat_id=chat_id,
+                        text=MESSAGES['ERROR']
+                    )
+
+                    await self.bot.send_message(
+                        chat_id=chat_id,
                         text=MESSAGES['CURRENT_ROUTE'],
                         reply_markup=self.courier_kb.routes_menu(route_link))
 
+                else:
                     await self.bot.send_message(
                         chat_id=chat_id,
                         text=MESSAGES['ERROR']
                     )
-
-                else:
-                    await state.set_state(RegistrationUser.phone)
-                    await state.update_data(menu_view='registration')
                     status_code, text = await req_to_api(
                         method='get',
-                        url='bot/messages?message_key=REGISTRATION_MENU'
-                    )
-
-                    await self.bot.send_message(
-                        chat_id=chat_id,
-                        text=MESSAGES['ERROR']
+                        url='bot/messages?message_key=MENU'
                     )
                     await self.bot.send_message(
                         chat_id=chat_id,
                         text=text,
-                        reply_markup=self.kb.registration_btn()
+                        reply_markup=self.kb.start_menu_btn()
                     )
 
             except Exception as e:
