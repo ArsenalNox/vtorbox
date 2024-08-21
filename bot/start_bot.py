@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import ErrorEvent
 from loguru import logger
 
@@ -24,7 +25,9 @@ class MainBot:
 
     def __init__(self):
         self.bot = Bot(token=settings.bot_token, parse_mode=ParseMode.HTML)
-        self.dp = Dispatcher(storage=MemoryStorage())
+        # self.storage = RedisStorage.from_url('redis://redis:6379/0')
+        self.storage = MemoryStorage()
+        self.dp = Dispatcher(storage=self.storage)
         self.handler = MainHandler(self.bot)
         self.kb = BaseKeyboard()
         self.courier_kb = CourierKeyboard()
