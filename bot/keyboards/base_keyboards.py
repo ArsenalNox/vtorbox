@@ -220,3 +220,20 @@ class BaseKeyboard:
             resize_keyboard=True,
             one_time_keyboard=True
         )
+
+    def test_btn(self) -> InlineKeyboardMarkup:
+        """ Кнопки подтверждения/отказаться  """
+
+        builder = InlineKeyboardBuilder()
+        builder.row(
+            InlineKeyboardButton(
+                text='Подтвердить',
+                callback_data=f'test',
+                url='tg://user?id=111111'
+            ),
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
