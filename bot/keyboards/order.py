@@ -139,15 +139,16 @@ class OrderKeyboard(BaseKeyboard):
         """Список адресов при создании адреса"""
 
         builder = InlineKeyboardBuilder()
-        for address in address_list:
-            address_id = address['id']
-            builder.row(
-                InlineKeyboardButton(
-                    text=address['address'],
-                    callback_data=f'getaddress_{address_id}_{is_container_switch_over}'
-                )
+        if isinstance(address_list, list):
+            for address in address_list:
+                address_id = address['id']
+                builder.row(
+                    InlineKeyboardButton(
+                        text=address['address'],
+                        callback_data=f'getaddress_{address_id}_{is_container_switch_over}'
+                    )
 
-            )
+                )
 
         builder.row(
             InlineKeyboardButton(
