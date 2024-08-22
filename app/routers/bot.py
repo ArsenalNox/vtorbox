@@ -675,7 +675,7 @@ async def get_routes(
         routes = session.query(Routes).options(
                 joinedload(Routes.orders).\
                 joinedload(RoutesOrders.order)
-            ).enable_eagerloads(False).filter(Routes.route_link != None)
+            ).filter(Routes.route_link != None)
 
         routes = routes.filter(Routes.courier_id == user.id)
 
