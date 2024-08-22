@@ -400,7 +400,7 @@ async def update_route_orders(
                 update_query = session.query(Orders).where(Orders.id == order_id).first()
                 
                 if not (update_query.status == OrderStatuses.status_accepted_by_courier().id):
-                    update_query = update_query.update_status(OrderStatuses.status_accepted_by_courier().id)
+                    update_query = await update_query.update_status(OrderStatuses.status_accepted_by_courier().id)
 
                 update_query.courier_id = route_query.courier_id
                 session.commit()
