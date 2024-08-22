@@ -304,7 +304,6 @@ async def get_routes(
             outerjoin(Address, Address.id == Orders.address_id,                 ).\
             order_by(asc(Routes.date_created))
 
-        print(1)       
         # FROM routes LEFT OUTER JOIN routed_orders AS routed_orders_1 ON routes.id = routed_orders_1.route_id 
         # LEFT OUTER JOIN orders AS orders_1 ON orders_1.id = routed_orders_1.order_id 
         # LEFT OUTER JOIN boxtypes AS boxtypes_1 ON boxtypes_1.id = orders_1.box_type_id 
@@ -312,11 +311,9 @@ async def get_routes(
         # LEFT OUTER JOIN regions AS regions_1 ON regions_1.id = regional_box_prices_1.region_id 
         # LEFT OUTER JOIN users AS users_2 ON users_2.id = orders_1.manager_id 
         # LEFT OUTER JOIN address AS address_1 ON address_1.id = orders_1.address_id
-        print(2)
         if date:
             date = date.replace(hour=0, minute=0)
             date_tommorrow = date + timedelta(days=1)
-            print(date, date_tommorrow)
             routes = routes.filter(Routes.date_created > date)
             routes = routes.filter(Routes.date_created < date_tommorrow)
             
@@ -328,21 +325,15 @@ async def get_routes(
             courier = Users.get_user(str(courier_tg_id), update_last_action=True)
             routes = routes.filter(Routes.courier_id == courier.id)
 
-
-        print(routes)
         # routes = routes.order_by(asc(Routes.date_created)).all()
         start = datetime.now()
-        print(datetime.now())
         routes = routes.all()
         end = datetime.now() - start
-        print(end)
-        print(3)
 
         if len(routes)<1:
             return JSONResponse({
                 "detail": "Not found"
             }, 404)
-        print(4)
 
         # return routes
         return jsonable_encoder(routes)
