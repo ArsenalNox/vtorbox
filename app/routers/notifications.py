@@ -69,7 +69,7 @@ router = APIRouter()
 async def get_my_notification_count(
     current_user: Annotated[UserLoginSchema, Security(get_current_user)],
     user_id: int|UUID = None,
-    only_unread: bool = False
+    only_unread: bool = True
 ):
     """
     Получить кол-во новых/непрочитанных сообщений
@@ -323,6 +323,7 @@ async def mark_notifications_as_read(
         nt_list = []
         for nt_ in nt_data:
             nt_list.append(jsonable_encoder(nt_.model_dump()))
+
         await Notifications.send_notification(
                 user_id, 
                 json.dumps(nt_list), 

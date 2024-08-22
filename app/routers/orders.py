@@ -693,7 +693,7 @@ async def update_order_data(
 
             if attr == "box_count" and (new_order_data.box_count < 1):
                 return JSONResponse({
-                    "detail": "Cannot set box_count below 1"
+                    "detail": "Невозможно указать кол-во контейнеров меньше 1"
                 }, status_code=422)
 
             comment_types = ["comment_manager", "comment_courier", "comment"]
