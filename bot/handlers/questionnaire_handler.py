@@ -237,19 +237,37 @@ class QuestionnaireHandler(Handler):
                     'user_id': user_data.get('id')
                 })
 
-                await req_to_api(
+                status_code, answer = await req_to_api(
                     method='put',
                     url='user',
                     data=new_user_data,
                 )
+                if status_code == 422:
+                    status_code, unique_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=PHONE_NUMBER_IS_EXIST'
+                    )
+                    await message.answer(
+                        unique_msg
+                    )
 
-                await state.set_state(state=None)
+                else:
+                    if status_code == 204:
+                        status_code, text_msg = await req_to_api(
+                            method='get',
+                            url='bot/messages?message_key=EMPTY_CHANGE_PHONE'
+                        )
+                        await message.answer(
+                            text_msg
+                        )
 
-                # переходим к выводу анкеты
-                await get_questionnaire(
-                    message=message,
-                    state=state
-                )
+                    await state.set_state(state=None)
+
+                    # переходим к выводу анкеты
+                    await get_questionnaire(
+                        message=message,
+                        state=state
+                    )
 
             elif message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
                 status_code, back_msg = await req_to_api(
@@ -308,11 +326,30 @@ class QuestionnaireHandler(Handler):
                     'user_id': user_data.get('id')
                 })
 
-                await req_to_api(
+                status_code, answer = await req_to_api(
                     method='put',
                     url='user',
                     data=new_user_data,
                 )
+                if status_code == 422:
+                    status_code, unique_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=EMAIL_IS_EXIST'
+                    )
+                    await message.answer(
+                        unique_msg
+                    )
+
+                else:
+                    if status_code == 204:
+                        status_code, text_msg = await req_to_api(
+                            method='get',
+                            url='bot/messages?message_key=EMPTY_CHANGE_EMAIL'
+                        )
+                        await message.answer(
+                            text_msg
+                        )
+
 
                 await state.set_state(state=None)
                 # переходим к выводу анкеты

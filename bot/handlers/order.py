@@ -449,7 +449,7 @@ class OrderHandler(Handler):
 
             status_code, payment_req_msg = await req_to_api(
                 method='get',
-                url='bot/messages?message_key=TEST_MESSAGE_12'
+                url='bot/messages?message_key=MESSAGE_PAYMENT_REQUIRED_ASK'
             )
 
             if order_menu == 'True' and flag in ('False', None):
