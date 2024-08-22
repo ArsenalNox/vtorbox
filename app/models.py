@@ -99,7 +99,7 @@ def order_order_num():
     получить кол-во заявок в таблице (учитывая удалённые)
     """
     with Session(engine, expire_on_commit=False) as session:
-        count_global = session.query(func.max(Orders.order_num)).first()[0]+1
+        count_global = session.query(func.max(Orders.order_num)).first()[0]+400
         #TODO: Переписать проверку на существующий order_num
         pre_check_count = session.query(Orders).filter(Orders.order_num == count_global+1).first()
         if pre_check_count:
