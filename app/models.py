@@ -174,6 +174,8 @@ class Orders(Base):
     #Комментарий к выполнению от курьера
     comment_courier = Column(Text(), nullable=True)
 
+    custom_price = Column(Float(), nullable=True)
+
     address = relationship('Address', backref='orders', lazy='joined')
 
     comment_history = relationship('OrderComments', backref='to_order', lazy=True)
@@ -1400,7 +1402,7 @@ class DaysWork(Base):
                 "id": date.id
             })
 
-            for i in range(0, dates_ahead):
+            for i in range(1, dates_ahead):
                 next_date = date.date.replace(year=date.date.year+i)
                 logger.debug(f"next date: {next_date}")
                 work_dates.append({

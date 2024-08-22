@@ -420,6 +420,8 @@ class OrderOut(BaseModel):
     last_updated: datetime
     legal_entity: bool
     
+    custom_price: Optional[float] = None
+
     courier_id: Optional[UUID4] = None
     manager_id: Optional[UUID4] = None
     manager_info: Optional[UserOrderOutData] = None

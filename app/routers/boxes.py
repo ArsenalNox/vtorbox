@@ -40,7 +40,7 @@ router = APIRouter()
 @router.get('/boxes', tags=['bot', 'boxes'])
 async def get_box_types(
     bot: Annotated[UserLoginSchema, Security(get_current_user)],
-    show_deleted: bool = False
+    show_deleted: bool = True
 ):
     """
     Получение списка доступных контейнеров
