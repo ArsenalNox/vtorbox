@@ -387,14 +387,14 @@ async def update_user_data(
             if 'users_email_key' in str(err):
                 return JSONResponse({
                         "detail": 'Почта уже занята', 
-                        "code": "422"
+                        "code": 422
                     },
                     status_code=422
                 )
             elif 'phone' in str(err):
                 return JSONResponse({
                         "detail": 'Телефон уже занят', 
-                        "code": "423"
+                        "code": 423
                     },
                     status_code=423
                 )
