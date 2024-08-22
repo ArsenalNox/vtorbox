@@ -7,7 +7,7 @@ import requests
 import os, uuid
 import re 
 import math
-
+import traceback
 from typing import Annotated, List, Tuple, Dict, Optional
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
@@ -460,47 +460,51 @@ async def get_route_y_map(
     """
     Получить маршрутизацию от яндекса, создать её если нет
     """
+    try:
 
-    with Session(engine, expire_on_commit=False) as session:
-        route_query = session.query(Routes).options(
-            joinedload(Routes.orders).\
-            joinedload(RoutesOrders.order).\
-            joinedload(Orders.payments)
-            ).filter(Routes.id==route_id).first()
+        with Session(engine, expire_on_commit=False) as session:
+            route_query = session.query(Routes).options(
+                joinedload(Routes.orders).\
+                joinedload(RoutesOrders.order).\
+                joinedload(Orders.payments)
+                ).filter(Routes.id==route_id).first()
 
-        if not route_query:
-            return JSONResponse({
-                "detail": "not found"
-            }, 404)
-        
-        if route_query.route_link:
-            return route_query.route_link
-        
-        if route_query.route_task_id:
-            result = await get_result_by_id(route_query.route_task_id)
-            route_query.route_link = result
+            if not route_query:
+                return JSONResponse({
+                    "detail": "not found"
+                }, 404)
+            
+            if route_query.route_link:
+                return route_query.route_link
+            
+            if route_query.route_task_id:
+                result = await get_result_by_id(route_query.route_task_id)
+                route_query.route_link = result
+                session.commit()
+                return result
+            
+            payload = generate_y_courier_json(route_query)
+
+            response = requests.post(
+                API_ROOT_ENDPOINT + '/add/mvrp',
+                params={'apikey': COURIER_KEY}, json=payload)
+
+            print(response.status_code)
+            if response.status_code == 400:
+                return response.json()
+
+            try:
+                result = await set_timed_func('r', route_query.id, 'M:01')
+                print(result)
+            except Exception as err:
+                print(err)
+
+            request_id = response.json()['id']
+
+            route_query.route_task_id = request_id
             session.commit()
-            return result
-        
-        payload = generate_y_courier_json(route_query)
 
-        response = requests.post(
-            API_ROOT_ENDPOINT + '/add/mvrp',
-            params={'apikey': COURIER_KEY}, json=payload)
-
-        print(response.status_code)
-        if response.status_code == 400:
             return response.json()
 
-        try:
-            result = await set_timed_func('r', route_query.id, 'M:01')
-            print(result)
-        except Exception as err:
-            print(err)
-
-        request_id = response.json()['id']
-
-        route_query.route_task_id = request_id
-        session.commit()
-
-        return response.json()
+    except Exception as err:
+        print(traceback.format_exc())
