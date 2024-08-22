@@ -341,7 +341,9 @@ async def update_user_data(
     """
     with Session(engine, expire_on_commit=False) as session:
         user_query = Users.get_user(new_user_data.user_id)
-        
+        flag_email_same = False
+        flag_phone_same = False
+
         if not user_query:
             return JSONResponse({
                 "message": "No such user"
@@ -349,6 +351,14 @@ async def update_user_data(
 
         for attr, value in new_user_data.model_dump(exclude_unset=True).items():
             # print(attr)
+            if attr == 'email':
+                if user_query.email == value:
+                    flag_email_same = True
+
+            if attr == 'phone_number':
+                if user_query.email == value:
+                    flag_phone_number = True
+
             if attr == 'password' and value:
                 setattr(user_query, attr, get_password_hash(value))
                 continue
@@ -375,13 +385,17 @@ async def update_user_data(
         except Exception as err:
             logger.debug(err)
             if 'users_email_key' in str(err):
-                raise HTTPException(
-                    detail=f'Почта уже занята',
+                return JSONResponse({
+                        "detail": 'Почта уже занята', 
+                        "code": "422"
+                    },
                     status_code=422
                 )
             elif 'phone' in str(err):
-                raise HTTPException(
-                    detail=f'Телефон уже занят',
+                return JSONResponse({
+                        "detail": 'Телефон уже занят', 
+                        "code": "423"
+                    },
                     status_code=423
                 )
 
@@ -391,6 +405,12 @@ async def update_user_data(
                 filter_by(user_id=user_query.id).join(Roles).all()
         user_data.roles = [role.role_name for role in scopes_query]
         
+        if flag_email_same:
+            user_data.code = 205
+
+        if flag_phone_same:
+            user_data.code = 204
+
         return user_data
 
 

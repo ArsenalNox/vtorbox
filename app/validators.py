@@ -488,6 +488,8 @@ class UserOut(BaseModel):
     additional_info: Optional[str] = None
     date_created: datetime
 
+    code: Optional[int] = None
+
     @field_validator('roles')
     def only_unique_roles(cls, v):
         if (v != None):
