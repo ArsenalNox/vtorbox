@@ -196,7 +196,7 @@ async def get_result_by_id(request_id):
     poll_url = '{}/result/mvrp/{}'.format(API_ROOT_ENDPOINT, request_id)
 
     async with httpx.AsyncClient() as client:
-        response = client.get(poll_url)
+        response = await client.get(poll_url)
 
         while response.status_code not in poll_stop_codes:
             time.sleep(1)
