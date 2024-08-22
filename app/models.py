@@ -416,7 +416,7 @@ class Users(Base):
 
     deleted_at = Column(DateTime(), default=None, nullable=True)
 
-    refresh_token = relationship('UserRefreshTokens', backref='users', lazy='joined')
+    refresh_token = relationship('UserRefreshTokens', backref='users', lazy=True)
 
     def get_or_create(
             t_id: int = None,

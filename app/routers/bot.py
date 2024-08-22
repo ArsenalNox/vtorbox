@@ -687,7 +687,7 @@ async def get_routes(
             date_tommorrow = date + timedelta(days=1)
             routes = routes.filter(Routes.date_created > date)
             routes = routes.filter(Routes.date_created < date_tommorrow)
-
+        print(routes)
         routes = routes.order_by(asc(Routes.date_created)).all()
 
         return jsonable_encoder(routes)
