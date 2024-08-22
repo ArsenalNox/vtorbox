@@ -242,7 +242,7 @@ class QuestionnaireHandler(Handler):
                     url='user',
                     data=new_user_data,
                 )
-                if status_code == 422:
+                if status_code == 423:
                     status_code, unique_msg = await req_to_api(
                         method='get',
                         url='bot/messages?message_key=PHONE_NUMBER_IS_EXIST'
@@ -341,7 +341,7 @@ class QuestionnaireHandler(Handler):
                     )
 
                 else:
-                    if status_code == 204:
+                    if status_code == 205:
                         status_code, text_msg = await req_to_api(
                             method='get',
                             url='bot/messages?message_key=EMPTY_CHANGE_EMAIL'
