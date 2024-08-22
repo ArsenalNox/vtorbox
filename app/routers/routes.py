@@ -14,7 +14,7 @@ from fastapi.encoders import jsonable_encoder
 
 import datetime as dt
 from datetime import datetime, timedelta
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, lazyload, raiseload
 
 from app import CODER_KEY, CODER_SETTINGS, COURIER_KEY
 
@@ -41,6 +41,7 @@ from calendar import monthrange
 from uuid import UUID
 
 from sqlalchemy import desc, asc, desc
+from sqlalchemy import text
 
 from app.validators import (
     Order as OrderValidator,
@@ -56,7 +57,7 @@ from app.auth import (
 from app.models import (
     Users, Session, engine, UsersAddress, 
     Address, IntervalStatuses, Roles, Permissions, Regions, WEEK_DAYS_WORK_STR_LIST,
-    DaysWork, Notifications
+    DaysWork, Notifications, RegionalBoxPrices
     )
 
 
@@ -285,25 +286,41 @@ async def get_routes(
     date: Optional[datetime] = None,
     courier_id: Optional[UUID] = None,
     courier_tg_id: Optional[int] = None
-)->List[RouteOut]:
+# )->List[RouteOut]:
+):
     """
     получить маршруты
 
     - **date**: [datetime] - дата на получение маршрутов, по умолчанию получаются все маршруты
     """
     with Session(engine, expire_on_commit=False) as session:
-        routes = session.query(Routes).\
-            options(
-                joinedload(Routes.orders).\
-                joinedload(RoutesOrders.order)
-            )
+        routes = session.query(
+            Routes
+            ).outerjoin(RoutesOrders, Routes.id==RoutesOrders.route_id,         ).\
+            outerjoin(Orders,  Orders.id==RoutesOrders.order_id ,               ).\
+            outerjoin(BoxTypes, BoxTypes.id == Orders.box_type_id,              ).\
+            outerjoin(RegionalBoxPrices, BoxTypes.id==RegionalBoxPrices.box,    ).\
+            outerjoin(Regions, Regions.id == RegionalBoxPrices.region_id,       ).\
+            outerjoin(Address, Address.id == Orders.address_id,                 ).\
+            order_by(asc(Routes.date_created))
 
+        print(1)       
+        # FROM routes LEFT OUTER JOIN routed_orders AS routed_orders_1 ON routes.id = routed_orders_1.route_id 
+        # LEFT OUTER JOIN orders AS orders_1 ON orders_1.id = routed_orders_1.order_id 
+        # LEFT OUTER JOIN boxtypes AS boxtypes_1 ON boxtypes_1.id = orders_1.box_type_id 
+        # LEFT OUTER JOIN regional_box_prices AS regional_box_prices_1 ON boxtypes_1.id = regional_box_prices_1.box 
+        # LEFT OUTER JOIN regions AS regions_1 ON regions_1.id = regional_box_prices_1.region_id 
+        # LEFT OUTER JOIN users AS users_2 ON users_2.id = orders_1.manager_id 
+        # LEFT OUTER JOIN address AS address_1 ON address_1.id = orders_1.address_id
+        print(2)
         if date:
             date = date.replace(hour=0, minute=0)
             date_tommorrow = date + timedelta(days=1)
+            print(date, date_tommorrow)
             routes = routes.filter(Routes.date_created > date)
             routes = routes.filter(Routes.date_created < date_tommorrow)
             
+
         if courier_id: 
             routes = routes.filter(Routes.courier_id == courier_id)
 
@@ -311,13 +328,23 @@ async def get_routes(
             courier = Users.get_user(str(courier_tg_id), update_last_action=True)
             routes = routes.filter(Routes.courier_id == courier.id)
 
-        routes = routes.order_by(asc(Routes.date_created)).all()
+
+        print(routes)
+        # routes = routes.order_by(asc(Routes.date_created)).all()
+        start = datetime.now()
+        print(datetime.now())
+        routes = routes.all()
+        end = datetime.now() - start
+        print(end)
+        print(3)
 
         if len(routes)<1:
             return JSONResponse({
                 "detail": "Not found"
             }, 404)
+        print(4)
 
+        # return routes
         return jsonable_encoder(routes)
     
 
