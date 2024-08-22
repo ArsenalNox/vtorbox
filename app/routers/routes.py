@@ -482,7 +482,7 @@ async def get_route_y_map(
             session.commit()
             return result
         
-        payload = await generate_y_courier_json(route_query)
+        payload = generate_y_courier_json(route_query)
 
         response = requests.post(
             API_ROOT_ENDPOINT + '/add/mvrp',
