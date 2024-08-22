@@ -203,7 +203,7 @@ class AddressHandler(Handler):
 
             status_code, response = await req_to_api(
                 method='post',
-                url=f'bot/user/addresses?tg_id={message.from_user.id}',
+                url=f'bot/user/addresses?tg_id={message.chat.id}',
                 data=address_data,
             )
             await state.update_data(address=response)
