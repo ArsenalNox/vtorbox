@@ -223,7 +223,7 @@ class AddressHandler(Handler):
 
                 await state.update_data(msg=msg.message_id)
 
-            elif eval(self.flag_to_return):
+            elif self.flag_to_return and eval(self.flag_to_return):
                 address = response
                 await show_address_date(
                     address=address,
