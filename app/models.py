@@ -101,7 +101,7 @@ def order_order_num():
     with Session(engine, expire_on_commit=False) as session:
         count_global = session.query(func.max(Orders.order_num)).first()[0]+400
         #TODO: Переписать проверку на существующий order_num
-        pre_check_count = session.query(Orders).filter(Orders.order_num == count_global+1).first()
+        pre_check_count = session.query(Orders).filter(Orders.order_num == count_global+400).first()
         if pre_check_count:
             for i in range(1, 200):
                 post_check_count = session.query(Orders).filter(Orders.order_num == count_global+i).first()
@@ -109,7 +109,7 @@ def order_order_num():
                     logger.info(f"order num {count_global+i} is free")
                     print(f"order num {count_global+i} is free")
                     return count_global+i  
-        return count_global
+        return count_global+400
 
 
 def generate_route_short_name()->str:
