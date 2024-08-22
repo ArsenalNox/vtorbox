@@ -360,6 +360,15 @@ class TextHandler(Handler):
                     state=state,
                     self=self
                 )
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=MENU'
+            )
+
+            await message.answer(
+                menu_msg,
+                reply_markup=self.kb.start_menu_btn()
+            )
 
             await state.update_data(chat_id=message.chat.id)
             await state.update_data(selected_day_of_week=[])
