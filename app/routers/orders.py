@@ -326,7 +326,7 @@ async def create_order(
         count = session.query(Orders.id).where(Orders.from_user == user.id).count()
 
         try:
-            count_global = session.query(func.max(Orders.order_num)).first()[0]+1000
+            count_global = session.query(func.max(Orders.order_num)).first()[0]+1
         except Exception as err:
             count_global = 1000
 
