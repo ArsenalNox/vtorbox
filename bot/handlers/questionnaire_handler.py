@@ -352,12 +352,12 @@ class QuestionnaireHandler(Handler):
                             text_msg
                         )
 
-                await state.set_state(state=None)
-                # переходим к выводу анкеты
-                await get_questionnaire(
-                    message=message,
-                    state=state
-                )
+                    await state.set_state(state=None)
+                    # переходим к выводу анкеты
+                    await get_questionnaire(
+                        message=message,
+                        state=state
+                    )
 
             elif message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
                 status_code, back_msg = await req_to_api(
