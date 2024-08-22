@@ -93,7 +93,7 @@ async def get_payment_info(
     - **payment_order_id**: UUID - по uuid заявки
     """
     with Session(engine, expire_on_commit=False) as session:
-        payments_query = session.query(Payments).enable_eagerloads(False)
+        payments_query = session.query(Payments).options(joinedload(Payments.order))
 
         if payment_id:
             payments_query = payments_query.filter(Payments.id == payment_id)
