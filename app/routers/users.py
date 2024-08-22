@@ -356,7 +356,7 @@ async def update_user_data(
                     flag_email_same = True
 
             if attr == 'phone_number':
-                if user_query.email == value:
+                if user_query.phone_number == value:
                     flag_phone_number = True
 
             if attr == 'password' and value:
