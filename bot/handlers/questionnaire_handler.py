@@ -31,7 +31,7 @@ class QuestionnaireHandler(Handler):
 
             status_code, user_data = await req_to_api(
                 method='get',
-                url=f'bot/users/telegram?tg_id={message.from_user.id}',
+                url=f'bot/users/telegram?tg_id={message.chat.id}',
             )
 
             status_code, questionnaire_msg = await req_to_api(
@@ -73,7 +73,7 @@ class QuestionnaireHandler(Handler):
             await state.update_data(chat_id=message.chat.id)
             status_code, user_data = await req_to_api(
                 method='get',
-                url=f'bot/users/telegram?tg_id={message.from_user.id}',
+                url=f'bot/users/telegram?tg_id={message.chat.id}',
             )
 
             if message.text == BUTTONS['BACK_QUESTIONNAIRE'].strip():
@@ -227,7 +227,7 @@ class QuestionnaireHandler(Handler):
             if phone or (check_phone and len(message.text) == 11):
                 status_code, user_data = await req_to_api(
                     method='get',
-                    url=f'bot/users/telegram?tg_id={message.from_user.id}',
+                    url=f'bot/users/telegram?tg_id={message.chat.id}',
                 )
 
                 # запрос на изменение номера телефона у пользователя в БД
@@ -242,7 +242,8 @@ class QuestionnaireHandler(Handler):
                     url='user',
                     data=new_user_data,
                 )
-                if status_code == 423:
+                code_from_message = answer.get('code')
+                if code_from_message == 423:
                     status_code, unique_msg = await req_to_api(
                         method='get',
                         url='bot/messages?message_key=PHONE_NUMBER_IS_EXIST'
@@ -252,7 +253,7 @@ class QuestionnaireHandler(Handler):
                     )
 
                 else:
-                    if status_code == 204:
+                    if code_from_message == 204:
                         status_code, text_msg = await req_to_api(
                             method='get',
                             url='bot/messages?message_key=EMPTY_CHANGE_PHONE'
@@ -317,7 +318,7 @@ class QuestionnaireHandler(Handler):
             if check_email:
                 status_code, user_data = await req_to_api(
                     method='get',
-                    url=f'bot/users/telegram?tg_id={message.from_user.id}',
+                    url=f'bot/users/telegram?tg_id={message.chat.id}',
                 )
 
                 new_user_data = json.dumps({
@@ -331,7 +332,8 @@ class QuestionnaireHandler(Handler):
                     url='user',
                     data=new_user_data,
                 )
-                if status_code == 422:
+                code_from_message = answer.get('code')
+                if code_from_message == 422:
                     status_code, unique_msg = await req_to_api(
                         method='get',
                         url='bot/messages?message_key=EMAIL_IS_EXIST'
@@ -341,7 +343,7 @@ class QuestionnaireHandler(Handler):
                     )
 
                 else:
-                    if status_code == 205:
+                    if code_from_message == 205:
                         status_code, text_msg = await req_to_api(
                             method='get',
                             url='bot/messages?message_key=EMPTY_CHANGE_EMAIL'
@@ -349,7 +351,6 @@ class QuestionnaireHandler(Handler):
                         await message.answer(
                             text_msg
                         )
-
 
                 await state.set_state(state=None)
                 # переходим к выводу анкеты
