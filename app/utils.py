@@ -335,7 +335,7 @@ async def generate_time_intervals(route_data):
         payload = generate_y_courier_json(route_data)
 
         async with httpx.AsyncClient() as client:
-            response = client.post(
+            response = await client.post(
                 API_ROOT_ENDPOINT + '/add/mvrp',
                 params={'apikey': COURIER_KEY}, json=payload)
 
