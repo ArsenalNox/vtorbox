@@ -114,7 +114,7 @@ async def get_my_notifications(
     current_user: Annotated[UserLoginSchema, Security(get_current_user)],
     user_id: int|UUID = None,
     page: int = 0,
-    limit: int = 20,
+    limit: int = 0,
     get_all: bool = False,
     only_unread: bool = False,
     nt_type_name: str = None,
