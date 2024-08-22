@@ -336,21 +336,43 @@ class OrderHandler(Handler):
                 method='get',
                 url=f'users/orders/?tg_id={callback.message.chat.id}',
             )
-            self.orders_list = orders
-            self.index = len(self.orders_list) - 1
-            result = await group_orders_by_month(self.orders_list)
+            if orders:
 
-            status_code, orders_by_month_msg = await req_to_api(
-                method='get',
-                url='bot/messages?message_key=YOUR_ORDERS_BY_MONTH'
-            )
+                self.orders_list = orders
+                self.index = len(self.orders_list) - 1
+                logger.debug(
+                    f'История заявок:::Список заявок у {callback.message.chat.id} = {[i.get("order_num") for i in self.orders_list]}(index={self.index})')
 
-            msg = await callback.message.answer(
-                orders_by_month_msg,
-                reply_markup=self.kb.order_list_by_month(result)
-            )
+                if len(orders) <= 5:
 
-            await state.update_data(msg=msg.message_id)
+                    status_code, orders_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=YOUR_ORDERS'
+                    )
+
+                    msg = await callback.message.answer(
+                        orders_msg,
+                        reply_markup=self.kb.order_list(orders)
+                    )
+                    await state.update_data(msg=msg.message_id)
+
+                else:
+                    status_code, result = await req_to_api(
+                        method='get',
+                        url=f'user/orders/aggregate?user_id={callback.message.chat.id}'
+                    )
+
+                    status_code, orders_by_month_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=YOUR_ORDERS_BY_MONTH'
+                    )
+                    logger.debug(f'User: {callback.message.chat.id} получил историю за месяц: {result}')
+                    msg = await callback.message.answer(
+                        orders_by_month_msg,
+                        reply_markup=self.kb.order_list_by_month(result)
+                    )
+
+                    await state.update_data(msg=msg.message_id)
 
         @self.router.callback_query(F.data.startswith('show'))
         async def show_active_order(callback: CallbackQuery, state: FSMContext):
