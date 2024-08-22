@@ -302,6 +302,7 @@ class TextHandler(Handler):
                 method='get',
                 url='bot/messages?message_key=ABOUT'
             )
+            about_msg = f'{about_msg} \n\nРазработано <a href="bot2.biz">bot2.biz</a>'
 
             await message.answer(
                 about_msg,
