@@ -36,7 +36,7 @@ from app.validators import OrderOut, RegionOut, Notification
 from app.utils import send_message_through_bot, create_tinkoff_token, set_timed_func
 from app import T_BOT_URL
 from app import TIKOFF_API_URL_TEST as TINKOFF_API_URL
-
+from app import BASE_HOST_URL_NOTIFY
 from app import logger
 
 load_dotenv()
@@ -1002,7 +1002,7 @@ class Payments(Base):
         print('---')
 
         # notification_url = 'http://94.41.188.133:8000/api/payment/notify/auto'
-        notification_url = 'http://94.41.188.133:8000/api/payment/notify/auto'
+        notification_url = BASE_HOST_URL_NOTIFY
 
         payment_data = {}
 
