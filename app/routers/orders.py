@@ -609,6 +609,7 @@ async def set_order_status(
                     message_text = message_text.replace("%AMOUNT%", f'{amount} руб.')
 
                     #"От вас требуется оплата заявки (%ORDER_NUM%) по адресу (%ADDRESS_TEXT%) на сумму %AMOUNT%"
+                    #TODO: Автооплата без соглашения
 
                     await send_message_through_bot(
                         order_query.user.telegram_id,
@@ -1136,18 +1137,18 @@ async def get_users_order_aggregate(
         orders = session.query(Orders).filter(Orders.from_user == user.id).enable_eagerloads(False).all()
 
         en_to_ru = {
-            'January': "Январь", 
-            'February': "Февраль", 
-            'March': "Март", 
-            'April': "Апрель", 
-            'May': 'Май', 
-            'June': "Июнь", 
-            'July': "Июль", 
-            'August': "Август", 
-            'September': "Сентябрь", 
-            'October': "Октябрь", 
-            'November': "Ноябрь", 
-            'December': "Декабрь"
+            'january': "январь", 
+            'february': "февраль", 
+            'march': "март", 
+            'april': "апрель", 
+            'may': 'май', 
+            'june': "июнь", 
+            'july': "июль", 
+            'august': "август", 
+            'september': "сентябрь", 
+            'october': "октябрь", 
+            'november': "ноябрь", 
+            'december': "декабрь"
         }
 
         return_data = {}
@@ -1156,7 +1157,7 @@ async def get_users_order_aggregate(
             order_date = order.date_created.strftime("%B %Y")
 
             for m_d in en_to_ru:
-                if m_d in str(order_date):
+                if str(m_d).lower() in str(order_date).lower():
                     order_date = order_date.replace(m_d, en_to_ru[m_d])
 
             if order_date not in return_data.keys():
