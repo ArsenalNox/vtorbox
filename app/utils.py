@@ -200,7 +200,7 @@ async def get_result_by_id(request_id):
 
         while response.status_code not in poll_stop_codes:
             time.sleep(1)
-            response = client.get(poll_url)
+            response = await client.get(poll_url)
 
     urls = []
     # Вывод информации в пользовательском формате.
