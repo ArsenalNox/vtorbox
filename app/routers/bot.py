@@ -674,10 +674,9 @@ async def get_routes(
             }, status_code=404)
 
         routes = session.query(Routes).options(
-            joinedload(Routes.orders).\
-            joinedload(RoutesOrders.order).\
-            joinedload(Orders.payments)
-            ).filter(Routes.route_link != None)
+                joinedload(Routes.orders).\
+                joinedload(RoutesOrders.order)
+            ).enable_eagerloads(False).filter(Routes.route_link != None)
 
         routes = routes.filter(Routes.courier_id == user.id)
 
