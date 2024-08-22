@@ -357,7 +357,7 @@ async def update_user_data(
 
             if attr == 'phone_number':
                 if user_query.phone_number == value:
-                    flag_phone_number = True
+                    flag_phone_same = True
 
             if attr == 'password' and value:
                 setattr(user_query, attr, get_password_hash(value))
