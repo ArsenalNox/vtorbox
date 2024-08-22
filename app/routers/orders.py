@@ -1176,18 +1176,18 @@ async def get_users_order_in_month(
     date: str
 )->List[OrderOut]:
     ru_to_en = {
-        "Январь": 'January',   
-        "Февраль": 'February',
-        "Март": 'March',
-        "Апрель": 'April',
-        'Май': 'May',
-        "Июнь": 'June',
-        "Июль": 'July',
-        "Август": 'August',
-        "Сентябрь": 'September',
-        "Октябрь": 'October',
-        "Ноябрь": 'November',  
-        "Декабрь": 'December'
+        "январь": 'january',   
+        "февраль": 'february',
+        "март": 'march',
+        "апрель": 'april',
+        'май': 'may',
+        "июнь": 'june',
+        "июль": 'july',
+        "август": 'august',
+        "сентябрь": 'september',
+        "октябрь": 'october',
+        "ноябрь": 'november',  
+        "декабрь": 'december'
     }
 
     for m_d in ru_to_en:
@@ -1212,7 +1212,6 @@ async def get_users_order_in_month(
         orders = session.query(Orders).filter(Orders.from_user==user.id).\
         filter(Orders.date_created>=month_start_date).\
         filter(Orders.date_created<=month_end_date).all()
-
 
         return_data = []
         for order in orders:
