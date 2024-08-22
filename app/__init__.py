@@ -27,7 +27,7 @@ SCHEDULER_HOST=os.getenv('SCHEDULER_HOST')
 SCHEDULER_PORT=os.getenv('SCHEDULER_PORT')
 
 # BASE_HOST_URL_NOTIFY='http://5.253.62.213:8000/api/payment/notify/auto'
-BASE_HOST_URL_NOTIFY='http://94.41.188.133:8000/api/payment/notify/auto'
+BASE_HOST_URL_NOTIFY='https://bot.vtorbox.ru:8000/api/payment/notify/auto'
 
 class Tags(Enum):
     users = "users"
