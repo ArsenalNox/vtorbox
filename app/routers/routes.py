@@ -295,9 +295,8 @@ async def get_routes(
         routes = session.query(Routes).\
             options(
                 joinedload(Routes.orders).\
-                joinedload(RoutesOrders.order).\
-                joinedload(Orders.payments)
-            )
+                joinedload(RoutesOrders.order)
+            ).enable_eagerloads(False)
 
         if date:
             date = date.replace(hour=0, minute=0)
