@@ -310,7 +310,7 @@ def create_tinkoff_token(data_dict: dict, terminal_key)->str:
 async def set_timed_func(func_type, resource_id, time):
 
     async with httpx.AsyncClient() as client:
-        request = client.get(f'http://{SCHEDULER_HOST}:{SCHEDULER_PORT}/add_timer/{resource_id}/{time}?job_type={func_type}')
+        request = await client.get(f'http://{SCHEDULER_HOST}:{SCHEDULER_PORT}/add_timer/{resource_id}/{time}?job_type={func_type}')
     
     return request.status_code
 
