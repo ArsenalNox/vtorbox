@@ -206,7 +206,7 @@ class OrderHandler(Handler):
             # переходим в главное меню
             status_code, orders = await req_to_api(
                 method='get',
-                url=f'users/orders/?tg_id={message.from_user.id}',
+                url=f'users/orders/?tg_id={message.chat.id}',
             )
 
             if orders:
