@@ -8,6 +8,7 @@ CRUD с пользователями
 from operator import ne
 import uuid, re, json
 import openpyxl as xl 
+from psycopg2.errors import UniqueViolation
 
 
 from fastapi import (
@@ -48,6 +49,7 @@ from app.validators import (
 )
 
 from app.utils import is_valid_uuid, get_lang_long_from_text_addres
+from app import logger
 
 from passlib.context import CryptContext
 from datetime import timedelta
@@ -368,7 +370,20 @@ async def update_user_data(
             setattr(user_query, attr, value)
 
         session.add(user_query)
-        session.commit()
+        try:
+            session.commit()
+        except Exception as err:
+            logger.debug(err)
+            if 'users_email_key' in str(err):
+                raise HTTPException(
+                    detail=f'Почта уже занята',
+                    status_code=422
+                )
+            elif 'phone' in str(err):
+                raise HTTPException(
+                    detail=f'Телефон уже занят',
+                    status_code=423
+                )
 
         user_parent_data = jsonable_encoder(user_query.__dict__)
         user_data = UserOut(**user_parent_data)
