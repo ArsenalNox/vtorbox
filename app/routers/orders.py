@@ -935,7 +935,7 @@ async def process_current_orders(
             else:
                 await send_message_through_bot(
                     order.user.telegram_id,
-                    message=f"От вас требуется подверждение заявки ({order.order_num}) по адресу ({order.address.address}) по временному итервалу {order.time_window}",
+                    message=f"От вас требуется подверждение заявки ({order.order_num}) по адресу ({order.address.address}) по временному итервалу {order.time_window} на {order.day}",
                     btn={
                         "inline_keyboard" : [
                         [{
@@ -1061,6 +1061,19 @@ async def check_order_intervals(
             session.add(new_data_change)
             session.commit()
 
+            notification_data = Notification(
+                content = f"На вас была назначена заявка {new_order.order_num}",
+                resource_id = new_order.id,
+                resource_type = 'заявка',
+                sent_to_tg = True,
+                for_user = new_order.manager_id
+            )
+
+            await Notifications.create_notification(
+                notification_data = notification_data.model_dump(), 
+                session = session,
+                send_message = True
+            )
             print('')
 
 
