@@ -327,12 +327,16 @@ class UserOrderOutData(BaseModel):
     link_code: Optional[str] = None
 
 
+class SimpleOrderOut(BaseModel):
+    id: UUID4
+
+
 class PaymentOut(BaseModel):
     id: UUID4
     tinkoff_id: int
     order_id: int
     amount: Optional[int] = None
-    # order = relationship('Orders', backref='payments', lazy='joined')
+    order: Optional[SimpleOrderOut] = None
 
     status: str
     is_reocurring: bool
