@@ -7,7 +7,6 @@ from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, User
 
-from bot.utils.handle_data import translate_month, translate_day
 
 
 def format_addresses(addresses: list['Address']) -> str:
@@ -138,3 +137,93 @@ def format_schedule_text(type_interval: str, interval: list[str | int]) -> str:
         return 'Не задано'
 
     return result
+
+
+def format_available_addresses(
+        addresses: list[dict]
+):
+    result = []
+
+    for address in addresses:
+        result.append(address.get('name_full'))
+
+    return result
+
+
+def convert_address_for_text(
+        addresses: list[str],
+        show_all: bool = False
+):
+    result = ''
+
+    if show_all:
+        for address in addresses:
+            result += f'<b>{address}</b>\n '
+
+        return result
+
+    if len(addresses) > 7:
+        for address in addresses[:7]:
+            result += f'<b>{address}</b>, '
+        result = result.rstrip(', ')
+        result += ' <b>и др.</b>'
+    else:
+        result = ' более чем в 7 районах '
+
+    return result
+
+
+def translate_month(eng_month: str) -> str:
+    """Перевод названий месяцев"""
+
+    eng_month = eng_month.lower()
+    months = {
+        'january': 'Январь',
+        'february': 'Февраль',
+        'march': 'Март',
+        'april': 'Апрель',
+        'may': 'Май',
+        'june': 'Июнь',
+        'july': 'Июль',
+        'august': 'Август',
+        'september': 'Сентябрь',
+        'october': 'Октябрь',
+        'november': 'Ноябрь',
+        'december': 'Декабрь'
+    }
+
+    return months[eng_month]
+
+
+def translate_day(eng_day: str) -> str:
+    """Перевод названий дней с англ на русском"""
+
+    eng_day = eng_day.lower()
+    days = {
+        'monday': 'Понедельник',
+        'tuesday': 'Вторник',
+        'wednesday': 'Среда',
+        'thursday': 'Четверг',
+        'friday': 'Пятница',
+        'saturday': 'Суббота',
+        'sunday': 'Воскресенье',
+    }
+
+    return days[eng_day]
+
+
+def translate_day_reverse(ru_day: str) -> str:
+    """Перевод названий дней с русского на англ"""
+
+    ru_day = ru_day.lower()
+    days = {
+        'понедельник': 'monday',
+        'вторник ': 'tuesday',
+        'среда': 'wednesday',
+        'четверг': 'thursday',
+        'пятница': 'friday',
+        'суббота': 'saturday',
+        'воскресенье': 'sunday',
+    }
+
+    return days[ru_day]

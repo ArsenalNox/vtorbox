@@ -31,7 +31,26 @@ class ScheduleKeyboard(BaseKeyboard):
         )
 
         builder.row(
-            KeyboardButton(text=BUTTONS['BACK_SETTINGS']),
+            KeyboardButton(text=BUTTONS['BACK_SCHEDULE_ADDRESS_LIST']),
+        )
+        builder.row(
+            KeyboardButton(text=BUTTONS['MENU'])
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
+    def back_schedule_address(self) -> ReplyKeyboardMarkup:
+
+        builder = ReplyKeyboardBuilder()
+
+        builder.row(
+            KeyboardButton(text=BUTTONS['BACK_SCHEDULE_ADDRESS']),
+        )
+        builder.row(
+            KeyboardButton(text=BUTTONS['MENU'])
         )
 
         return builder.as_markup(

@@ -13,6 +13,9 @@ class BaseKeyboard:
         builder.row(
             KeyboardButton(text=BUTTONS['BACK_SETTINGS'])
         )
+        builder.row(
+            KeyboardButton(text=BUTTONS['MENU'])
+        )
 
         return builder.as_markup(
             resize_keyboard=True,
@@ -56,7 +59,10 @@ class BaseKeyboard:
 
         builder = ReplyKeyboardBuilder()
         builder.row(
-            KeyboardButton(text=BUTTONS['BACK_QUESTIONNAIRE']),
+            KeyboardButton(text=BUTTONS['BACK_SETTINGS']),
+        )
+        builder.row(
+            KeyboardButton(text=BUTTONS['MENU'])
         )
         return builder.as_markup(
             resize_keyboard=True,
@@ -231,6 +237,36 @@ class BaseKeyboard:
                 callback_data=f'test',
                 url='tg://user?id=111111'
             ),
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
+    def back_schedule_address_list(self) -> ReplyKeyboardMarkup:
+        """Кпопка назад"""
+
+        builder = ReplyKeyboardBuilder()
+        builder.row(
+            KeyboardButton(text=BUTTONS['BACK_SCHEDULE_ADDRESS_LIST'])
+        )
+        builder.row(
+            KeyboardButton(text=BUTTONS['MENU'])
+        )
+
+        return builder.as_markup(
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+
+    def all_available_regions_btn(self):
+        builder = InlineKeyboardBuilder()
+        builder.row(
+            InlineKeyboardButton(
+                text='Показать все доступные районы',
+                callback_data=f'all_available_regions'
+            )
         )
 
         return builder.as_markup(

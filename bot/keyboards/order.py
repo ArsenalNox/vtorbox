@@ -10,7 +10,8 @@ from loguru import logger
 
 from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.utils.buttons import BUTTONS
-from bot.utils.handle_data import convert_date, translate_day
+from bot.utils.handle_data import convert_date
+from bot.utils.format_text import translate_day
 from bot.utils.messages import MESSAGES
 
 
