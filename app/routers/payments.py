@@ -399,7 +399,7 @@ async def process_notification_from_tinkoff(requestd_data: Request):
             payment.status = payment_data['Status']
   
             if payment_data['Success'] and payment_data['Status'] == "CONFIRMED":
-                logger.inf(f"Payment {payment.tinkoff_id} processed")
+                logger.info(f"Payment {payment.tinkoff_id} processed")
                 await payment.order.update_status(OrderStatuses.status_payed().id, send_message=True)
                 return Response(content='Ok')
 
