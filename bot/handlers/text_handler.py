@@ -360,6 +360,15 @@ class TextHandler(Handler):
                     state=state,
                     self=self
                 )
+            status_code, menu_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=MENU'
+            )
+
+            await message.answer(
+                menu_msg,
+                reply_markup=self.kb.start_menu_btn()
+            )
 
             await state.update_data(chat_id=message.chat.id)
             await state.update_data(selected_day_of_week=[])
@@ -373,11 +382,7 @@ class TextHandler(Handler):
             data = await state.get_data()
             menu_view = data.get('menu_view')
 
-            await delete_messages_with_btn(
-                state=state,
-                data=data,
-                src=message
-            )
+
 
             status_code, menu_btn_msg = await req_to_api(
                 method='get',
@@ -385,7 +390,6 @@ class TextHandler(Handler):
             )
 
             menus_buttons = {
-                'registration': self.kb.registration_btn,
                 'main': self.kb.start_menu_btn,
                 'settings': self.kb.settings_btn,
                 'questionnaire': self.questionnaire_kb.questionnaire_btn,
@@ -396,6 +400,11 @@ class TextHandler(Handler):
             }
 
             if menu_view == 'courier_menu':
+                await delete_messages_with_btn(
+                    state=state,
+                    data=data,
+                    src=message
+                )
                 status_code, routes = await req_to_api(
                     method='get',
                     url=f'bot/routes/?courier_id={message.chat.id}',
@@ -414,7 +423,15 @@ class TextHandler(Handler):
                         reply_markup=self.kb.courier_btn()
                     )
 
+            elif menu_view in ('addresses', 'schedule', 'payment', 'menu'):
+                pass
+
             else:
+                await delete_messages_with_btn(
+                    state=state,
+                    data=data,
+                    src=message
+                )
                 buttons = menus_buttons.get(menu_view, self.kb.start_menu_btn)
                 await message.answer(
                     menu_btn_msg,
