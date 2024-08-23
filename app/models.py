@@ -1244,7 +1244,16 @@ class Payments(Base):
                 payment_query.status = response.json()['Status']
 
                 if r_data['Success'] and r_data['Status'] == "CONFIRMED":
-                    await payment_query.order.update_status(OrderStatuses.status_payed().id, send_message=True)
+                    if payment_query.order.status != OrderStatuses.status_payed().id:
+                        old_status_query = session.query(OrderStatuses).filter_by(id=payment_query.order.status).enable_eagerloads(False).first()
+                        new_data_change = OrderChangeHistory(
+                            order_id = payment_query.order.id,
+                            attribute = 'status',
+                            old_content = old_status_query.status_name,
+                            new_content = OrderStatuses.status_payed().status_name,
+                        )
+                        session.add(new_data_change)
+                        await payment_query.order.update_status(OrderStatuses.status_payed().id, send_message=True)
 
                 session.commit()
             else:
