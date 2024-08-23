@@ -8,6 +8,8 @@ from bot.handlers.base_handler import Handler
 from bot.keyboards.schedule_kb import ScheduleKeyboard
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn, format_schedule_text
+from bot.utils.handle_data import show_schedule_address_list
+from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
 
@@ -56,28 +58,15 @@ class ScheduleHandler(Handler):
                 url=f'bot/user/addresses/all?tg_id={message.chat.id}',
             )
             msg_ids = {}
+
             if address_list:
-                for address in address_list:
-                    address_text = address.get('address') + address.get('detail') if address.get('detail') else address.get('address')
-                    text = format_schedule_text(
-                        type_interval=address.get('interval_type'),
-                        interval=address.get('interval')
-                    )
-
-                    status_code, change_schedule_msg = await req_to_api(
-                        method='get',
-                        url='bot/messages?message_key=CHANGE_SCHEDULE'
-                    )
-
-                    msg = await message.answer(
-                        change_schedule_msg.format(
-                            address_text,
-                            text
-                        ),
-                        reply_markup=self.kb.change_btn(address.get('id'))
-                    )
-                    msg_ids[address['id']] = msg.message_id
-                await state.update_data(msg_ids=msg_ids)
+                await show_schedule_address_list(
+                    address_list=address_list,
+                    message=message,
+                    self=self,
+                    msg_ids=msg_ids,
+                    state=state
+                )
 
             else:
 
@@ -104,9 +93,11 @@ class ScheduleHandler(Handler):
         async def catch_schedule_id(callback: CallbackQuery, state: FSMContext):
             """Отлавливаем у какого именно адреса поменять расписание"""
 
+            await state.update_data(menu_view='change_period')
             await state.update_data(chat_id=callback.message.chat.id)
             data = await state.get_data()
             address_id = callback.data.split('_')[-1]
+            await state.update_data(address_id=address_id)
 
             # удаляем клавиатуру с расписаниями
             if data.get('msg_ids'):
@@ -193,6 +184,7 @@ class ScheduleHandler(Handler):
         async def choose_day(message: Message, state: FSMContext):
             """Выбор дня недели"""
 
+            await state.update_data(menu_view='change_period_by_day')
             await state.update_data(chat_id=message.chat.id)
             # список выбранных дат
             await state.update_data(selected_day_of_week=[])
@@ -221,6 +213,16 @@ class ScheduleHandler(Handler):
             await state.update_data(inline_message_id_day_of_week=message.message_thread_id)
             await state.update_data(msg=msg.message_id)
             await state.update_data(work_days=work_days)
+
+            status_code, back_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=BACK'
+            )
+
+            await message.answer(
+                back_msg,
+                reply_markup=self.kb.back_schedule_address()
+            )
 
         @self.router.callback_query(F.data.startswith('day_of_week'))
         async def get_day_of_week(callback: CallbackQuery, state: FSMContext):
@@ -268,43 +270,130 @@ class ScheduleHandler(Handler):
 
             address_id = data.get('address_id')
             selected_day_of_week = data.get('selected_day_of_week')
-            create_schedule_data = json.dumps(
-                {
-                    'address_id': address_id,
-                    'selected_day_of_week': selected_day_of_week
-                }
-            )
-            await state.update_data(selected_day_of_month=[])
-            await state.update_data(selected_day_of_week=[])
+            if selected_day_of_week:
+                create_schedule_data = json.dumps(
+                    {
+                        'address_id': address_id,
+                        'selected_day_of_week': selected_day_of_week
+                    }
+                )
+                await state.update_data(selected_day_of_month=[])
+                await state.update_data(selected_day_of_week=[])
 
-            status_code, response = await req_to_api(
-                method='put',
-                url=f'bot/user/addresses/{address_id}/schedule/?tg_id={callback.message.chat.id}',
-                data=create_schedule_data
-            )
-            # запрос в бэк на сохранение расписания для текущего пользователя с address_id
+                status_code, response = await req_to_api(
+                    method='put',
+                    url=f'bot/user/addresses/{address_id}/schedule/?tg_id={callback.message.chat.id}',
+                    data=create_schedule_data
+                )
+                # запрос в бэк на сохранение расписания для текущего пользователя с address_id
 
-            status_code, save_schedule_msg = await req_to_api(
+                status_code, save_schedule_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=SAVE_SCHEDULE'
+                )
+
+                status_code, menu_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=MENU'
+                )
+
+                await callback.message.answer(
+                    save_schedule_msg
+                )
+
+                await callback.message.answer(
+                    menu_msg,
+                    reply_markup=self.kb.start_menu_btn()
+                )
+
+                # переход к отображению расписания
+                await get_schedule(
+                    message=callback.message,
+                    state=state
+                )
+
+            else:
+                await callback.answer(
+                    MESSAGES['NEED_CHOOSE_DAYS'],
+                    show_alert=True
+                )
+
+        @self.router.message(F.text.startswith(BUTTONS['BACK_SCHEDULE_ADDRESS_LIST']))
+        async def catch_unavailable_day_schedule(message: Message, state: FSMContext):
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=message
+            )
+
+            status_code, address_list = await req_to_api(
                 method='get',
-                url='bot/messages?message_key=SAVE_SCHEDULE'
+                url=f'bot/user/addresses/all?tg_id={message.chat.id}',
             )
+            msg_ids = {}
 
-            status_code, menu_msg = await req_to_api(
+            await show_schedule_address_list(
+                    address_list=address_list,
+                    message=message,
+                    self=self,
+                    msg_ids=msg_ids,
+                    state=state
+                )
+
+            status_code, settings_msg = await req_to_api(
                 method='get',
-                url='bot/messages?message_key=MENU'
+                url='bot/messages?message_key=SETTINGS'
             )
 
-            await callback.message.answer(
-                save_schedule_msg
+            await message.answer(
+                settings_msg,
+                reply_markup=self.kb.back_settings_btn()
             )
 
-            await callback.message.answer(
-                menu_msg,
-                reply_markup=self.kb.start_menu_btn()
+        @self.router.message(F.text.startswith(BUTTONS['BACK_SCHEDULE_ADDRESS']))
+        async def catch_unavailable_day_schedule(message: Message, state: FSMContext):
+
+            await state.update_data(menu_view='change_period')
+            await state.update_data(chat_id=message.chat.id)
+            data = await state.get_data()
+            address_id = data.get('address_id')
+
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=message
             )
 
-            # переход к отображению расписания
-            await get_schedule(
-                message=callback.message,
-                state=state
+            # удаляем клавиатуру с расписаниями
+            if data.get('msg_ids'):
+                for address_id_temp, msg_id in data.get('msg_ids').items():
+                    await message.bot.edit_message_reply_markup(
+                        chat_id=data.get('chat_id'),
+                        message_id=msg_id,
+                        reply_markup=None
+                    )
+
+                await state.update_data(msg_ids={})
+
+            # запрос на получение адреса по address_id
+            status_code, address = await req_to_api(
+                method='get',
+                url=f'bot/user/addresses/{address_id}?tg_id={message.chat.id}',
+            )
+
+            status_code, change_schedule_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=CHANGE_SCHEDULE_ADDRESS'
+            )
+
+            # сохраняем для отправки на бэк
+            await state.update_data(address_id=address_id)
+            address_text = address.get('address') + address.get('detail', ' ') if address.get(
+                'detail') else address.get('address')
+            await message.answer(
+                change_schedule_msg.format(
+                    address_text
+                ),
+                reply_markup=self.kb.change_schedule_btn()
             )

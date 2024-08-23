@@ -30,4 +30,6 @@ BUTTONS = {
     'BACK_SCHEDULE': '⬅ Назад   ',
     'ACCEPT': '✅ Согласен',
     'DENY': '❌ Согласиться',
+    'BACK_SCHEDULE_ADDRESS_LIST': '⬅️ Вернуться к расписанию',
+    'BACK_SCHEDULE_ADDRESS': '⬅️ Вернуться к настройке адреса'
 }

@@ -15,6 +15,7 @@ from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.keyboards.courier_kb import CourierKeyboard
 from bot.keyboards.order import OrderKeyboard
 from bot.keyboards.questionnaire_kb import QuestionnaireKeyboard
+from bot.keyboards.schedule_kb import ScheduleKeyboard
 from bot.states.states import RegistrationUser, SMSEmail
 
 from bot.utils.buttons import BUTTONS
@@ -32,6 +33,7 @@ class TextHandler(Handler):
         self.order_kb = OrderKeyboard()
         self.courier_kb = CourierKeyboard()
         self.questionnaire_kb = QuestionnaireKeyboard()
+        self.schedule_kb = ScheduleKeyboard()
 
     def handle(self):
         @self.router.message(F.text.startswith(BUTTONS['START_BOT']))
@@ -313,6 +315,7 @@ class TextHandler(Handler):
         async def get_menu(message: Message, state: FSMContext):
             """Переход в главное меню"""
 
+            await state.update_data(menu_view='main')
             await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
@@ -382,8 +385,6 @@ class TextHandler(Handler):
             data = await state.get_data()
             menu_view = data.get('menu_view')
 
-
-
             status_code, menu_btn_msg = await req_to_api(
                 method='get',
                 url='bot/messages?message_key=PRESS_BUTTONS_MENU'
@@ -393,11 +394,14 @@ class TextHandler(Handler):
                 'main': self.kb.start_menu_btn,
                 'settings': self.kb.settings_btn,
                 'questionnaire': self.questionnaire_kb.questionnaire_btn,
-                'addresses': self.kb.menu_btn,
-                'schedule': self.kb.menu_btn,
-                'payment': self.kb.menu_btn,
+                'addresses': self.kb.back_btn,
+                'schedule': self.kb.back_settings_btn,
+                'payment': self.kb.settings_btn,
                 'menu': self.kb.menu_btn,
+                'change_period': self.schedule_kb.change_schedule_btn,
+                'change_period_by_day': self.schedule_kb.back_schedule_address_list
             }
+            buttons = menus_buttons.get(menu_view, self.kb.start_menu_btn)
 
             if menu_view == 'courier_menu':
                 await delete_messages_with_btn(
@@ -423,16 +427,18 @@ class TextHandler(Handler):
                         reply_markup=self.kb.courier_btn()
                     )
 
-            elif menu_view in ('addresses', 'schedule', 'payment', 'menu'):
-                pass
-
+            elif menu_view in ('addresses', 'schedule', 'payment', 'menu', 'change_period_by_day'):
+                await message.answer(
+                    'Перейдите по кнопке ниже',
+                    reply_markup=buttons()
+                )
             else:
+
                 await delete_messages_with_btn(
                     state=state,
                     data=data,
                     src=message
                 )
-                buttons = menus_buttons.get(menu_view, self.kb.start_menu_btn)
                 await message.answer(
                     menu_btn_msg,
                     reply_markup=buttons()
