@@ -11,7 +11,7 @@ from loguru import logger
 from bot.keyboards.base_keyboards import BaseKeyboard
 from bot.utils.buttons import BUTTONS
 from bot.utils.handle_data import convert_date
-from bot.utils.format_text import translate_day
+from bot.utils.format_text import translate_day, translate_month
 from bot.utils.messages import MESSAGES
 
 
@@ -271,9 +271,11 @@ class OrderKeyboard(BaseKeyboard):
 
         builder = InlineKeyboardBuilder()
         for order in orders:
+            month, year = order.split()
+            month = translate_month(month)
             builder.row(
                 InlineKeyboardButton(
-                    text=f'{order} ({len(orders[order])})',
+                    text=f'{month} {year} ({len(orders[order])})',
                     callback_data=f'ordershistory_{order}'
                 )
             )
