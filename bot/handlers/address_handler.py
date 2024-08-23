@@ -261,8 +261,17 @@ class AddressHandler(Handler):
                     wrong_address_msg.format(addresses),
                     reply_markup=self.kb.add_address_btn(self.flag_to_return)
                 )
-
                 await state.update_data(msg=msg.message_id)
+
+                status_code, menu_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=GO_TO_MENU'
+                )
+
+                await message.answer(
+                    menu_msg,
+                    reply_markup=self.kb.menu_btn()
+                )
 
             elif self.flag_to_return and eval(self.flag_to_return):
                 address = response
@@ -301,7 +310,7 @@ class AddressHandler(Handler):
             address = address_data.get('address')
             error = address_data.get('message')
 
-            if address and not error:
+            if address and not error and status_code != 403:
 
                 status_code, yandex_address_msg = await req_to_api(
                     method='get',
