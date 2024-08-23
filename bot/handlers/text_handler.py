@@ -382,11 +382,7 @@ class TextHandler(Handler):
             data = await state.get_data()
             menu_view = data.get('menu_view')
 
-            await delete_messages_with_btn(
-                state=state,
-                data=data,
-                src=message
-            )
+
 
             status_code, menu_btn_msg = await req_to_api(
                 method='get',
@@ -404,6 +400,11 @@ class TextHandler(Handler):
             }
 
             if menu_view == 'courier_menu':
+                await delete_messages_with_btn(
+                    state=state,
+                    data=data,
+                    src=message
+                )
                 status_code, routes = await req_to_api(
                     method='get',
                     url=f'bot/routes/?courier_id={message.chat.id}',
@@ -424,7 +425,13 @@ class TextHandler(Handler):
 
             elif menu_view in ('addresses', 'schedule', 'payment', 'menu'):
                 pass
+
             else:
+                await delete_messages_with_btn(
+                    state=state,
+                    data=data,
+                    src=message
+                )
                 buttons = menus_buttons.get(menu_view, self.kb.start_menu_btn)
                 await message.answer(
                     menu_btn_msg,
