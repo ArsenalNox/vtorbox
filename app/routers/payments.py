@@ -399,9 +399,19 @@ async def process_notification_from_tinkoff(requestd_data: Request):
             payment.status = payment_data['Status']
   
             if payment_data['Success'] and payment_data['Status'] == "CONFIRMED":
-                logger.info(f"Payment {payment.tinkoff_id} processed")
+                if payment.order.status == OrderStatuses.status_payed().id:
+                    return Response(content='OK', status_code=200)
+
+                old_status_query = session.query(OrderStatuses).filter_by(id=payment.order.status).enable_eagerloads(False).first()
+                new_data_change = OrderChangeHistory(
+                    order_id = payment.order.id,
+                    attribute = 'status',
+                    old_content = old_status_query.status_name,
+                    new_content = OrderStatuses.status_payed().status_name,
+                )
                 await payment.order.update_status(OrderStatuses.status_payed().id, send_message=True)
-                return Response(content='Ok')
+                logger.info(f"Payment {payment.tinkoff_id} processed")
+                return Response(content='Ok', status_code=200)
 
             session.commit()
         except Exception as err:
