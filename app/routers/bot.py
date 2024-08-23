@@ -6,6 +6,7 @@ import requests
 import os, uuid
 
 from sqlalchemy.orm import joinedload
+from sqlalchemy import desc, asc, desc, or_
 
 from typing import Annotated, List, Tuple, Dict, Optional
 from fastapi import APIRouter, Security
@@ -698,6 +699,7 @@ async def check_given_address(
     lat: float,
     long: float,
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+    tg_id: Optional[int] = None,
 ):
     #Если не предоставили текстовый адрес получаем через геокодер
     url = f"https://geocode-maps.yandex.ru/1.x/?apikey={CODER_KEY}&geocode={long},{lat}{CODER_SETTINGS}"
@@ -719,6 +721,38 @@ async def check_given_address(
             "message": "Адресс находится вне рабочей области проекта",
             "address": None,
         },status_code=422)
+
+    longitude, latitude = str(data.get('response', {}). \
+    get('GeoObjectCollection', {}). \
+    get('featureMember')[0]. \
+    get('GeoObject', {}).\
+    get('Point').get('pos')).split()
+
+    if tg_id:
+        with Session(engine, expire_on_commit=False) as session:
+            user = Users.get_user(tg_id, update_last_action=True)
+            if not user:
+                raise HTTPException(
+                    detail='Пользователь не найден',
+                    status_code=404
+                )
+
+            address_query = session.query(Address).filter(
+                Address.address==str(address),
+                or_(
+                    Address.latitude==str(latitude),
+                    Address.longitude==str(longitude)
+                )
+            ).\
+            where(Address.deleted_at == None).\
+            join(UsersAddress, UsersAddress.address_id == Address.id).\
+            where(UsersAddress.user_id == user.id).\
+            first()
+
+            if address_query:
+                return JSONResponse({
+                    "message": "Address already exists"
+                }, 403)
 
     region = Regions.get_by_coords(
             float(long),
@@ -757,6 +791,7 @@ async def check_given_address(
 async def check_given_address_by_text(
     text: str,
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["bot"])],
+    tg_id: Optional[int] = None,
 ):
     #Если не предоставили текстовый адрес получаем через геокодер
 
@@ -786,6 +821,38 @@ async def check_given_address_by_text(
             "address": text,
             "addresses": None
         },status_code=422)
+
+    longitude, latitude = str(data.get('response', {}). \
+    get('GeoObjectCollection', {}). \
+    get('featureMember')[0]. \
+    get('GeoObject', {}).\
+    get('Point').get('pos')).split()
+
+    if tg_id:
+        with Session(engine, expire_on_commit=False) as session:
+            user = Users.get_user(tg_id, update_last_action=True)
+            if not user:
+                raise HTTPException(
+                    detail='Пользователь не найден',
+                    status_code=404
+                )
+
+            address_query = session.query(Address).filter(
+                Address.address==str(address),
+                or_(
+                    Address.latitude==str(latitude),
+                    Address.longitude==str(longitude)
+                )
+            ).\
+            where(Address.deleted_at == None).\
+            join(UsersAddress, UsersAddress.address_id == Address.id).\
+            where(UsersAddress.user_id == user.id).\
+            first()
+
+            if address_query:
+                return JSONResponse({
+                    "message": "Address already exists"
+                }, 403)
 
     region = Regions.get_by_coords(
             float(long),
