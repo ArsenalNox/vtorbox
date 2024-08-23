@@ -283,7 +283,6 @@ async def create_order(
     """
     Создание заявки 
     """
-    #TODO: Оповещение менеджера при создании заявки
     with Session(engine, expire_on_commit=False) as session:
         print(order_data)
 
@@ -584,6 +583,12 @@ async def set_order_status(
                 }, 422)
 
             try:
+                new_payment, message = await Payments.process_status_update(
+                    order=order_query
+                )
+                print(new_payment)
+                print(message)
+
                 if order_query.user.allow_messages_from_bot:
 
                     message_text = str(BotSettings.get_by_key('MESSAGE_PAYMENT_REQUIRED_ASK').value)
@@ -1155,7 +1160,7 @@ async def get_users_order_aggregate(
         for order in orders:
             
             order_date = order.date_created.strftime("%B %Y")
-
+            logger.debug(order_date)
             for m_d in en_to_ru:
                 if str(m_d).lower() in str(order_date).lower():
                     order_date = order_date.replace(m_d, en_to_ru[m_d])
