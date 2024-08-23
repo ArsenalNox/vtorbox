@@ -49,6 +49,7 @@ async def show_active_orders(self: 'TextHandler', message: Message, orders: list
 
     first_order = orders[0]
     await state.set_state(state=None)
+    await state.update_data(menu_view='active_order')
 
     status_code, active_order_msg = await req_to_api(
         method='get',
@@ -69,7 +70,7 @@ async def show_order_info(self: 'OrderHandler', message: Message, order: dict, s
     """Вывод 1 конкретной заявки"""
 
     data = await state.get_data()
-
+    await state.update_data(order_id=order.get('id'))
     if data.get('order_msg'):
         await message.bot.delete_message(
             chat_id=data.get('chat_id'),
