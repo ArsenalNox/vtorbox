@@ -20,7 +20,7 @@ from bot.states.states import RegistrationUser, SMSEmail
 
 from bot.utils.buttons import BUTTONS
 from bot.utils.format_text import delete_messages_with_btn
-from bot.utils.handle_data import phone_pattern, show_active_orders
+from bot.utils.handle_data import phone_pattern, show_active_orders, show_address_date
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
@@ -384,6 +384,7 @@ class TextHandler(Handler):
 
             data = await state.get_data()
             menu_view = data.get('menu_view')
+            print(menu_view)
 
             status_code, menu_btn_msg = await req_to_api(
                 method='get',
@@ -399,7 +400,7 @@ class TextHandler(Handler):
                 'payment': self.kb.settings_btn,
                 'menu': self.kb.menu_btn,
                 'change_period': self.schedule_kb.change_schedule_btn,
-                'change_period_by_day': self.schedule_kb.back_schedule_address_list
+                'change_period_by_day': self.schedule_kb.back_schedule_address_list,
             }
             buttons = menus_buttons.get(menu_view, self.kb.start_menu_btn)
 
@@ -431,6 +432,21 @@ class TextHandler(Handler):
                 await message.answer(
                     'Перейдите по кнопке ниже',
                     reply_markup=buttons()
+                )
+
+            elif menu_view == 'order_dates':
+                address_id = data.get('address_id')
+                status_code, address = await req_to_api(
+                    method='get',
+                    url=f'bot/user/addresses/{address_id}?tg_id={message.chat.id}',
+                )
+                print(address)
+                await show_address_date(
+                    address=address,
+                    message=message,
+                    kb=self.order_kb.choose_date_btn,
+                    menu_kb=self.kb.start_menu_btn,
+                    state=state
                 )
             else:
 
