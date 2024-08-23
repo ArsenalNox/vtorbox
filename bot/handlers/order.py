@@ -76,6 +76,8 @@ class OrderHandler(Handler):
 
         @self.router.callback_query(F.data.startswith('getaddress'))
         async def get_order_address(callback: CallbackQuery, state: FSMContext):
+
+            await state.update_data(menu_view='order_dates')
             await state.update_data(chat_id=callback.message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
@@ -85,6 +87,7 @@ class OrderHandler(Handler):
             )
 
             address_id = callback.data.split('_')[1]
+            await state.update_data(address_id=address_id)
             is_container_switch_over = callback.data.split('_')[-1]
             # запрос на получение адреса по address_id
             status_code, address = await req_to_api(
@@ -133,6 +136,7 @@ class OrderHandler(Handler):
 
         @self.router.message(CreateOrder.date)
         async def catch_order_date(message: Message, state: FSMContext):
+            data = await state.get_data()
             await state.update_data(chat_id=message.chat.id)
 
             if message.text == BUTTONS['MENU']:
@@ -151,21 +155,37 @@ class OrderHandler(Handler):
             else:
 
                 await state.update_data(chat_id=message.chat.id)
-                _date = message.text.split('(')[0]
-                date = datetime.datetime.strptime(_date, '%d-%m-%Y').strftime('%Y-%m-%d')
-                await state.update_data(order_date=date)
+                try:
+                    _date = message.text.split('(')[0]
+                    date = datetime.datetime.strptime(_date, '%d-%m-%Y').strftime('%Y-%m-%d')
+                    await state.update_data(order_date=date)
+                except ValueError:
+                    address_id = data.get('address_id')
+                    status_code, address = await req_to_api(
+                        method='get',
+                        url=f'bot/user/addresses/{address_id}?tg_id={message.chat.id}',
+                    )
+                    print(address)
+                    await show_address_date(
+                        address=address,
+                        message=message,
+                        kb=self.kb.choose_date_btn,
+                        menu_kb=self.kb.start_menu_btn,
+                        state=state
+                    )
+                else:
 
-                status_code, comment_order_msg = await req_to_api(
-                    method='get',
-                    url='bot/messages?message_key=WRITE_COMMENT_ORDER'
-                )
+                    status_code, comment_order_msg = await req_to_api(
+                        method='get',
+                        url='bot/messages?message_key=WRITE_COMMENT_ORDER'
+                    )
 
-                await message.answer(
-                    comment_order_msg,
-                    reply_markup=self.kb.empty_comment_btn()
-                )
+                    await message.answer(
+                        comment_order_msg,
+                        reply_markup=self.kb.empty_comment_btn()
+                    )
 
-                await state.set_state(CreateOrder.comment)
+                    await state.set_state(CreateOrder.comment)
 
         @self.router.message(CreateOrder.comment)
         async def get_comment_order(message: Message, state: FSMContext):
