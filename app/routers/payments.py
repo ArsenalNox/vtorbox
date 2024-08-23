@@ -122,7 +122,7 @@ async def get_payment_status(
     """
     Получение статуса первого/не рекуррентного платежа по айди
     """
-    payment_status = Payments.check_payment_status(payment_id)
+    payment_status = await Payments.check_payment_status(payment_id)
 
     return payment_status
 
