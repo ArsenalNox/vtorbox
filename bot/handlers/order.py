@@ -139,7 +139,7 @@ class OrderHandler(Handler):
             data = await state.get_data()
             await state.update_data(chat_id=message.chat.id)
 
-            if message.text == BUTTONS['MENU']:
+            if message.text == BUTTONS['CANCEL_CREATE_ORDER']:
                 await state.set_state(state=None)
 
                 status_code, menu_msg = await req_to_api(
@@ -165,7 +165,6 @@ class OrderHandler(Handler):
                         method='get',
                         url=f'bot/user/addresses/{address_id}?tg_id={message.chat.id}',
                     )
-                    print(address)
                     await show_address_date(
                         address=address,
                         message=message,
@@ -196,46 +195,71 @@ class OrderHandler(Handler):
             data = await state.get_data()
             await state.set_state(state=None)
 
-
-            # получаем данные из состояния и отправляем запрос в бэк на создание заявки
-            create_order_data = json.dumps(
-                {
-                    "address_id": data.get('address', {}).get('id'),
-                    "day": data.get('order_date'),
-                    "from_user": str(message.from_user.id),
-                    "comment": comment
-                }
-            )
-
-            await req_to_api(
-                method='post',
-                url='orders/create',
-                data=create_order_data,
-            )
-
-            status_code, created_order_msg = await req_to_api(
-                method='get',
-                url='bot/messages?message_key=ORDER_WAS_CREATED'
-            )
-
-            await message.answer(
-                created_order_msg,
-                reply_markup=self.kb.start_menu_btn()
-            )
-
-            # переходим в главное меню
-            status_code, orders = await req_to_api(
-                method='get',
-                url=f'users/orders/?tg_id={message.chat.id}',
-            )
-
-            if orders:
-                await show_active_orders(
-                    message=message,
-                    orders=orders,
-                    state=state,
-                    self=self
+            if message.text == BUTTONS['CANCEL_CREATE_ORDER']:
+                await state.set_state(state=None)
+                status_code, orders = await req_to_api(
+                    method='get',
+                    url=f'users/orders/?tg_id={message.chat.id}',
                 )
+
+                if orders:
+                    await show_active_orders(
+                        message=message,
+                        orders=orders,
+                        state=state,
+                        self=self
+                    )
+                status_code, menu_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=MENU'
+                )
+
+                await message.answer(
+                    menu_msg,
+                    reply_markup=self.kb.start_menu_btn()
+                )
+            else:
+
+
+                # получаем данные из состояния и отправляем запрос в бэк на создание заявки
+                create_order_data = json.dumps(
+                    {
+                        "address_id": data.get('address', {}).get('id'),
+                        "day": data.get('order_date'),
+                        "from_user": str(message.from_user.id),
+                        "comment": comment
+                    }
+                )
+
+                await req_to_api(
+                    method='post',
+                    url='orders/create',
+                    data=create_order_data,
+                )
+
+                status_code, created_order_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ORDER_WAS_CREATED'
+                )
+
+                await message.answer(
+                    created_order_msg,
+                    reply_markup=self.kb.start_menu_btn()
+                )
+
+                # переходим в главное меню
+                status_code, orders = await req_to_api(
+                    method='get',
+                    url=f'users/orders/?tg_id={message.chat.id}',
+                )
+
+                if orders:
+                    await show_active_orders(
+                        message=message,
+                        orders=orders,
+                        state=state,
+                        self=self
+                    )
 
         @self.router.message(F.text.startswith(BUTTONS['ORDER_HISTORY']))
         async def order_history(message: Message, state: FSMContext):
@@ -316,6 +340,7 @@ class OrderHandler(Handler):
         async def get_order_by_month(callback: CallbackQuery, state: FSMContext):
             """Отлов кнопки заказов за месяц"""
 
+            await state.update_data(menu_view='menu')
             await state.update_data(chat_id=callback.message.chat.id)
             data = await state.get_data()
             await delete_messages_with_btn(
