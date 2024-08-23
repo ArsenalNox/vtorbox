@@ -30,11 +30,11 @@ class OrderKeyboard(BaseKeyboard):
                 )
             )
 
-        builder.row(
-            KeyboardButton(text=BUTTONS['MENU'])
-
-        )
         builder.adjust(2)
+        builder.row(
+            KeyboardButton(text=BUTTONS['CANCEL_CREATE_ORDER'])
+        )
+
         return builder.as_markup(
             resize_keyboard=True,
             one_time_keyboard=True
@@ -320,6 +320,9 @@ class OrderKeyboard(BaseKeyboard):
         builder = ReplyKeyboardBuilder()
         builder.button(
             text='Без комментария'
+        )
+        builder.row(
+            KeyboardButton(text=BUTTONS['CANCEL_CREATE_ORDER'])
         )
 
         return builder.as_markup(
