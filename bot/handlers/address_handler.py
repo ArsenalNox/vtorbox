@@ -11,7 +11,7 @@ from bot.keyboards.order import OrderKeyboard
 
 from bot.states.states import AddAddressState, ConfirmAddress
 from bot.utils.buttons import BUTTONS
-from bot.utils.format_text import delete_messages_with_btn
+from bot.utils.format_text import delete_messages_with_btn, format_available_addresses, convert_address_for_text
 from bot.utils.handle_data import show_address_list, show_address_date
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
@@ -106,10 +106,10 @@ class AddressHandler(Handler):
             latitude = str(message.location.latitude)
             status_code, address_data = await req_to_api(
                 method='get',
-                url=f'bot/address/check?lat={latitude}&long={longitude}'
+                url=f'bot/address/check?lat={latitude}&long={longitude}&tg_id={message.chat.id}'
             )
             address = address_data.get('address')
-            if address:
+            if address and status_code != 403:
                 await state.update_data(longitude=longitude)
                 await state.update_data(latitude=latitude)
 
@@ -134,16 +134,41 @@ class AddressHandler(Handler):
                 )
                 await state.set_state(AddAddressState.detail)
 
-            else:
+            elif status_code == 403:
+                status_code, existed_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ADDRESS_ALREADY_EXISTS'
 
+                )
+                await message.answer(
+                    existed_address_msg
+                )
+                status_code, new_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ADD_NEW_ADDRESS'
+                )
+                await message.answer(
+                    new_address_msg,
+                    reply_markup=self.kb.send_geo_btn()
+                )
+
+            else:
                 status_code, wrong_address_msg = await req_to_api(
                     method='get',
                     url='bot/messages?message_key=WRONG_ADDRESS'
                 )
-
-                await message.answer(
-                    wrong_address_msg
+                status_code, available_addresses = await req_to_api(
+                    method='get',
+                    url='regions?only_active=true&with_work_days=true'
                 )
+                available_addresses = format_available_addresses(available_addresses)
+                addresses = convert_address_for_text(available_addresses)
+
+                msg = await message.answer(
+                    wrong_address_msg.format(addresses),
+                    reply_markup=self.kb.all_available_regions_btn()
+                )
+                await state.update_data(msg=msg.message_id)
 
                 status_code, address_msg = await req_to_api(
                     method='get',
@@ -209,15 +234,31 @@ class AddressHandler(Handler):
             await state.update_data(address=response)
 
             # если не удалось найти такой адрес, то выводим сообщение
-            if response.get('message'):
+            if response.get('message') and status_code == 403:
+                status_code, existed_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ADDRESS_ALREADY_EXISTS'
 
+                )
+                await message.answer(
+                    existed_address_msg,
+                    reply_markup=self.kb.start_menu_btn()
+                )
+
+            elif response.get('message'):
+                status_code, available_addresses = await req_to_api(
+                    method='get',
+                    url='regions?only_active=true&with_work_days=true'
+                )
+                available_addresses = format_available_addresses(available_addresses)
+                addresses = convert_address_for_text(available_addresses)
                 status_code, wrong_address_msg = await req_to_api(
                     method='get',
                     url='bot/messages?message_key=WRONG_ADDRESS'
                 )
 
                 msg = await message.answer(
-                    wrong_address_msg,
+                    wrong_address_msg.format(addresses),
                     reply_markup=self.kb.add_address_btn(self.flag_to_return)
                 )
 
@@ -255,7 +296,7 @@ class AddressHandler(Handler):
 
             status_code, address_data = await req_to_api(
                 method='get',
-                url=f'bot/address/check/text?text={message.text}'
+                url=f'bot/address/check/text?text={message.text}&tg_id={message.chat.id}'
             )
             address = address_data.get('address')
             error = address_data.get('message')
@@ -288,6 +329,24 @@ class AddressHandler(Handler):
                 await message.answer(
                     menu_msg,
                     reply_markup=self.kb.start_menu_btn()
+                )
+
+            elif status_code == 403:
+                status_code, existed_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ADDRESS_ALREADY_EXISTS'
+
+                )
+                await message.answer(
+                    existed_address_msg
+                )
+                status_code, new_address_msg = await req_to_api(
+                    method='get',
+                    url='bot/messages?message_key=ADD_NEW_ADDRESS'
+                )
+                await message.answer(
+                    new_address_msg,
+                    reply_markup=self.kb.send_geo_btn()
                 )
 
             elif error == 'В расписании региона отсутствуют рабочие дни' and address:
@@ -323,7 +382,12 @@ class AddressHandler(Handler):
                 await state.update_data(msg=msg.message_id)
 
             else:
-
+                status_code, available_addresses = await req_to_api(
+                    method='get',
+                    url='regions?only_active=true&with_work_days=true'
+                )
+                available_addresses = format_available_addresses(available_addresses)
+                addresses = convert_address_for_text(available_addresses)
                 status_code, wrong_address_msg = await req_to_api(
                     method='get',
                     url='bot/messages?message_key=WRONG_ADDRESS'
@@ -334,9 +398,12 @@ class AddressHandler(Handler):
                     url='bot/messages?message_key=ADD_NEW_ADDRESS'
                 )
 
-                await message.answer(
-                    wrong_address_msg
+                msg = await message.answer(
+                    wrong_address_msg.format(addresses),
+                    reply_markup=self.kb.all_available_regions_btn()
                 )
+                await state.update_data(msg=msg.message_id)
+
                 await message.answer(
                     new_address_msg,
                     reply_markup=self.kb.send_geo_btn()
@@ -394,9 +461,13 @@ class AddressHandler(Handler):
                 data=data,
                 src=callback.message
             )
+            status_code, add_manually_address_msg = await req_to_api(
+                method='get',
+                url='bot/messages?message_key=ADD_MANUALLY_ADDRESS'
+            )
 
             await callback.message.answer(
-                MESSAGES['ADD_MANUALLY_ADDRESS']
+                add_manually_address_msg
             )
             await state.set_state(AddAddressState.manually)
 
@@ -574,3 +645,27 @@ class AddressHandler(Handler):
                 address_list=address_list,
                 self=self
             )
+
+        @self.router.callback_query(F.data.startswith('all_available_regions'))
+        async def all_available_regions(callback: CallbackQuery, state: FSMContext):
+
+            await state.update_data(chat_id=callback.message.chat.id)
+            data = await state.get_data()
+            await delete_messages_with_btn(
+                state=state,
+                data=data,
+                src=callback.message
+            )
+
+            status_code, available_addresses = await req_to_api(
+                method='get',
+                url='regions?only_active=true&with_work_days=true'
+            )
+            available_addresses = format_available_addresses(available_addresses)
+            addresses = convert_address_for_text(available_addresses, show_all=True)
+
+            await callback.message.answer(
+                MESSAGES['ALL_AVAILABLE_REGIONS'].format(addresses)
+            )
+
+

@@ -7,6 +7,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
 from bot.states.states import CreateOrder
+from bot.utils.format_text import format_schedule_text, translate_month, format_available_addresses, \
+    convert_address_for_text
 from bot.utils.messages import MESSAGES
 from bot.utils.requests_to_api import req_to_api
 
@@ -170,60 +172,7 @@ async def show_courier_order(order_id, order: dict, message: Message, self: 'Cou
     )
 
 
-def translate_month(eng_month: str) -> str:
-    """Перевод названий месяцев"""
 
-    eng_month = eng_month.lower()
-    months = {
-        'january': 'Январь',
-        'february': 'Февраль',
-        'march': 'Март',
-        'april': 'Апрель',
-        'may': 'Май',
-        'june': 'Июнь',
-        'july': 'Июль',
-        'august': 'Август',
-        'september': 'Сентябрь',
-        'october': 'Октябрь',
-        'november': 'Ноябрь',
-        'december': 'Декабрь'
-    }
-
-    return months[eng_month]
-
-
-def translate_day(eng_day: str) -> str:
-    """Перевод названий дней с англ на русском"""
-
-    eng_day = eng_day.lower()
-    days = {
-        'monday': 'Понедельник',
-        'tuesday': 'Вторник',
-        'wednesday': 'Среда',
-        'thursday': 'Четверг',
-        'friday': 'Пятница',
-        'saturday': 'Суббота',
-        'sunday': 'Воскресенье',
-    }
-
-    return days[eng_day]
-
-
-def translate_day_reverse(ru_day: str) -> str:
-    """Перевод названий дней с русского на англ"""
-
-    ru_day = ru_day.lower()
-    days = {
-        'понедельник': 'monday',
-        'вторник ': 'tuesday',
-        'среда': 'wednesday',
-        'четверг': 'thursday',
-        'пятница': 'friday',
-        'суббота': 'saturday',
-        'воскресенье': 'sunday',
-    }
-
-    return days[ru_day]
 
 
 def convert_date(date: str, format: str = '%d-%m-%Y') -> str:
@@ -262,17 +211,7 @@ async def group_orders_by_month(orders_list: list[dict]):
 async def show_address_list(self: 'AddressHandler', message: Message, state: FSMContext, address_list: list[dict]):
     """Отображение списка адресов с кнопками(по умолчанию/удалить)"""
 
-    status_code, add_address_msg = await req_to_api(
-        method='get',
-        url='bot/messages?message_key=ADD_ADDRESS'
-    )
 
-    msg = await message.answer(
-        add_address_msg,
-        reply_markup=self.kb.add_address_btn(self.flag_to_return)
-    )
-
-    await state.update_data(msg=msg.message_id)
     msg_ids = {}
     count = 1  # счетчик для порядкового номера адресов
     # отправляем все адреса пользователя с кнопками ('Удалить' и 'По умолчанию')
@@ -310,6 +249,18 @@ async def show_address_list(self: 'AddressHandler', message: Message, state: FSM
         count += 1
         msg_ids[address['id']] = msg.message_id
 
+
+    status_code, add_address_msg = await req_to_api(
+        method='get',
+        url='bot/messages?message_key=ADD_ADDRESS'
+    )
+
+    msg = await message.answer(
+        add_address_msg,
+        reply_markup=self.kb.add_address_btn(self.flag_to_return)
+    )
+    await state.update_data(msg=msg.message_id)
+
     await state.update_data(msg_ids=msg_ids)
 
 
@@ -330,12 +281,50 @@ async def show_address_date(message: Message, address: 'Address',
         await state.set_state(CreateOrder.date)
 
     else:
+        status_code, available_addresses = await req_to_api(
+            method='get',
+            url='regions?only_active=true&with_work_days=true'
+        )
+        available_addresses = format_available_addresses(available_addresses)
+        addresses = convert_address_for_text(available_addresses)
         status_code, no_work_days_msg = await req_to_api(
             method='get',
             url='bot/messages?message_key=NO_WORK_DAYS_FOR_ADDRESS'
         )
 
         await message.answer(
-            no_work_days_msg,
+            no_work_days_msg.format(addresses),
             reply_markup=menu_kb()
         )
+
+
+async def show_schedule_address_list(
+        address_list,
+        message: Message,
+        self: 'ScheduleHandler',
+        msg_ids: dict,
+        state: FSMContext
+):
+
+    for address in address_list:
+        address_text = address.get('address') + address.get('detail') if address.get('detail') else address.get(
+            'address')
+        text = format_schedule_text(
+            type_interval=address.get('interval_type'),
+            interval=address.get('interval')
+        )
+
+        status_code, change_schedule_msg = await req_to_api(
+            method='get',
+            url='bot/messages?message_key=CHANGE_SCHEDULE'
+        )
+
+        msg = await message.answer(
+            change_schedule_msg.format(
+                address_text,
+                text
+            ),
+            reply_markup=self.kb.change_btn(address.get('id'))
+        )
+        msg_ids[address['id']] = msg.message_id
+    await state.update_data(msg_ids=msg_ids)

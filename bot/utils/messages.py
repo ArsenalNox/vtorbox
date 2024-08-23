@@ -106,4 +106,6 @@ MESSAGES = {
     'WRITE_COURIER_COMMENT': 'Напиши свой комментарий к заявке',
     'YOUR_COMMENT_WAS_SAVED': 'Ваш комментарий сохранен',
     'PAYMENT_WAS_AUTO_PAY': 'Оплата заявки прошла автоматически',
+    'NEED_CHOOSE_DAYS': 'Нужно выбрать дни',
+    'ALL_AVAILABLE_REGIONS': 'Все доступные регионы: \n {}'
 }

@@ -22,6 +22,9 @@ class QuestionnaireKeyboard(BaseKeyboard):
         builder.row(
             KeyboardButton(text=BUTTONS['BACK_SETTINGS']),
         )
+        builder.row(
+            KeyboardButton(text=BUTTONS['MENU']),
+        )
 
         return builder.as_markup(
             resize_keyboard=True,
