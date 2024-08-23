@@ -911,7 +911,7 @@ class Payments(Base):
                     rebuill_query.rebill_id,
                 )
                 if bill_attmp:
-                    Payments.check_payment_status(new_payment.id)
+                    await Payments.check_payment_status(new_payment.id)
                     with Session(engine, expire_on_commit=False) as session:
                         payment = session.query(Payments).filter(Payments.id==new_payment.id).first()
                         return payment, 'Заказ оплачен автоматически'
@@ -1186,7 +1186,7 @@ class Payments(Base):
             return response.json()
 
 
-    def check_payment_status(payment_internal_id, terminal=None):
+    async def check_payment_status(payment_internal_id, terminal=None):
         """
         Проверяет статус единоразового платежа
         """
