@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import joinedload
 
 from app import CODER_KEY, CODER_SETTINGS, COURIER_KEY
+from app import logger
 
 from app.auth import (
     oauth2_scheme, 
