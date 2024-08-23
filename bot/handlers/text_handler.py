@@ -394,7 +394,6 @@ class TextHandler(Handler):
             )
 
             menus_buttons = {
-                'registration': self.kb.registration_btn,
                 'main': self.kb.start_menu_btn,
                 'settings': self.kb.settings_btn,
                 'questionnaire': self.questionnaire_kb.questionnaire_btn,
@@ -423,6 +422,8 @@ class TextHandler(Handler):
                         reply_markup=self.kb.courier_btn()
                     )
 
+            elif menu_view in ('addresses', 'schedule', 'payment', 'menu'):
+                pass
             else:
                 buttons = menus_buttons.get(menu_view, self.kb.start_menu_btn)
                 await message.answer(
