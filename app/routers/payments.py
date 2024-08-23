@@ -409,6 +409,7 @@ async def process_notification_from_tinkoff(requestd_data: Request):
                     old_content = old_status_query.status_name,
                     new_content = OrderStatuses.status_payed().status_name,
                 )
+                session.add(new_data_change)
                 await payment.order.update_status(OrderStatuses.status_payed().id, send_message=True)
                 logger.info(f"Payment {payment.tinkoff_id} processed")
                 return Response(content='Ok', status_code=200)
