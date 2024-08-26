@@ -225,14 +225,14 @@ async def create_new_payment(
             error_sending_message = True
             print(f"Не удалось отправить сообщение пользователю: {err}")
 
-        try:
-            await set_timed_func('p', new_payment.id, "M:05")
-        except Exception as err:
-            return {
-                "message": message,
-                "payment_data": new_payment,
-                "interval_created": True
-            }
+        # try:
+        #     await set_timed_func('p', new_payment.id, "M:05")
+        # except Exception as err:
+        #     return {
+        #         "message": message,
+        #         "payment_data": new_payment,
+        #         "interval_created": True
+        #     }
 
         return {
             "message": message,
@@ -399,6 +399,8 @@ async def process_notification_from_tinkoff(requestd_data: Request):
             payment.status = payment_data['Status']
   
             if payment_data['Success'] and payment_data['Status'] == "CONFIRMED":
+                logger.debug(payment.order.status)
+                logger.debug(OrderStatuses.status_payed())
                 if payment.order.status == OrderStatuses.status_payed().id:
                     return Response(content='OK', status_code=200)
 
