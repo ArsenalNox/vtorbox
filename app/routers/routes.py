@@ -208,15 +208,16 @@ async def generate_routes_today(
         #TODO Второй алгоритм выборки по кластерам
         #Проходим по всем курьерам 
         for courier in couriers:
-            print(i, step, step+i)
+            print(f"order start: {i}, step: {step}, limit: {step+i}")
             
             #делаем срез массива с заявками
             order_for_route = order_pool_awaliable[i:step+i]
 
-            print(len(order_for_route))
+            print(f"orders for route: {len(order_for_route)}")
 
             if len(order_for_route)==0:
                 break
+
             print(order_pool_awaliable[i:step+i])
             routes.append({
                 "courier": courier.id,
