@@ -399,8 +399,8 @@ async def process_notification_from_tinkoff(requestd_data: Request):
             payment.status = payment_data['Status']
   
             if payment_data['Success'] and payment_data['Status'] == "CONFIRMED":
-                logger.debug(payment.order.status)
-                logger.debug(OrderStatuses.status_payed().id)
+                logger.info(payment.order.status)
+                logger.info(OrderStatuses.status_payed().id)
                 if payment.order.status in [OrderStatuses.status_canceled().id, OrderStatuses.status_payed().id, OrderStatuses.status_done().id]:
                     return Response(content='OK', status_code=200)
 
