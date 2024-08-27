@@ -292,7 +292,9 @@ class Orders(Base):
                         status_code=422, 
                         detail=f"Невозможно изменить статус с текущего '{status_data.status_name}'"
                     )
-
+            
+            if __self__.status == status_id:
+                return __self__
 
             __self__.status = status_id
 
