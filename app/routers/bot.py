@@ -106,8 +106,8 @@ async def create_bot_client_from_link(
 
         user_query.telegram_id = user_link_data.tg_id
         user_query.telegram_username = user_link_data.username
-        user_query.first_name = user_link_data.first_name
-        user_query.second_name = user_link_data.second_name
+        user_query.first_name = user_link_data.firstname
+        user_query.second_name = user_link_data.secondname
         user_query.link_code = None
 
         session.commit()
