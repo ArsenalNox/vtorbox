@@ -230,7 +230,7 @@ class OrderKeyboard(BaseKeyboard):
             one_time_keyboard=True
         )
 
-    def order_list(self, orders: list[dict]) -> InlineKeyboardMarkup:
+    def order_list(self, orders: list[dict], back_button: bool = False) -> InlineKeyboardMarkup:
         """Кнопки со списком заявок"""
 
         builder = InlineKeyboardBuilder()
@@ -254,12 +254,13 @@ class OrderKeyboard(BaseKeyboard):
                     )
                 )
 
-        builder.row(
-            InlineKeyboardButton(
-                text='⬅️ Назад',
-                callback_data=f'go_to_month_list_order'
+        if back_button:
+            builder.row(
+                InlineKeyboardButton(
+                    text='⬅️ Назад',
+                    callback_data=f'go_to_month_list_order'
+                )
             )
-        )
 
         return builder.as_markup(
             resize_keyboard=True,

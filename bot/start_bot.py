@@ -72,7 +72,7 @@ class MainBot:
 
                     status_code, orders = await req_to_api(
                         method='get',
-                        url=f'users/orders/?tg_id={chat_id}',
+                        url=f'users/orders/?tg_id={chat_id}&show_only_active=true',
                     )
 
                     await self.bot.send_message(
