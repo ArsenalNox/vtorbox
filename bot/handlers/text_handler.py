@@ -73,7 +73,7 @@ class TextHandler(Handler):
             # если есть, то выводим с такой кнопкой show_btn(order_id)
             status_code, orders = await req_to_api(
                 method='get',
-                url=f'users/orders/?tg_id={message.from_user.id}',
+                url=f'users/orders/?tg_id={message.from_user.id}&show_only_active=true',
             )
 
             if orders and status_code == 200:
@@ -353,7 +353,7 @@ class TextHandler(Handler):
 
             status_code, orders = await req_to_api(
                 method='get',
-                url=f'users/orders/?tg_id={message.from_user.id}',
+                url=f'users/orders/?tg_id={message.from_user.id}&show_only_active=true',
             )
 
             if orders:
