@@ -585,7 +585,6 @@ async def set_order_status(
         )
         order_query = await order_query.update_status(status_query.id, (status_query.message_on_update and send_message))
         session.add(new_data_change)
-        session.commit()
 
         #если статус меняется в "ожидается оплата" - отправить сообщение об оплате
         if status_query.status_name == ORDER_STATUS_AWAITING_PAYMENT['status_name']: 
@@ -648,7 +647,7 @@ async def set_order_status(
                 error_sending_message = True
                 print(f"Не удалось отправить сообщение пользователю: {err}")
 
-
+        session.commit()
 
         return Orders.process_order_array([[order_query]])[0]
 
