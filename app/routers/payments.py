@@ -401,7 +401,7 @@ async def process_notification_from_tinkoff(requestd_data: Request):
             if payment_data['Success'] and payment_data['Status'] == "CONFIRMED":
                 logger.debug(payment.order.status)
                 logger.debug(OrderStatuses.status_payed().id)
-                if payment.order.status == OrderStatuses.status_payed().id:
+                if payment.order.status in [OrderStatuses.status_canceled().id, OrderStatuses.status_payed().id, OrderStatuses.status_done().id]:
                     return Response(content='OK', status_code=200)
 
                 old_status_query = session.query(OrderStatuses).filter_by(id=payment.order.status).enable_eagerloads(False).first()
@@ -421,4 +421,4 @@ async def process_notification_from_tinkoff(requestd_data: Request):
             print(err)
             return Response(content='NO', status_code=500)
 
-        return Response(content='NO', status_code=500)
+        return Response(content='Ok', status_code=500)
