@@ -363,7 +363,7 @@ class OrderHandler(Handler):
 
             msg = await callback.message.answer(
                 orders_msg,
-                reply_markup=self.kb.order_list(orders)
+                reply_markup=self.kb.order_list(orders, back_button=True)
             )
             await state.update_data(msg=msg.message_id)
 
