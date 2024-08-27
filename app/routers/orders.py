@@ -575,6 +575,18 @@ async def set_order_status(
 
         error_sending_message = False
 
+        old_status_query = session.query(OrderStatuses).filter_by(id=order_query.status).enable_eagerloads(False).first()
+        new_data_change = OrderChangeHistory(
+            from_user_id = current_user.id,
+            order_id = order_query.id,
+            attribute = 'status',
+            old_content = old_status_query.status_name,
+            new_content = status_query.status_name,
+        )
+        order_query = await order_query.update_status(status_query.id, (status_query.message_on_update and send_message))
+        session.add(new_data_change)
+        session.commit()
+
         #если статус меняется в "ожидается оплата" - отправить сообщение об оплате
         if status_query.status_name == ORDER_STATUS_AWAITING_PAYMENT['status_name']: 
             if not (order_query.box_type_id and order_query.box_count):
@@ -636,17 +648,7 @@ async def set_order_status(
                 error_sending_message = True
                 print(f"Не удалось отправить сообщение пользователю: {err}")
 
-        old_status_query = session.query(OrderStatuses).filter_by(id=order_query.status).enable_eagerloads(False).first()
-        new_data_change = OrderChangeHistory(
-            from_user_id = current_user.id,
-            order_id = order_query.id,
-            attribute = 'status',
-            old_content = old_status_query.status_name,
-            new_content = status_query.status_name,
-        )
-        order_query = await order_query.update_status(status_query.id, (status_query.message_on_update and send_message))
-        session.add(new_data_change)
-        session.commit()
+
 
         return Orders.process_order_array([[order_query]])[0]
 
