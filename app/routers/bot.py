@@ -82,6 +82,7 @@ async def create_user(
 
         return new_user
 
+
 @router.put('/users/botclient/link', tags=["users", "bot"])
 async def create_bot_client_from_link(
     user_link_data: UserLinkData,
@@ -97,8 +98,8 @@ async def create_bot_client_from_link(
                 "message": f"No user with link code {user_link_data.promocode} found"
             }, status_code=404)
         
-        user_query = session.query(Users).filter_by(telegram_id=user_link_data.tg_id).first()
-        if user_query:
+        user_query_check = session.query(Users).filter_by(telegram_id=user_link_data.tg_id).first()
+        if user_query_check:
             return JSONResponse({
                 "message": f"пользователь с таким айди телеграм ({user_link_data.tg_id}) уже существует"
             })
