@@ -1344,6 +1344,7 @@ class PaymentClientData(Base):
                 print(j_data)
                 with Session(engine, expire_on_commit=False) as session:
                     try:
+                        logger.debug("user card found in DB")
                         search_query = session.query(PaymentClientData).filter_by(card_id=j_data['CardId']).first()
                     except Exception as err:
                         print(err)
@@ -1351,7 +1352,7 @@ class PaymentClientData(Base):
 
                     if search_query:
                         return j_data
-
+                    logger.debug("Creating user card")
                     new_payment_data = PaymentClientData(
                         card_id = j_data['CardId'],
                         pan = j_data['Pan'],
