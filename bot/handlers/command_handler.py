@@ -101,7 +101,7 @@ class CommandHandler(Handler):
 
                     status_code, orders = await req_to_api(
                         method='get',
-                        url=f'users/orders/?tg_id={message.chat.id}',
+                        url=f'users/orders/?tg_id={message.chat.id}&show_only_active=true',
                     )
                     if orders:
                         await show_active_orders(
