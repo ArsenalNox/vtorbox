@@ -198,7 +198,8 @@ async def get_user_orders(
     orders_id: List[UUID] = Query(None),
     order_num: int = None,
     user_order_num: int = None,
-    order_nums: List[int] = Query(None)
+    order_nums: List[int] = Query(None),
+    show_only_active: bool = False
     ):
     """
     Получение информации о заявках пользователя
@@ -249,6 +250,17 @@ async def get_user_orders(
         if order_nums:
             orders = orders.filter(Orders.order_num.in_(order_nums))
         
+        if show_only_active: 
+            orders = orders.filter(or_(
+                Orders.status == OrderStatuses.status_accepted_by_courier().id,
+                Orders.status == OrderStatuses.status_default().id,
+                Orders.status == OrderStatuses.status_processing().id,
+                Orders.status == OrderStatuses.status_awating_confirmation().id,
+                Orders.status == OrderStatuses.status_confirmed().id,
+                Orders.status == OrderStatuses.status_awaiting_payment().id,
+                Orders.status == OrderStatuses.status_payed().id
+            ))
+
         orders = orders.order_by(asc(Orders.date_created)).all()
 
         return_data = []
