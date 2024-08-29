@@ -373,9 +373,10 @@ async def process_notification_from_tinkoff(requestd_data: Request):
     Служебный эндпоинт для тинькофф, не трогать
     """
     with Session(engine, expire_on_commit=False) as session:
+        logger.debug("Processing tinkoff notify")
         payment_data = await requestd_data.json()
-
-        payment = Payments.query(
+        logger.debug(payment_data)
+        payment_query = Payments.query(
             tinkoff_id=payment_data['PaymentId'],
             terminal_id=payment_data['TerminalKey']
         )
@@ -387,28 +388,9 @@ async def process_notification_from_tinkoff(requestd_data: Request):
             if "RebillId" in payment_data:
                 payment.rebill_id = payment_data["RebillId"]
 
+            payment_status = await Payments.check_payment_status(payment.id)
             payment.status = payment_data['Status']
-  
-            if payment_data['Success'] and payment_data['Status'] == "CONFIRMED":
-                logger.info(payment.order.status)
-                logger.info(OrderStatuses.status_payed().id)
-                logger.debug(payment.order.status in [OrderStatuses.status_canceled().id, OrderStatuses.status_payed().id, OrderStatuses.status_done().id])
-                if payment.order.status in [OrderStatuses.status_canceled().id, OrderStatuses.status_payed().id, OrderStatuses.status_done().id]:
-                    return Response(content='OK', status_code=200)
-
-                old_status_query = session.query(OrderStatuses).filter_by(id=payment.order.status).enable_eagerloads(False).first()
-                new_data_change = OrderChangeHistory(
-                    order_id = payment.order.id,
-                    attribute = 'status',
-                    old_content = old_status_query.status_name,
-                    new_content = OrderStatuses.status_payed().status_name,
-                )
-
-                session.add(new_data_change)
-                await payment.order.update_status(OrderStatuses.status_payed().id, send_message=True)
-
-                logger.info(f"Payment {payment.tinkoff_id} processed")
-                return Response(content='Ok', status_code=200)
+            logger.debug(f"Payment '{payment.id}' status now: {payment.status}")
 
             session.commit()
         except Exception as err:
