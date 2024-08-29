@@ -196,7 +196,7 @@ async def create_new_payment(
             order=order_query
         )
 
-        print(new_payment)
+        logger.debug(new_payment)
 
         try:
             if order_query.user.allow_messages_from_bot and send_link_message and new_payment:
@@ -224,15 +224,6 @@ async def create_new_payment(
         except Exception as err:
             error_sending_message = True
             print(f"Не удалось отправить сообщение пользователю: {err}")
-
-        # try:
-        #     await set_timed_func('p', new_payment.id, "M:05")
-        # except Exception as err:
-        #     return {
-        #         "message": message,
-        #         "payment_data": new_payment,
-        #         "interval_created": True
-        #     }
 
         return {
             "message": message,
@@ -401,6 +392,7 @@ async def process_notification_from_tinkoff(requestd_data: Request):
             if payment_data['Success'] and payment_data['Status'] == "CONFIRMED":
                 logger.info(payment.order.status)
                 logger.info(OrderStatuses.status_payed().id)
+                logger.debug(payment.order.status in [OrderStatuses.status_canceled().id, OrderStatuses.status_payed().id, OrderStatuses.status_done().id])
                 if payment.order.status in [OrderStatuses.status_canceled().id, OrderStatuses.status_payed().id, OrderStatuses.status_done().id]:
                     return Response(content='OK', status_code=200)
 
@@ -411,8 +403,10 @@ async def process_notification_from_tinkoff(requestd_data: Request):
                     old_content = old_status_query.status_name,
                     new_content = OrderStatuses.status_payed().status_name,
                 )
+
                 session.add(new_data_change)
                 await payment.order.update_status(OrderStatuses.status_payed().id, send_message=True)
+
                 logger.info(f"Payment {payment.tinkoff_id} processed")
                 return Response(content='Ok', status_code=200)
 
