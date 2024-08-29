@@ -1366,7 +1366,7 @@ class Payments(Base):
             #     session.add(new_data_change)
             #     await payment.order.update_status(OrderStatuses.status_payed().id, send_message=False)
             #     session.commit()
-                logger.info(f"Payment processed IN BILL ATTEMPT")
+            logger.info(f"Payment processed IN BILL ATTEMPT")
 
             return response.json()
         else:
