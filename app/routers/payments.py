@@ -381,16 +381,16 @@ async def process_notification_from_tinkoff(requestd_data: Request):
             terminal_id=payment_data['TerminalKey']
         )
 
-        if not payment:
+        if not payment_query:
             return Response(content='NO', status_code=422)
 
         try:
             if "RebillId" in payment_data:
-                payment.rebill_id = payment_data["RebillId"]
+                payment_query.rebill_id = payment_data["RebillId"]
 
-            payment_status = await Payments.check_payment_status(payment.id)
-            payment.status = payment_data['Status']
-            logger.debug(f"Payment '{payment.id}' status now: {payment.status}")
+            payment_status = await Payments.check_payment_status(payment_query.id)
+            payment_query.status = payment_data['Status']
+            logger.debug(f"Payment '{payment_query.id}' status now: {payment_query.status}")
 
             session.commit()
         except Exception as err:
