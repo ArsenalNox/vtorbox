@@ -618,7 +618,7 @@ async def set_order_status(
                 logger.debug(new_payment)
                 logger.debug(message)
 
-                if order_query.user.allow_messages_from_bot and not new_payment:
+                if order_query.user.allow_messages_from_bot and message=='ok':
                     logger.debug("Payment did not automatically complete")
                     message_text = str(BotSettings.get_by_key('MESSAGE_PAYMENT_REQUIRED_ASK').value)
                     message_text = message_text.replace("%ORDER_NUM%", str(order_query.order_num))
