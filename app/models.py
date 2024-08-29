@@ -335,7 +335,7 @@ class Orders(Base):
                         content = f"Заявка {__self__.order_num} изменила статус на '{x}'",
                         resource_id = __self__.id,
                         resource_type = 'заявка',
-                        sent_to_tg = False,
+                        sent_to_tg = True,
                         for_user = __self__.manager_id
                     )
                     logger.info("Notification created")
