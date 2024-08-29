@@ -1324,6 +1324,24 @@ class Payments(Base):
         print(response.text)
 
         if response.json()['Success'] and response.json()['Status'] == 'CONFIRMED':
+            payment.status = payment_data['Status']
+            logger.debug("Updating order data in BILL ATTEMPT")
+            logger.info(payment.order.status)
+            logger.info(OrderStatuses.status_payed().id)
+
+            with Session(engine, expire_on_commit=False) as session:
+                old_status_query = session.query(OrderStatuses).filter_by(id=payment.order.status).enable_eagerloads(False).first()
+                new_data_change = OrderChangeHistory(
+                    order_id = payment.order.id,
+                    attribute = 'status',
+                    old_content = old_status_query.status_name,
+                    new_content = OrderStatuses.status_payed().status_name,
+                )
+                session.add(new_data_change)
+                await payment.order.update_status(OrderStatuses.status_payed().id, send_message=True)
+                session.commit()
+                logger.info(f"Payment processed IN BILL ATTEMPT")
+
             return response.json()
         else:
             return None
