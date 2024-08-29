@@ -58,22 +58,38 @@ class ConnectionManager:
         self.active_connections = {}
 
     async def connect(self, websocket: WebSocket, user_id, user_roles):
-        await websocket.accept()
-        self.active_connections[str(user_id)] = {
-            'websocket': websocket,
-            'roles': user_roles
-            }
+        try:
+            logger.debug("WEBSOCKET: Accepting ")
+            await websocket.accept()
+            self.active_connections[str(user_id)] = {
+                'websocket': websocket,
+                'roles': user_roles
+                }
 
     def disconnect(self, websocket: WebSocket, user_id):
-        del self.active_connections[str(user_id)]
+        try:
+            logger.debug("WEBSOCKET: Disconnectiong client")
+            del self.active_connections[str(user_id)]
+        except Exception as err
+            logger.error(err)
+
 
     async def send_personal_message(self, message: str, user_id):
-        await self.active_connections[str(user_id)]['websocket'].send_text(message)
+        try;
+            logger.debug("WEBSOCKET: Sending personal message")
+            await self.active_connections[str(user_id)]['websocket'].send_text(message)
+        except Exception as err:
+            logger.error(err)
+
 
     async def broadcast(self, message: str, for_user_roles):
         for connection in self.active_connections:
             if for_user_roles in self.active_connections[connection]['roles']:
-                await self.active_connections[connection]['websocket'].send_text(message)
+                try:
+                    logger.debug("WEBSOCKET:Sending text BROADCAST")
+                    await self.active_connections[connection]['websocket'].send_text(message)
+                except Exception as err:
+                    logger.error(err)
     
     async def broadcast_all_to_all(self):
         #TODO: Отправка всех сообщений для всех пользователей
@@ -84,7 +100,12 @@ class ConnectionManager:
                         session=session,
                         only_unread=True
                     )
-                await self.active_connections[connection]['websocket'].send_text(str(msg_data))
+
+                try:
+                    logger.debug("Sending text ALL TO ALL")
+                    await self.active_connections[connection]['websocket'].send_text(str(msg_data))
+                except Exception as err:
+                    logger.error(err)
     
 
 manager = ConnectionManager()
@@ -1246,6 +1267,7 @@ class Payments(Base):
                 if not r_data["Success"]:
                     return response.json()
 
+            logger.debug("Checking payment status")
             if response.status_code == 200:
                 payment_query.status = response.json()['Status']
 

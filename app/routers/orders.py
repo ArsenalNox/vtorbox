@@ -609,8 +609,8 @@ async def set_order_status(
                 new_payment, message = await Payments.process_status_update(
                     order=order_query
                 )
-                print(new_payment)
-                print(message)
+                logger.info(new_payment)
+                logger.debug(message)
 
                 if order_query.user.allow_messages_from_bot and not new_payment:
 
@@ -623,6 +623,7 @@ async def set_order_status(
                     if not (order_query.box_count == None) and not (order_query.box_type_id == None):
                         reg_price = session.query(RegionalBoxPrices).filter_by(box = order_query.box_type_id).\
                             filter_by(region_id = order_query.address.region_id).enable_eagerloads(False).first()
+
                         if reg_price:
                             box_price = reg_price.price
                         
