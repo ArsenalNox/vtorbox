@@ -1232,6 +1232,7 @@ class Payments(Base):
             payment_query = session.query(Payments).filter_by(id=payment_internal_id).first()
             if not payment_query:
                 return None
+
             payment_id = payment_query.tinkoff_id
 
             url = f"{TINKOFF_API_URL}/GetState"
@@ -1286,6 +1287,7 @@ class Payments(Base):
                         if payment_query.order.status != OrderStatuses.status_payed().id:
                             logger.debug("Payment status is not payed, updating")
                             old_status_query = session.query(OrderStatuses).filter_by(id=payment_query.order.status).enable_eagerloads(False).first()
+                            logger.debug("Got old status")
                             new_data_change = OrderChangeHistory(
                                 order_id = payment_query.order.id,
                                 attribute = 'status',
