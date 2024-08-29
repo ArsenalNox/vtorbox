@@ -1364,7 +1364,7 @@ class Payments(Base):
                     new_content = OrderStatuses.status_payed().status_name,
                 )
                 session.add(new_data_change)
-                await payment.order.update_status(OrderStatuses.status_payed().id, send_message=True)
+                await payment.order.update_status(OrderStatuses.status_payed().id, send_message=False)
                 session.commit()
                 logger.info(f"Payment processed IN BILL ATTEMPT")
 
