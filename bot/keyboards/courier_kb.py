@@ -127,7 +127,7 @@ class CourierKeyboard(BaseKeyboard):
         builder = ReplyKeyboardBuilder()
 
         builder.row(
-            KeyboardButton(text=BUTTONS['BACK_TO_ROUTES'])
+            KeyboardButton(text=BUTTONS['BACK_ROUTE'])
         )
 
         return builder.as_markup(
