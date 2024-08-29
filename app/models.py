@@ -934,6 +934,12 @@ class Payments(Base):
                     without_r_c=True
                 )
 
+                if not new_payment:
+                    raise HTTPException(
+                        detail=f'Заказ был оплачен: "message"',
+                        status_code=500
+                    )
+
                 print('Charging')
                 bill_attmp = await Payments.bill_payment(
                     terminal,
