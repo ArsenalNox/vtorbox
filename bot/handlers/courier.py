@@ -184,11 +184,11 @@ class CourierHandler(Handler):
             if routes:
                 routes = routes[0]
 
-            msg = await callback.message.answer(
-                MESSAGES['BACK_TO_ORDER_LIST'],
-                reply_markup=await self.kb.points_btn(routes)
-            )
-            await state.update_data(msg=msg.message_id)
+                msg = await callback.message.answer(
+                    MESSAGES['BACK_TO_ORDER_LIST'],
+                    reply_markup=await self.kb.points_btn(routes)
+                )
+                await state.update_data(msg=msg.message_id)
 
             await callback.message.answer(
                 MESSAGES['BACK_TO_ROUTES'],
