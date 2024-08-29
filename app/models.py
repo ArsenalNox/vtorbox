@@ -1286,22 +1286,22 @@ class Payments(Base):
                     try:
                         if payment_query.order.status != OrderStatuses.status_payed().id:
                             logger.debug("Payment status is not payed, updating")
-                            logger.debug("Getting old status")
-                            logger.debug(payment_query.order)
-                            logger.debug(payment_query.order.status)
+                            # logger.debug("Getting old status")
+                            # logger.debug(payment_query.order)
+                            # logger.debug(payment_query.order.status)
 
-                            old_status_query = session.query(OrderStatuses).filter(
-                                    OrderStatuses.id==payment_query.order.status
-                                )
+                            # old_status_query = session.query(OrderStatuses).filter(
+                            #         OrderStatuses.id==payment_query.order.status
+                            #     )
 
-                            logger.debug(old_status_query)
-                            old_status_query = old_status_query.first()
-                            logger.debug("Got old status")
+                            # logger.debug(old_status_query)
+                            # old_status_query = old_status_query.first()
+                            # logger.debug("Got old status")
 
                             new_data_change = OrderChangeHistory(
                                 order_id = payment_query.order.id,
                                 attribute = 'status',
-                                old_content = old_status_query.status_name,
+                                old_content = None
                                 new_content = OrderStatuses.status_payed().status_name,
                             )
                             session.add(new_data_change)
