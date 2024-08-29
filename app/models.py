@@ -65,6 +65,8 @@ class ConnectionManager:
                 'websocket': websocket,
                 'roles': user_roles
                 }
+        except Exception as err:
+            logger.error(err)
 
     def disconnect(self, websocket: WebSocket, user_id):
         try:
