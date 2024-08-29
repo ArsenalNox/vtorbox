@@ -388,9 +388,11 @@ async def process_notification_from_tinkoff(requestd_data: Request):
             if "RebillId" in payment_data:
                 payment_query.rebill_id = payment_data["RebillId"]
 
-            payment_status = await Payments.check_payment_status(payment_query.id)
             payment_query.status = payment_data['Status']
-            logger.debug(f"Payment '{payment_query.id}' status now: {payment_query.status}")
+
+            if payment_query.status == "AUTHORIZED":
+                payment_status = await Payments.check_payment_status(payment_query.id)
+                logger.debug(f"payment '{payment_query.id}' status now: {payment_query.status}")
 
             session.commit()
         except Exception as err:
