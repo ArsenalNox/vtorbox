@@ -1301,7 +1301,7 @@ class Payments(Base):
                             new_data_change = OrderChangeHistory(
                                 order_id = payment_query.order.id,
                                 attribute = 'status',
-                                old_content = None
+                                old_content = None,
                                 new_content = OrderStatuses.status_payed().status_name,
                             )
                             session.add(new_data_change)
