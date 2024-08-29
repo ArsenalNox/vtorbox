@@ -950,7 +950,7 @@ class Payments(Base):
 
                 if bill_attmp:
                     logger.debug("Bill request successfull, checking payment status")
-                    await Payments.check_payment_status(new_payment.id)
+                    # await Payments.check_payment_status(new_payment.id)
                     with Session(engine, expire_on_commit=False) as session:
                         payment = session.query(Payments).filter(Payments.id==new_payment.id).first()
                         return payment, 'Заказ оплачен автоматически'
@@ -1304,6 +1304,7 @@ class Payments(Base):
                                 old_content = None,
                                 new_content = OrderStatuses.status_payed().status_name,
                             )
+
                             session.add(new_data_change)
                             logger.debug("Updating order status...")
                             result = await payment_query.order.update_status(OrderStatuses.status_payed().id, send_message=True)
