@@ -1289,9 +1289,13 @@ class Payments(Base):
                             logger.debug("Getting old status")
                             logger.debug(payment_query.order)
                             logger.debug(payment_query.order.status)
+
                             old_status_query = session.query(OrderStatuses).filter(
                                     OrderStatuses.id==payment_query.order.status
-                                ).first()
+                                )
+
+                            logger.debug(old_status_query)
+                            old_status_query = old_status_query.first()
                             logger.debug("Got old status")
 
                             new_data_change = OrderChangeHistory(
