@@ -1287,8 +1287,8 @@ class Payments(Base):
                         if payment_query.order.status != OrderStatuses.status_payed().id:
                             logger.debug("Payment status is not payed, updating")
                             logger.debug("Getting old status")
-                            logger.debug(payment.order)
-                            logger.debug(payment.order.status)
+                            logger.debug(payment_query.order)
+                            logger.debug(payment_query.order.status)
                             old_status_query = session.query(OrderStatuses).filter_by(id=payment_query.order.status).enable_eagerloads(False).first()
                             logger.debug("Got old status")
 
