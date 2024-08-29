@@ -342,7 +342,7 @@ class Orders(Base):
                     await Notifications.create_notification(
                         notification_data = notification_data.model_dump(), 
                         session = session,
-                        send_message = False
+                        send_message = True
                     )
 
                 case 'отменена':
@@ -356,7 +356,7 @@ class Orders(Base):
                     await Notifications.create_notification(
                         notification_data = notification_data.model_dump(), 
                         session = session,
-                        send_message = False
+                        send_message = True
                     )
 
                 case _:
