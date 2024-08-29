@@ -335,14 +335,14 @@ class Orders(Base):
                         content = f"Заявка {__self__.order_num} изменила статус на '{x}'",
                         resource_id = __self__.id,
                         resource_type = 'заявка',
-                        sent_to_tg = True,
+                        sent_to_tg = False,
                         for_user = __self__.manager_id
                     )
                     logger.info("Notification created")
                     await Notifications.create_notification(
                         notification_data = notification_data.model_dump(), 
                         session = session,
-                        send_message = True
+                        send_message = False
                     )
 
                 case 'отменена':
@@ -356,7 +356,7 @@ class Orders(Base):
                     await Notifications.create_notification(
                         notification_data = notification_data.model_dump(), 
                         session = session,
-                        send_message = True
+                        send_message = False
                     )
 
                 case _:
@@ -1562,6 +1562,7 @@ class Notifications(Base):
         del notification_data['n_type']
         del notification_data['read_by_user']
         new_notification = Notifications(**notification_data)
+        new_notification.sent_to_tg = send_message
 
         print("Getting type")
         if type_data != None:
