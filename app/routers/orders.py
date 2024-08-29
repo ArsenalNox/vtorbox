@@ -339,7 +339,7 @@ async def create_order(
         try:
             count_global = session.query(func.max(Orders.order_num)).first()[0]+1
         except Exception as err:
-            count_global = 1000
+            count_global = 3000
 
         #TODO: Переписать проверку на существующий order_num
         pre_check_count = session.query(Orders).filter(Orders.order_num == count_global+1).first()
@@ -614,7 +614,7 @@ async def set_order_status(
                     order=order_query
                 )
                 logger.debug('Checking allowed message')
-
+                logger.debug(new_payment, message)
                 if order_query.user.allow_messages_from_bot and not new_payment:
                     logger.debug("Payment did not automatically complete")
                     message_text = str(BotSettings.get_by_key('MESSAGE_PAYMENT_REQUIRED_ASK').value)
