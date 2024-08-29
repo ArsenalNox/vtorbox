@@ -595,9 +595,10 @@ async def set_order_status(
             old_content = old_status_query.status_name,
             new_content = status_query.status_name,
         )
+
         order_query = await order_query.update_status(status_query.id, (status_query.message_on_update and send_message))
         session.add(new_data_change)
-
+        logger.debug("Checking is status is AWAITING PAYMENT")
         #если статус меняется в "ожидается оплата" - отправить сообщение об оплате
         if status_query.status_name == ORDER_STATUS_AWAITING_PAYMENT['status_name']: 
             if not (order_query.box_type_id and order_query.box_count):
@@ -606,17 +607,18 @@ async def set_order_status(
                 }, 422)
 
             try:
+                logger.debug("Processing status update payment")
                 new_payment, message = await Payments.process_status_update(
                     order=order_query
                 )
-                logger.info(new_payment)
-                logger.debug(message)
+                logger.debug('Checking allowed message')
 
                 if order_query.user.allow_messages_from_bot and not new_payment:
-
+                    logger.debug("Payment did not automatically complete")
                     message_text = str(BotSettings.get_by_key('MESSAGE_PAYMENT_REQUIRED_ASK').value)
                     message_text = message_text.replace("%ORDER_NUM%", str(order_query.order_num))
                     message_text = message_text.replace("%ADDRESS_TEXT%", str(order_query.address.address))
+
                     amount = 0
                     box_price = None
 
@@ -639,7 +641,7 @@ async def set_order_status(
 
                     #"От вас требуется оплата заявки (%ORDER_NUM%) по адресу (%ADDRESS_TEXT%) на сумму %AMOUNT%"
                     #TODO: Автооплата без соглашения
-
+                    logger.debug("Sending message through bot")
                     await send_message_through_bot(
                         order_query.user.telegram_id,
                         message=message_text,

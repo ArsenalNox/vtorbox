@@ -68,16 +68,17 @@ class ConnectionManager:
         except Exception as err:
             logger.error(err)
 
+
     def disconnect(self, websocket: WebSocket, user_id):
         try:
             logger.debug("WEBSOCKET: Disconnectiong client")
             del self.active_connections[str(user_id)]
-        except Exception as err
+        except Exception as err:
             logger.error(err)
 
 
     async def send_personal_message(self, message: str, user_id):
-        try;
+        try:
             logger.debug("WEBSOCKET: Sending personal message")
             await self.active_connections[str(user_id)]['websocket'].send_text(message)
         except Exception as err:
@@ -926,6 +927,7 @@ class Payments(Base):
 
             if rebuill_query:
                 #TODO: Создать платёж и вызвать charge
+                logger.debug("Generating rebill query")
                 new_payment, message = await Payments.create_new_payment(
                     terminal=terminal,
                     order=order,
@@ -939,7 +941,9 @@ class Payments(Base):
                     new_payment.tinkoff_id,
                     rebuill_query.rebill_id,
                 )
+
                 if bill_attmp:
+                    logger.debug("Bill request successfull, checking payment status")
                     await Payments.check_payment_status(new_payment.id)
                     with Session(engine, expire_on_commit=False) as session:
                         payment = session.query(Payments).filter(Payments.id==new_payment.id).first()
@@ -949,6 +953,7 @@ class Payments(Base):
                     return new_payment, message
 
             else:
+                logger.debug("Creating new non-rebill payment")
                 new_payment, message = await Payments.create_new_payment(
                     terminal=terminal,
                     order=order,
@@ -1149,11 +1154,6 @@ class Payments(Base):
 
                 session.add(new_payment)
                 session.commit()
-
-            try:
-                await set_timed_func('p', new_payment.id, 'M:01')
-            except Exception as err:
-                print(err)
 
             return new_payment, 'ok'
 
