@@ -1350,7 +1350,7 @@ class Payments(Base):
         print(response.text)
 
         if response.json()['Success'] and response.json()['Status'] == 'CONFIRMED':
-            payment.status = payment_data['Status']
+            payment.status = responce.json()['Status']
             # logger.debug("Updating order data in BILL ATTEMPT")
             # logger.info(payment.order.status)
             # logger.info(OrderStatuses.status_payed().id)
