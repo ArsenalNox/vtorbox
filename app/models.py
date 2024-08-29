@@ -935,7 +935,7 @@ class Payments(Base):
                 )
 
                 print('Charging')
-                bill_attmp = Payments.bill_payment(
+                bill_attmp = await Payments.bill_payment(
                     terminal,
                     order,
                     new_payment.tinkoff_id,
@@ -1295,7 +1295,7 @@ class Payments(Base):
             return response.json()
 
 
-    def bill_payment(terminal, order, payment_id, rebill_id):
+    async def bill_payment(terminal, order, payment_id, rebill_id):
         """
         Провести автоплатёж
         """
