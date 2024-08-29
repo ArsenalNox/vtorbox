@@ -392,16 +392,13 @@ class TextHandler(Handler):
                 'menu': self.kb.start_menu_btn,
                 'change_period': self.schedule_kb.change_schedule_btn,
                 'change_period_by_day': self.schedule_kb.back_schedule_address_list,
-                'active_order': self.kb.start_menu_btn
+                'active_order': self.kb.start_menu_btn,
+                'courier_menu': self.courier_kb.back_btn
             }
             buttons = menus_buttons.get(menu_view, self.kb.start_menu_btn)
 
             if menu_view == 'courier_menu':
-                await delete_messages_with_btn(
-                    state=state,
-                    data=data,
-                    src=message
-                )
+
                 status_code, routes = await req_to_api(
                     method='get',
                     url=f'bot/routes/?courier_id={message.chat.id}',
@@ -414,11 +411,17 @@ class TextHandler(Handler):
                         reply_markup=self.courier_kb.routes_menu(route_link)
                     )
                     await state.update_data(courier_msg=msg.message_id)
+
                 else:
                     await message.answer(
                         MESSAGES['NO_ROUTES'],
                         reply_markup=self.kb.courier_btn()
                     )
+
+                await message.answer(
+                    'Перейдите по кнопке ниже',
+                    reply_markup=buttons()
+                )
 
             elif menu_view in ('addresses', 'schedule', 'payment', 'menu', 'change_period_by_day'):
                 await message.answer(
