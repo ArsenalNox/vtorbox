@@ -34,6 +34,7 @@ class CommandHandler(Handler):
                 data=data,
                 src=message
             )
+            await state.update_data(chat_id=message.chat.id)
 
             promocode_in_msg = message.text.split()[-1]
 
