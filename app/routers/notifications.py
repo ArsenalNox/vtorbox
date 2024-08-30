@@ -51,7 +51,8 @@ from app.validators import (
 )
 
 from app.auth import (
-    get_current_user
+    get_current_user,
+    get_current_user_variable_scopes
 )
 
 from app.models import (
@@ -217,7 +218,7 @@ async def get_my_notifications(
 
 @router.get('/types')
 async def get_notification_types(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user_variable_scopes, scopes=["admin", "manager"])],
 ):
     with Session(engine, expire_on_commit=False) as session:
         types_query = session.query(NotificationTypes).all()
@@ -227,7 +228,7 @@ async def get_notification_types(
 
 @router.patch('/mark-as-unread')
 async def mark_notifications_as_unread(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user_variable_scopes, scopes=["admin", "manager"])],
     notification_ids: NotificationsAsRead,
     user_id: Optional[UUID] = None
 ):
@@ -281,7 +282,7 @@ async def mark_notifications_as_unread(
 
 @router.patch('/mark-as-read')
 async def mark_notifications_as_read(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user_variable_scopes, scopes=["admin", "manager"])],
     notification_ids: NotificationsAsRead,
     user_id: Optional[UUID] = None
 ):
@@ -336,7 +337,7 @@ async def mark_notifications_as_read(
 
 @router.post('/')
 async def create_new_notification(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user_variable_scopes, scopes=["admin", "manager"])],
     notification_data: Notification,
 )->NotificationOut:
     with Session(engine, expire_on_commit=False) as session:
