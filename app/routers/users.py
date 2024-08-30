@@ -414,6 +414,64 @@ async def update_user_data(
         return user_data
 
 
+@router.post('/users/reset_password')
+async def reset_user_password(
+    user_id: uuid.UUID,
+    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+):
+    import secrets
+    import string
+    import os 
+
+    alphabet = string.ascii_letters + string.digits
+    password = ''.join(secrets.choice(alphabet) for i in range(20))  
+
+    with Session(engine, expire_on_commit=False) as session:
+        user = Users.get_user(user_id)
+        if not user:
+            raise HTTPException(
+                detail='Пользователь не найден',
+                status_code=404
+            )
+
+        setattr(user, "password", get_password_hash(password))
+        session.add(user)
+        session.commit()
+
+    from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+    from pydantic import EmailStr
+
+    conf = ConnectionConfig(
+        MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+        MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+        MAIL_FROM=os.getenv("MAIL_FROM"),
+        MAIL_PORT=os.getenv("MAIL_PORT"),
+        MAIL_SERVER=os.getenv("MAIL_SERVER"),
+        MAIL_STARTTLS=os.getenv("MAIL_STARTTLS"),
+        MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS"),
+        USE_CREDENTIALS=os.getenv("USE_CREDENTIALS"),
+    )
+
+    async def send_email(emails: list[EmailStr], subject: str, message: str):
+        message = MessageSchema(
+            subject=subject, recipients=emails, body=message, subtype="html"
+        )
+        fm = FastMail(conf)
+        await fm.send_message(message)
+
+    await send_email(
+        emails=[user.email],
+        subject='Смена пароля',
+        message=f"Ваш пароль был изменён. Новый пароль: {password}"
+    )
+
+    #fastapi_mail=1.4.1
+
+    return JSONResponse({
+        "new_password": password
+    })
+
+
 @router.get('/users/bot_linked', tags=[Tags.bot, Tags.users])
 async def get_bot_users():
     """
