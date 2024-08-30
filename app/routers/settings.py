@@ -76,7 +76,7 @@ router = APIRouter()
 
 @router.get('/settings/types', tags=[Tags.settings])
 async def get_settings_types(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user_variable_scopes, scopes=["admin", "manager"])],
 ):
     with Session(engine, expire_on_commit=False) as session:
         query = session.query(SettingsTypes).all()
@@ -85,7 +85,7 @@ async def get_settings_types(
 
 @router.get('/bot/settings', tags=[Tags.settings])
 async def get_settings(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user_variable_scopes, scopes=["admin", "manager"])],
     setting_name: Optional[str] = None,
     setting_key: Optional[str] = None,
     setting_id: Optional[UUID] = None,
@@ -232,7 +232,7 @@ async def update_bot_setting(
 
 @router.get('/bot/messages', tags=[Tags.settings])
 async def get_bot_messages(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user_variable_scopes, scopes=["admin", "manager"])],
     message_key: str,
 )->str:
     """
@@ -250,7 +250,7 @@ async def get_bot_messages(
 
 @router.get("/work_days", tags=[Tags.settings])
 async def get_work_days(
-    current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
+    current_user: Annotated[UserLoginSchema, Security(get_current_user_variable_scopes, scopes=["admin", "manager"])],
     dates_ahead: int = 5
 ):
     """
