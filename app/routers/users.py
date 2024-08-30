@@ -419,6 +419,7 @@ async def reset_user_password(
     user_id: uuid.UUID,
     current_user: Annotated[UserLoginSchema, Security(get_current_user, scopes=["admin"])],
 ):
+    logger.debug("Resetting user password")
     import secrets
     import string
     import os 
@@ -434,38 +435,51 @@ async def reset_user_password(
                 status_code=404
             )
 
+        if not user.email:
+            raise HTTPException(
+                detail='У пользователя не указан e-mail',
+                status_code=422
+            )
+
         setattr(user, "password", get_password_hash(password))
         session.add(user)
-        session.commit()
 
-    from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-    from pydantic import EmailStr
+        from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+        from pydantic import EmailStr
 
-    conf = ConnectionConfig(
-        MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-        MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-        MAIL_FROM=os.getenv("MAIL_FROM"),
-        MAIL_PORT=os.getenv("MAIL_PORT"),
-        MAIL_SERVER=os.getenv("MAIL_SERVER"),
-        MAIL_STARTTLS=os.getenv("MAIL_STARTTLS"),
-        MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS"),
-        USE_CREDENTIALS=os.getenv("USE_CREDENTIALS"),
-    )
-
-    async def send_email(emails: list[EmailStr], subject: str, message: str):
-        message = MessageSchema(
-            subject=subject, recipients=emails, body=message, subtype="html"
+        conf = ConnectionConfig(
+            MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+            MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+            MAIL_FROM=os.getenv("MAIL_FROM"),
+            MAIL_PORT=os.getenv("MAIL_PORT"),
+            MAIL_SERVER=os.getenv("MAIL_SERVER"),
+            MAIL_STARTTLS=os.getenv("MAIL_STARTTLS"),
+            MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS"),
+            USE_CREDENTIALS=os.getenv("USE_CREDENTIALS"),
         )
-        fm = FastMail(conf)
-        await fm.send_message(message)
 
-    await send_email(
-        emails=[user.email],
-        subject='Смена пароля',
-        message=f"Ваш пароль был изменён. Новый пароль: {password}"
-    )
+        async def send_email(emails: list[EmailStr], subject: str, message: str):
+            logger.debug('Sending email...')
+            message = MessageSchema(
+                subject=subject, recipients=emails, body=message, subtype="html"
+            )
+            fm = FastMail(conf)
+            await fm.send_message(message)
+        try:
+            await send_email(
+                emails=[user.email],
+                subject='Смена пароля',
+                message=f"Ваш пароль был изменён. Новый пароль: {password}"
+            )
+        except Exception as err:
+            logger.error(err)
+            raise HTTPException(
+                detail='Не удалось отправить письмо на почту пользователя',
+                status_code=500
+            )
 
-    #fastapi_mail=1.4.1
+        #fastapi_mail=1.4.1
+        session.commit()
 
     return JSONResponse({
         "new_password": password
