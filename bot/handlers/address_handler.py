@@ -214,6 +214,8 @@ class AddressHandler(Handler):
             await state.update_data(chat_id=message.chat.id)
             data = await state.get_data()
             await state.set_state(state=None)
+            comment = message.text if message.text.lower() != 'без комментария' else ''
+
 
             # получаем данные из состояния и отправляем запрос в бек на создание адреса
             address_data = json.dumps(
@@ -222,7 +224,7 @@ class AddressHandler(Handler):
                     "detail": data.get('detail'),
                     "latitude": data.get("latitude"),
                     "longitude": data.get("longitude"),
-                    "comment": message.text
+                    "comment": comment
                 }
             )
 

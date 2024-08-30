@@ -191,7 +191,7 @@ class OrderHandler(Handler):
             """Получаем комментарий к заявке"""
 
             await state.update_data(chat_id=message.chat.id)
-            comment = message.text
+            comment = message.text if message.text.lower() != 'без комментария' else ''
             data = await state.get_data()
             await state.set_state(state=None)
 

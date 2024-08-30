@@ -496,6 +496,7 @@ class CourierHandler(Handler):
         async def get_courier_comment(message: Message, state: FSMContext):
             data = await state.get_data()
             order_id = data.get('order_id')
+            comment = message.text if message.text.lower() != 'без комментария' else ''
 
             await state.set_state(state=None)
 
@@ -506,7 +507,7 @@ class CourierHandler(Handler):
 
             update_order_data = json.dumps(
                 {
-                    'comment_courier': message.text
+                    'comment_courier': comment
                 }
             )
             await req_to_api(
