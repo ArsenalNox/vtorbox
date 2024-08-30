@@ -94,6 +94,10 @@ def tirgger_payment_check(payment_id):
 
     if request.json()['Status'] in statuses_in_progress:
         return 
+    
+    if 'Status' not in requests.json():
+        scheduler.remove_job(f'p-{payment_id}')
+        logging.info(f'Payment {payment_id} failed, removing check')
 
     if request.json()['Status'] in statuses_failed:
         scheduler.remove_job(f'p-{payment_id}')
@@ -139,7 +143,7 @@ async def add_job(
             func_to_schedule = trigger_route_check
         
         case 'p':
-            func_to_schedule = tirgger_payment_check
+            pass
 
         case _:
             func_to_schedule = None

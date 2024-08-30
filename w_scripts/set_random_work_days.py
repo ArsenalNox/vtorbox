@@ -2,7 +2,7 @@ import requests
 import json
 import random
 
-url = "http://94.41.188.133:8000/api/regions"
+url = "https://bot.vtorbox.ru:8000/api/regions"
 
 payload = {}
 headers = {
@@ -18,14 +18,12 @@ WEEK_DAYS_WORK_STR_LIST = [
     "tuesday",
     "wednesday",
     "thursday",
-    "friday",
-    "sunday",
-    "saturday",
+    "friday"
 ]
 
 for region in regions:
 
-    url = f"http://94.41.188.133:8000/api/regions/{region['id']}"
+    url = f"https://bot.vtorbox.ru:8000/api/regions/{region['id']}"
     
     payload = json.dumps({
         "work_days": WEEK_DAYS_WORK_STR_LIST,
