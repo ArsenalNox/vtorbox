@@ -20,7 +20,8 @@ from app import CODER_KEY, CODER_SETTINGS, COURIER_KEY
 
 from app.auth import (
     oauth2_scheme, 
-    get_current_user
+    get_current_user,
+    get_current_user_variable_scopes
 )
 
 from app.validators import (

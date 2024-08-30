@@ -26,7 +26,8 @@ from app.auth import (
     create_access_token,
     get_current_active_user,
     get_current_user,
-    ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
+    ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM,
+    get_current_user_variable_scopes
 )
 
 import os, uuid

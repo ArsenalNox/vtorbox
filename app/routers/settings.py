@@ -50,7 +50,8 @@ from sqlalchemy import desc, asc, desc
 
 
 from app.auth import (
-    get_current_user
+    get_current_user,
+    get_current_user_variable_scopes
 )
 
 from app.models import (
