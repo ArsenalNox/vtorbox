@@ -250,7 +250,16 @@ async def generate_routes_today(
                         old_content = old_status_query.status_name,
                         new_content = status_query.status_name,
                     )
-                    order_query = order_query.update_status(
+
+                    order_query.comment = 'Пользователь не подтвердил заявку'
+                    new_data_change = OrderChangeHistory(
+                        from_user_id = current_user.id,
+                        order_id = order_query.id,
+                        attribute = 'comment',
+                        new_content = 'Пользователь не подтвердил заявку',
+                    )
+
+                    order_query = await order_query.update_status(
                         OrderStatuses.status_canceled().id, 
                         OrderStatuses.status_canceled().message_on_update
                         )
@@ -264,15 +273,22 @@ async def generate_routes_today(
                     sent_to_tg = True,
                     for_user_group = 'manager'
                 )
-                await Notifications.create_notification(
-                    notification_data = notification_data.model_dump(), 
-                    session = session,
-                    send_message = True
-                )
 
             except Exception as err:
                 print(err)
 
+            if len(routes) < 1:
+                return {
+                    "global_count": global_orders_count,
+                    "count": total,
+                    "routes": routes
+                }
+
+            await Notifications.create_notification(
+                notification_data = notification_data.model_dump(), 
+                session = session,
+                send_message = True
+            )
 
         return {
             "global_count": global_orders_count,
