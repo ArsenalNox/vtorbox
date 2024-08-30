@@ -8,12 +8,12 @@ services:
     restart: always
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=my_app
       - PGPORT=5433
 
     ports:
-      - '5433'
+      - '5433:5433'
 
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
@@ -31,7 +31,7 @@ services:
   web:
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=my_app
       - POSTGRES_HOST=project_db
       - PGPORT=5433
@@ -41,7 +41,7 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=3600
       - Y_GEOCODER_KEY=37e2fe65-4dd4-40c5-9c4d-9a45a9f3587a
       - Y_COURIER_KEY=bd9ebf6a-e31b-438f-b3cd-fe64e42b0ff9
-      - BOT_TOKEN=6700660749:AAGmWyCZ1bCG6Dp8MeIsfwdIPLR6FxYAeYc
+      - BOT_TOKEN=2021564446:AAGaXDz7oa__Ijrm5stoybJdB8R6jbJQE4o
 
       - SCHEDULER_HOST=project_scheduler
       - SCHEDULER_PORT=8081
@@ -52,6 +52,8 @@ services:
       db:
         condition: service_healthy
 
+    restart: always
+
     build:
       context: .
       dockerfile: dockerfile
@@ -61,6 +63,8 @@ services:
 
     networks:
       - common-net
+
+    mem_limit: 6GB
 
   bot:
     build:
@@ -85,7 +89,7 @@ services:
     restart: always
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=my_app
       - POSTGRES_HOST=project_db
       - PGPORT=5433

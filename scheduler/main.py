@@ -31,7 +31,7 @@ s = requests.Session()
 load_dotenv()
 backend_host = os.getenv('BACKEND_HOST')
 
-api_url = f'http://{backend_host}:8000/api'
+api_url = f'{backend_host}:8000/api'
 
 def authorize():
     username = 'user3@example.com'
@@ -66,8 +66,8 @@ def trigger_route_check(route_id):
 
 def tirgger_payment_check(payment_id):
     logging.info(f"Checking payment status {payment_id}")
-    requests = s.get(f"{api_url}/payment/{payment_id}/status")
-    print(requests.json())
+    request = s.get(f"{api_url}/payment/{payment_id}/status")
+    print(request.json())
     statuses_failed = [
         'AUTHORIZED', 'PARTIAL_REFUNDED', 'REFUNDED', '3DS_CHECKING',
         'AUTH_FAIL', 'REJECTED', 'ATTEMPTS_EXPIRED', 'DEADLINE_EXPIRED',
@@ -79,17 +79,27 @@ def tirgger_payment_check(payment_id):
 
     statuses_completed = ['CONFIRMED', 'AUTHORIZED']
 
-    if requests.status_code != 200:
+    if request.status_code != 200:
+        return 
+    
+    logging.info(request.json())
+
+    if not request.json():
+        scheduler.remove_job(f'p-{payment_id}')
+        return
+
+    if 'Status' not in request.json():
+        scheduler.remove_job(f'p-{payment_id}')
+        return
+
+    if request.json()['Status'] in statuses_in_progress:
         return 
 
-    if requests.json()['Status'] in statuses_in_progress:
-        return 
-
-    if requests.json()['Status'] in statuses_failed:
+    if request.json()['Status'] in statuses_failed:
         scheduler.remove_job(f'p-{payment_id}')
         logging.info(f'Payment {payment_id} failed, removing check')
 
-    if requests.json()["Status"] in statuses_completed:
+    if request.json()["Status"] in statuses_completed:
         scheduler.remove_job(f'p-{payment_id}')
         logging.info(f'Payment {payment_id} failed, removing check')
 
